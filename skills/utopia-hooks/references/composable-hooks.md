@@ -1,0 +1,337 @@
+---
+title: Composable & Widget-Level Hooks
+impact: HIGH
+tags: composition, reusable, widget-hooks, extract, paging, HookWidget
+---
+
+# Skill: Composable & Widget-Level Hooks
+
+Hooks are extractable and composable. Two patterns emerge from this:
+
+1. **Widget-level hook** — a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Page/State/View breakdown at widget scope.
+2. **Composed hook state** — a reusable widget's state is a hook called *from the parent screen's state hook* and passed down. The widget receives state; it doesn't create it.
+
+---
+
+## Pattern 1: Widget-Level Hook
+
+Use when a widget has enough local complexity to warrant its own hook: animations, lazy-loaded content, expand/collapse, per-item async operations.
+
+**Quick Pattern:**
+
+```dart
+// ❌ Local complexity inlined in screen state — ties screen logic to tile behavior
+ScreenState useScreenState() {
+  final expandedIds = useState<ISet<ItemId>>(const ISet.empty());
+  final loadedDetails = useMap(ids.length, (i) =>
+    useAutoComputedState(() => service.loadDetails(ids[i])));
+
+  // screen state is now entangled with tile animation/loading logic
+}
+
+// ✅ Tile extracts its own hook — screen state stays clean
+class ItemTile extends HookWidget {
+  final Item item;
+  const ItemTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = useItemTileState(item: item);
+    return ItemTileView(state: state);
+  }
+}
+```
+
+**File structure:**
+
+```
+ui/pages/items/
+  items_page.dart
+  state/items_page_state.dart
+  view/items_page_view.dart
+  widgets/
+    item_tile/
+      item_tile_widget.dart        ← HookWidget, calls useItemTileState
+      state/item_tile_state.dart   ← ItemTileState class + useItemTileState hook
+      view/item_tile_view.dart     ← StatelessWidget, pure UI
+```
+
+**Full example — expandable tile with lazy loading:**
+
+```dart
+// state/item_tile_state.dart
+class ItemTileState {
+  final Item item;
+  final ItemDetails? details;     // null = not yet loaded
+  final bool isExpanded;
+  final bool isLoadingDetails;
+  final void Function() onToggle;
+
+  const ItemTileState({
+    required this.item,
+    required this.details,
+    required this.isExpanded,
+    required this.isLoadingDetails,
+    required this.onToggle,
+  });
+}
+
+ItemTileState useItemTileState({required Item item}) {
+  final service = useInjected<ItemService>();
+  final isExpanded = useState(false);
+  final details = useAutoComputedState(
+    () async => service.loadDetails(item.id),
+    keys: [item.id],
+    shouldCompute: isExpanded.value,  // lazy — only load when expanded
+  );
+
+  return ItemTileState(
+    item: item,
+    details: details.valueOrNull,
+    isExpanded: isExpanded.value,
+    isLoadingDetails: isExpanded.value && !details.isInitialized,
+    onToggle: () => isExpanded.value = !isExpanded.value,
+  );
+}
+
+// item_tile_widget.dart
+class ItemTile extends HookWidget {
+  final Item item;
+  const ItemTile({required this.item, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = useItemTileState(item: item);
+    return ItemTileView(state: state);
+  }
+}
+
+// view/item_tile_view.dart
+class ItemTileView extends StatelessWidget {
+  final ItemTileState state;
+  const ItemTileView({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      child: Column(
+        children: [
+          ListTile(
+            title: Text(state.item.title),
+            trailing: Icon(state.isExpanded ? Icons.expand_less : Icons.expand_more),
+            onTap: state.onToggle,
+          ),
+          if (state.isExpanded) _buildDetails(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetails() {
+    if (state.isLoadingDetails) return const CrazyLoader();
+    if (state.details == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(state.details!.description),
+    );
+  }
+}
+```
+
+**When to extract a widget-level hook:**
+- The widget has 2+ pieces of local state (isExpanded + loadedData, animationController + isVisible)
+- The widget performs its own async operation (lazy loading, per-item fetch)
+- The logic is specific to this widget and has no business being in the screen state
+- You want to reuse this widget as a `HookWidget` in multiple screens
+
+**Same rules apply at widget scope:**
+- `item_tile_widget.dart` — HookWidget, zero logic, just calls hook and renders view
+- `state/item_tile_state.dart` — no widget imports
+- `view/item_tile_view.dart` — StatelessWidget, no hooks
+
+---
+
+## Pattern 2: Composed Hook State
+
+Use when a reusable widget (paging control, specialized text field, date picker) would otherwise duplicate the same hook logic in every screen that uses it.
+
+**The key rule: state hook is called from the screen's state hook, not inside the widget.**
+
+**Quick Pattern:**
+
+```dart
+// ❌ State created inside widget — screen can't coordinate it, can't access results
+class PagingWidget extends HookWidget {
+  Widget build(BuildContext context) {
+    final pagingState = usePagingState(pageSize: 20); // hidden from screen
+    // screen doesn't know current page, can't react to page changes
+  }
+}
+
+// Used in screen state:
+return ScreenState(
+  // How does screen know the current page? It can't.
+);
+
+// ✅ State created in screen's state hook, passed to widget
+ScreenState useScreenState() {
+  final pagingState = usePagingState(pageSize: 20); // screen owns it
+  final items = useAutoComputedState(
+    () => service.load(page: pagingState.currentPage),
+    keys: [pagingState.currentPage],   // screen can react to page changes
+  );
+
+  return ScreenState(
+    items: items.valueOrNull,
+    paging: pagingState,   // passed to PagingWidget via ScreenState
+  );
+}
+
+// PagingWidget just renders — it doesn't create state
+class PagingWidget extends StatelessWidget {
+  final PagingState state;
+  const PagingWidget({required this.state});
+  // ...
+}
+```
+
+**Full example — reusable paging:**
+
+```dart
+// Reusable state + hook (lives in common/widgets/paging/)
+class PagingState {
+  final int currentPage;
+  final int totalPages;
+  final void Function() onNext;
+  final void Function() onPrevious;
+
+  const PagingState({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onNext,
+    required this.onPrevious,
+  });
+
+  bool get canGoNext => currentPage < totalPages - 1;
+  bool get canGoPrevious => currentPage > 0;
+}
+
+// The composable hook — called from parent screen state
+PagingState usePagingState({required int totalPages}) {
+  final page = useState(0);
+  return PagingState(
+    currentPage: page.value,
+    totalPages: totalPages,
+    onNext: () { if (page.value < totalPages - 1) page.value++; },
+    onPrevious: () { if (page.value > 0) page.value--; },
+  );
+}
+
+// Reusable widget — StatelessWidget, receives state
+class PagingWidget extends StatelessWidget {
+  final PagingState state;
+  const PagingWidget({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: state.canGoPrevious ? state.onPrevious : null,
+        ),
+        Text('${state.currentPage + 1} / ${state.totalPages}'),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: state.canGoNext ? state.onNext : null,
+        ),
+      ],
+    );
+  }
+}
+
+// Screen state hook — composes usePagingState
+ProductListPageState useProductListPageState() {
+  final service = useInjected<ProductService>();
+  final totalCount = useProvided<ProductsState>().totalCount ?? 0;
+  final totalPages = (totalCount / 20).ceil();
+
+  // State created here — screen can react to page changes
+  final paging = usePagingState(totalPages: totalPages);
+
+  final products = useAutoComputedState(
+    () => service.loadPage(paging.currentPage, pageSize: 20),
+    keys: [paging.currentPage],
+  );
+
+  return ProductListPageState(
+    products: products.valueOrNull,
+    isLoading: !products.isInitialized,
+    paging: paging,  // passed to PagingWidget in View
+  );
+}
+
+// Screen state class
+class ProductListPageState {
+  final IList<Product>? products;
+  final bool isLoading;
+  final PagingState paging;  // ← View passes this to PagingWidget
+  // ...
+}
+
+// View wires it up
+class ProductListPageView extends StatelessWidget {
+  final ProductListPageState state;
+  // ...
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (state.isLoading) const CrazyLoader()
+        else _buildProductList(),
+        PagingWidget(state: state.paging),  // just passes state down
+      ],
+    );
+  }
+}
+```
+
+**File structure for a reusable composable widget:**
+
+```
+ui/common/widgets/paging/
+  paging_widget.dart         ← StatelessWidget, receives PagingState
+  paging_state.dart          ← PagingState class + usePagingState hook
+```
+
+No `view/` subdirectory — the widget is simple enough to not need it. No `HookWidget` — state is always provided from outside.
+
+---
+
+## Decision Guide
+
+| Situation | Pattern |
+|-----------|---------|
+| Widget has local complexity (expand, animation, per-item async) | Widget-level hook (Pattern 1) |
+| Widget is reused across screens, screen needs to react to its state | Composed hook state (Pattern 2) |
+| Widget is simple, no async, no state coordination needed | Plain `StatelessWidget`, no hook |
+| Screen state would get polluted with per-tile logic for N tiles | Widget-level hook (Pattern 1) |
+| Multiple fields of the same type on one screen | Composed hook state (Pattern 2) — one `useXState()` call per instance in screen state hook |
+
+---
+
+## Common Pitfalls
+
+- **Calling usePagingState inside PagingWidget** — screen can't react to page changes; always compose from screen state hook
+- **Widget-level hook for simple state** — if the widget only has one `useState`, it doesn't need the full [state, widget, view] breakdown; a single `HookWidget` with inline hook calls is fine
+- **Mixing both patterns** — don't have a widget that both calls its own hook AND accepts state from outside; pick one
+- **Screen state passing individual fields instead of state object** — pass the whole `PagingState`, not `currentPage: paging.currentPage, onNext: paging.onNext, …`
+
+## Related Skills
+
+- [page-state-view.md](./page-state-view.md) — same rules apply at widget scope
+- [hooks-reference.md](./hooks-reference.md) — useState, useAutoComputedState inside widget-level hooks
+- [async-patterns.md](./async-patterns.md) — lazy loading in widget-level hooks
