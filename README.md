@@ -14,16 +14,16 @@ A public, installable skill repository that teaches AI agents how to write Flutt
 
 Holistic guide: how to write Flutter with hooks.
 
-| Reference | Impact | Topic |
-|-----------|--------|-------|
+| Reference | Impact   | Topic |
+|-----------|----------|-------|
 | [page-state-view.md](skills/utopia-hooks/references/page-state-view.md) | CRITICAL | Page / State hook / View screen architecture |
 | [hooks-reference.md](skills/utopia-hooks/references/hooks-reference.md) | CRITICAL | Full hook API organized by use case |
-| [global-state.md](skills/utopia-hooks/references/global-state.md) | CRITICAL | Global state, HasInitialized, MutableValue, providers |
-| [async-patterns.md](skills/utopia-hooks/references/async-patterns.md) | HIGH | Download (useAutoComputedState) / Upload (useSubmitState) / Streams |
-| [composable-hooks.md](skills/utopia-hooks/references/composable-hooks.md) | HIGH | Widget-level hooks, lifted state, useIf, useMap |
-| [testing.md](skills/utopia-hooks/references/testing.md) | HIGH | Unit-testing hooks with SimpleHookContext |
-| [flutter-conventions.md](skills/utopia-hooks/references/flutter-conventions.md) | HIGH | IList/IMap/ISet, lambdas, strict analyzer, widget extraction |
-| [di-services.md](skills/utopia-hooks/references/di-services.md) | MEDIUM | Service registration and injection with useInjected |
+| [global-state.md](skills/utopia-hooks/references/global-state.md) | CRITICAL     | Global state, HasInitialized, MutableValue, providers |
+| [async-patterns.md](skills/utopia-hooks/references/async-patterns.md) | HIGH   | Download (useAutoComputedState) / Upload (useSubmitState) / Streams |
+| [flutter-conventions.md](skills/utopia-hooks/references/flutter-conventions.md) | HIGH     | IList/IMap/ISet, lambdas, strict analyzer, widget extraction |
+| [composable-hooks.md](skills/utopia-hooks/references/composable-hooks.md) | MEDIUM   | Widget-level hooks, lifted state, useIf, useMap |
+| [testing.md](skills/utopia-hooks/references/testing.md) | MEDIUM   | Unit-testing hooks with SimpleHookContext |
+| [di-services.md](skills/utopia-hooks/references/di-services.md) | MEDIUM   | Service registration and injection with useInjected |
 
 ## Installation
 
