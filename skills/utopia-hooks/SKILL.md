@@ -231,4 +231,3 @@ grep -rl "useProvided" references/
 ## Attribution
 
 Built on [utopia_hooks](https://pub.dev/packages/utopia_hooks) and [utopia_arch](https://pub.dev/packages/utopia_arch) by UtopiaSoftware.
-Skill format inspired by [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills).
