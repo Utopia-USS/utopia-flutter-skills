@@ -95,6 +95,12 @@ TaskListPageState useTaskListPageState() {
 - `_repository` field → `useInjected<TaskRepository>()`
 - Disposal → automatic (hook cleanup)
 
+**What MUST be eliminated (not carried over):**
+- `copyWith()` — hooks use individual `useState` per field, not immutable state objects
+- `Equatable` / `props` — not needed, hooks don't do equality-based rebuild
+- `Status` enum — use nullable `T?` for loading and `bool` flags for actions
+- File name `_cubit.dart` / `_bloc.dart` — rename to `_state.dart`
+
 ---
 
 ## 2. Bloc with Events → hook with callbacks
@@ -504,6 +510,172 @@ useEffect(() {
 - `buildWhen` predicate → `useMemoized` keys (only recomputes when key changes)
 - `listenWhen` predicate → `useEffect` keys (only runs when key changes)
 - More granular — keys are explicit values, not comparison functions
+
+---
+
+## 9. Status Enum → Built-in Hook State Machines
+
+Hooks have built-in state tracking. Don't recreate Status enums.
+
+### Download (read data) → useAutoComputedState
+
+`useAutoComputedState` returns `MutableComputedState<T>` which internally uses `ComputedStateValue`:
+
+| BLoC Status | ComputedStateValue | What State class exposes |
+|---|---|---|
+| `Status.idle` / `initial` | `.notInitialized` | `T? data` (null) |
+| `Status.loading` / `inProgress` | `.inProgress(operation)` | `!computed.isInitialized` |
+| `Status.success` / `loaded` | `.ready(T)` | `T? data` (non-null via `.valueOrNull`) |
+| `Status.failure` / `error` | `.failed(exception)` | handled by error callback or `.value.when(failed: ...)` |
+
+```dart
+// ❌ BLoC — manual Status tracking
+class TaskListState extends Equatable {
+  final Status status;
+  final List<Task> tasks;
+  TaskListState copyWith({Status? status, List<Task>? tasks}) => ...;
+}
+
+class TaskListCubit extends Cubit<TaskListState> {
+  Future<void> loadTasks() async {
+    emit(state.copyWith(status: Status.loading));
+    final tasks = await repo.getAll();
+    emit(state.copyWith(status: Status.success, tasks: tasks));
+  }
+}
+
+// ✅ Hooks — ComputedStateValue handles all states
+class TaskListPageState {
+  final IList<Task>? tasks;  // null = loading, non-null = loaded
+  // No Status enum. No copyWith. No Equatable.
+}
+
+TaskListPageState useTaskListPageState() {
+  final repo = useInjected<TaskRepository>();
+  final tasksState = useAutoComputedState(() async => (await repo.getAll()).toIList());
+  return TaskListPageState(tasks: tasksState.valueOrNull);
+}
+```
+
+### Upload (write/mutate) → useSubmitState
+
+| BLoC Status | submitState | What State class exposes |
+|---|---|---|
+| `idle` | `!inProgress` | `bool isSaving` (false) |
+| `inProgress` | `inProgress` | `bool isSaving` (true) |
+| `success` | `afterSubmit` callback | callback runs, no state field |
+| `failure` | `afterKnownError` callback | callback runs, no state field |
+
+```dart
+// ❌ BLoC
+emit(state.copyWith(status: Status.loading));
+await repo.save(data);
+emit(state.copyWith(status: Status.success));
+
+// ✅ Hooks
+final saveState = useSubmitState();
+void save() => saveState.runSimple<void, Never>(
+  submit: () async => repo.save(data),
+  afterSubmit: (_) => navigateBack(),
+);
+// State class: isSaving: saveState.inProgress
+```
+
+---
+
+## 10. HydratedCubit → usePersistedState
+
+### BLoC
+
+```dart
+class SettingsCubit extends HydratedCubit<SettingsState> {
+  SettingsCubit() : super(const SettingsState());
+
+  void updateTheme(ThemeMode mode) => emit(state.copyWith(themeMode: mode));
+
+  @override
+  SettingsState? fromJson(Map<String, dynamic> json) => SettingsState.fromJson(json);
+
+  @override
+  Map<String, dynamic>? toJson(SettingsState state) => state.toJson();
+}
+```
+
+### utopia_hooks
+
+```dart
+class SettingsPageState {
+  final ThemeMode themeMode;
+  final void Function(ThemeMode) onUpdateTheme;
+  const SettingsPageState({required this.themeMode, required this.onUpdateTheme});
+}
+
+SettingsPageState useSettingsPageState() {
+  final prefs = useInjected<PreferencesService>();
+
+  final themeMode = usePersistedState<ThemeMode>(
+    () async => prefs.load<ThemeMode>('themeMode'),
+    (value) async => prefs.save('themeMode', value),
+  );
+
+  return SettingsPageState(
+    themeMode: themeMode.value ?? ThemeMode.system,
+    onUpdateTheme: (mode) => themeMode.value = mode,
+  );
+}
+```
+
+**What changed:**
+- `HydratedCubit` + `fromJson`/`toJson` → `usePersistedState(get, set)`
+- No manual serialization boilerplate — `usePersistedState` handles sync
+- `themeMode.isSynchronized` tells you if the value has been saved
+
+---
+
+## 11. Cubit Parameter → useProvided
+
+If a hook takes a Cubit/Bloc as parameter, the migration is incomplete.
+
+### BLoC
+
+```dart
+class FavCubit extends Cubit<FavState> {
+  final AuthCubit _authCubit;
+  FavCubit(this._authCubit) : super(const FavState());
+
+  void loadFavorites() {
+    final username = _authCubit.state.username;
+    // ... load favorites for username
+  }
+}
+```
+
+### ❌ Half-migrated (Cubit as parameter)
+
+```dart
+FavState useFavState({required AuthCubit authCubit}) {
+  final username = authCubit.state.username;  // still using Cubit API
+  authCubit.stream.listen(...)                // still using BLoC stream
+}
+```
+
+### ✅ Fully migrated (useProvided)
+
+```dart
+FavState useFavState() {
+  final authState = useProvided<AuthState>();  // reactive, no Cubit
+  final username = authState.username;          // direct field access
+
+  final favs = useAutoComputedState(
+    () async => favRepo.loadForUser(username),
+    keys: [username],                           // auto-reloads when username changes
+    shouldCompute: username.isNotEmpty,
+  );
+  // ...
+}
+```
+
+**Rule:** If a hook takes a Cubit/Bloc parameter, migrate that Cubit to global state FIRST (see [global-state-migration.md](./global-state-migration.md)), then replace the parameter with `useProvided<XState>()`.
 
 ---
 

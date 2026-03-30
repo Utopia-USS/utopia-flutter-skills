@@ -303,6 +303,29 @@ void main() {
 
 ---
 
+## HydratedCubit → Global State with Persistence
+
+If the global Cubit extends `HydratedCubit`, replace `fromJson`/`toJson` with `usePersistedState`:
+
+```dart
+// Hooks — global state with persistence
+SettingsState useSettingsState() {
+  final prefs = useInjected<PreferencesService>();
+  final themeMode = usePersistedState<ThemeMode>(
+    () async => prefs.load<ThemeMode>('themeMode'),
+    (value) async => prefs.save('themeMode', value),
+  );
+  return SettingsState(
+    isInitialized: themeMode.isInitialized,
+    themeMode: themeMode.value ?? ThemeMode.system,
+  );
+}
+```
+
+See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full side-by-side.
+
+---
+
 ## Migration Checklist
 
 ```

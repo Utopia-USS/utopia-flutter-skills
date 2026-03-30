@@ -187,6 +187,84 @@ class CounterPageView extends StatelessWidget {
 - **Delete BLoC files after migration** — don't leave dead code
 - **The ~30% code reduction is a consequence** — focus on correctness, not size
 
+## Migration Anti-Patterns — NEVER DO THESE
+
+These are the most common mistakes when migrating. Every single one must be absent from migrated code.
+
+```dart
+// ❌ NEVER: copyWith() in hooks — this is BLoC thinking, not hooks thinking
+state.value = state.value.copyWith(isLoading: true);
+// ✅ INSTEAD: one useState per mutable field
+final isLoading = useState(false);
+isLoading.value = true;
+
+// ❌ NEVER: Equatable on state classes — hooks don't need equality checks
+class MyState extends Equatable {
+  @override List<Object?> get props => [field1, field2];
+}
+// ✅ INSTEAD: plain class with final fields
+class MyState {
+  final String? data;
+  final bool isLoading;
+  const MyState({required this.data, required this.isLoading});
+}
+
+// ❌ NEVER: Status enum (idle/loading/success/failure) — hooks have built-in state machines
+final Status status;
+// ✅ INSTEAD: useAutoComputedState has ComputedStateValue (notInitialized/inProgress/ready/failed)
+//            useSubmitState has .inProgress bool
+//            State class exposes: T? data (via .valueOrNull), bool isSaving (via .inProgress)
+
+// ❌ NEVER: passing Cubit/Bloc instances to hooks
+FavState useFavState({required AuthBloc authBloc}) {
+  authBloc.stream.listen(...);   // BLoC API in hooks
+  authBloc.state.username;       // reading .state from BLoC
+}
+// ✅ INSTEAD: useProvided for global state
+FavState useFavState() {
+  final authState = useProvided<AuthState>();
+  // authState.username — direct field access, reactive
+
+// ❌ NEVER: emit() wrapper function
+void emit(MyState newState) { state.value = newState; }
+// ✅ INSTEAD: mutate individual useState fields directly
+
+// ❌ NEVER: keeping files named _bloc.dart or _cubit.dart
+// ✅ INSTEAD: rename to _state.dart (e.g. auth_bloc.dart → auth_state.dart)
+
+// ❌ NEVER: adding comments like "// State", "// Hook", "// ---" section dividers
+// ✅ INSTEAD: clean code, no noise comments
+
+// ❌ NEVER: manual stream subscriptions in useEffect for data that should be reactive
+useEffect(() { cubit.stream.listen(...); }, []);
+// ✅ INSTEAD: useMemoizedStream or useAutoComputedState
+final data = useMemoizedStream(service.streamData);
+```
+
+## Pre-Submit Checklist
+
+Before considering migration complete, verify ALL of these. **If any fail, the migration is not done.**
+
+### Compilation gates (run these first)
+```
+□ flutter pub get succeeds
+□ dart analyze returns zero errors
+```
+
+### Code audit (grep to verify)
+```
+□ Zero imports of flutter_bloc, bloc, hydrated_bloc anywhere in lib/
+□ Zero copyWith() methods in state classes
+□ Zero extends Equatable on state classes
+□ Zero Status enums — hooks have built-in state machines (ComputedStateValue, submitState.inProgress)
+□ Zero files named _bloc.dart or _cubit.dart (renamed to _state.dart)
+□ Zero cubit/bloc class parameters in hooks (use useProvided instead)
+□ Zero .stream or .state access on old cubit/bloc objects
+□ Zero added comments (no "// State", "// Hook", "// ---" dividers, no typedefs for backward compat)
+□ flutter_bloc, bloc, bloc_concurrency, hydrated_bloc, bloc_test, bloc_lint removed from pubspec.yaml
+□ utopia_hooks (or utopia_arch) added to pubspec.yaml
+```
+
 ## Attribution
 
 Migration from [flutter_bloc](https://pub.dev/packages/flutter_bloc) to

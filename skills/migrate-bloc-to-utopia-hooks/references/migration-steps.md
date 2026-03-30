@@ -6,78 +6,88 @@ tags: migration, checklist, step-by-step, screen, convert, refactor
 
 # Step-by-Step: Migrating a Screen from BLoC to utopia_hooks
 
-This checklist converts one screen at a time. Migrate screen-by-screen, not file-by-file.
-Each screen should be fully migrated before moving to the next.
+Migrate screen-by-screen, not file-by-file. Each screen fully migrated before moving to the next.
 
 ---
 
-## Pre-Migration Assessment
+## Step 0: Pre-Migration Assessment
 
-Before touching code, analyze the existing BLoC:
+Before touching code:
 
 ```
 □ Identify the Cubit/Bloc class and its state class
 □ List all methods (Cubit) or event handlers (Bloc)
-□ List all state variants (Freezed unions, loading/loaded/error)
-□ Identify BlocProvider scope — is it global (app root) or local (screen)?
-□ Identify BlocListeners — what side effects do they perform?
-□ Identify RepositoryProvider dependencies
-□ Check if other screens depend on this Cubit/Bloc's state
+□ Identify BlocProvider scope — global (app root) or local (screen)?
+□ If global → migrate to _providers first (see global-state-migration.md)
+□ If this Cubit depends on ANOTHER Cubit → migrate that one first
+□ List all BlocListeners — what side effects do they perform?
 ```
-
-If the Cubit/Bloc is **global** (provided at app root, consumed by multiple screens),
-see [global-state-migration.md](./global-state-migration.md) first.
 
 ---
 
-## Step 1: Create the file structure
+## Step 1: Rename + delete files
 
-From:
+Do this FIRST, before writing any code.
+
+**Rename:**
 ```
-lib/
-  cubit/
-    task_list_cubit.dart
-    task_list_state.dart     ← Freezed
-  pages/
-    task_list_page.dart      ← BlocProvider + BlocBuilder + BlocListener
+lib/cubit/task_list_cubit.dart  →  lib/state/task_list_state.dart
+lib/bloc/auth_bloc.dart         →  lib/state/auth_state.dart
 ```
 
-To:
+**Delete immediately:**
 ```
-lib/ui/pages/task_list/
-  task_list_page.dart                  ← HookWidget (coordinator)
-  state/task_list_page_state.dart      ← State class + hook
-  view/task_list_page_view.dart        ← StatelessWidget
+lib/cubit/task_list_state.dart   ← old Freezed/part state file
+lib/bloc/auth_event.dart         ← event classes — replaced by callbacks
+lib/bloc/auth_state.dart         ← old state — merged into renamed bloc file
 ```
 
-Create the three empty files. Don't delete the BLoC files yet.
+**Update barrel exports:**
+```dart
+// Before: export 'cubit/task_list_cubit.dart';
+// After:  export 'state/task_list_state.dart';
+```
 
 ---
 
 ## Step 2: Design the State class
 
-Analyze the BLoC state and flatten it:
+Write the State class in the renamed file. Rules — **ALL mandatory, no exceptions:**
+
+- **No `copyWith()`** — hooks use individual `useState` per field, not immutable state objects
+- **No `extends Equatable`** — hooks don't need equality checks, no `props` getter
+- **No `Status` enum** — hooks have built-in state machines (see below)
+- **No `part` / `part of`** — everything in one file
+- Nullable `T?` for data fields (null = not loaded yet)
+- `bool` flags for in-progress actions
+- One `void Function()` per user action
+- `MutableValue<T>` for user-controlled selections (filter, tab)
+- No widget imports, no BuildContext
+
+**How Status maps to hooks (don't recreate it):**
+
+| BLoC Status | Hook equivalent (built-in) | State class exposes |
+|---|---|---|
+| `idle` / `initial` | `ComputedStateValue.notInitialized` | `T? data` (null) |
+| `loading` / `inProgress` | `ComputedStateValue.inProgress` | `bool isLoading` (via `!state.isInitialized`) |
+| `success` / `loaded` | `ComputedStateValue.ready(T)` | `T? data` (non-null via `.valueOrNull`) |
+| `failure` / `error` | error in `runSimple` callback | not in state — handled in hook |
+| upload in progress | `submitState.inProgress` | `bool isSaving` |
 
 **From Freezed union:**
 ```dart
+// ❌ BLoC
 @freezed
 class TaskListState with _$TaskListState {
   const factory TaskListState.loading() = _Loading;
   const factory TaskListState.loaded(List<Task> tasks, {bool isDeleting}) = _Loaded;
   const factory TaskListState.error(String message) = _Error;
 }
-```
 
-**To flat State class:**
-```dart
+// ✅ Hooks — flat, no union, no copyWith, no Equatable
 class TaskListPageState {
-  // Data fields — null means loading/not available
-  final IList<Task>? tasks;
-
-  // Progress flags
+  final IList<Task>? tasks;        // null = loading
   final bool isDeleting;
-
-  // Callbacks — one per user action
   final void Function(TaskId) onDeletePressed;
   final void Function() onRefreshPressed;
 
@@ -90,19 +100,9 @@ class TaskListPageState {
 }
 ```
 
-**Rules for State class design:**
-- Nullable `T?` replaces "loading" state (null = not loaded yet)
-- `bool` flags replace "submitting" / "deleting" variants
-- Error messages are NOT in state — they're handled via `afterKnownError` callbacks
-- One `void Function()` per user action
-- `MutableValue<T>` for user-controlled selections (filter, tab, dropdown)
-- No widget imports, no BuildContext
-
 ---
 
 ## Step 3: Migrate Cubit methods → hook body
-
-Map each Cubit method to a hooks equivalent:
 
 | Cubit pattern | Hook equivalent |
 |---|---|
@@ -113,35 +113,8 @@ Map each Cubit method to a hooks equivalent:
 | Method that toggles a flag | `useState<bool>` + `.value = !.value` |
 | Timer / periodic | `usePeriodicalSignal` |
 | Stream subscription | `useMemoizedStream` |
+| Cubit depends on another Cubit | `useProvided<XState>()` |
 
-**From Cubit:**
-```dart
-class TaskListCubit extends Cubit<TaskListState> {
-  final TaskRepository _repo;
-
-  TaskListCubit(this._repo) : super(const TaskListState.loading()) {
-    loadTasks();
-  }
-
-  Future<void> loadTasks() async {
-    emit(const TaskListState.loading());
-    try {
-      final tasks = await _repo.getAll();
-      emit(TaskListState.loaded(tasks));
-    } catch (e) {
-      emit(TaskListState.error(e.toString()));
-    }
-  }
-
-  Future<void> deleteTask(String id) async {
-    emit((state as _Loaded).copyWith(isDeleting: true));
-    await _repo.delete(id);
-    loadTasks();
-  }
-}
-```
-
-**To hook:**
 ```dart
 TaskListPageState useTaskListPageState() {
   final repo = useInjected<TaskRepository>();
@@ -171,27 +144,19 @@ TaskListPageState useTaskListPageState() {
 
 ## Step 4: Migrate BlocBuilder → View
 
-**From:**
 ```dart
+// ❌ BLoC
 BlocBuilder<TaskListCubit, TaskListState>(
   builder: (context, state) {
     return state.when(
       loading: () => const CircularProgressIndicator(),
-      loaded: (tasks, isDeleting) => ListView(
-        children: tasks.map((t) => Dismissible(
-          key: ValueKey(t.id),
-          onDismissed: (_) => context.read<TaskListCubit>().deleteTask(t.id),
-          child: ListTile(title: Text(t.title)),
-        )).toList(),
-      ),
+      loaded: (tasks, isDeleting) => ListView(...),
       error: (msg) => Text(msg),
     );
   },
 )
-```
 
-**To:**
-```dart
+// ✅ Hooks — StatelessWidget receives state
 class TaskListPageView extends StatelessWidget {
   final TaskListPageState state;
   const TaskListPageView({required this.state});
@@ -211,7 +176,7 @@ class TaskListPageView extends StatelessWidget {
 }
 ```
 
-**What to change:**
+Changes:
 - `context.read<XCubit>().method()` → `state.onXPressed()`
 - `state.when(loading:, loaded:, ...)` → null checks on data fields
 - All data comes from `state.` — no `context` access for business logic
@@ -220,21 +185,17 @@ class TaskListPageView extends StatelessWidget {
 
 ## Step 5: Migrate BlocListener → useEffect or callback
 
-**From:**
 ```dart
+// ❌ BLoC
 BlocListener<TaskListCubit, TaskListState>(
   listener: (context, state) {
     if (state is _Error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
     }
   },
-  child: /* BlocBuilder... */,
 )
-```
 
-**To (in hook):**
-```dart
-// Error handling is already in runSimple — no BlocListener needed!
+// ✅ Hooks — error handling in runSimple, no BlocListener needed
 deleteState.runSimple<void, AppError>(
   submit: () async => repo.delete(id),
   mapError: (e) => e is AppError ? e : null,
@@ -242,9 +203,8 @@ deleteState.runSimple<void, AppError>(
 );
 ```
 
-If the listener is for navigation or non-error side effects:
+For navigation side effects:
 ```dart
-// In hook
 useEffect(() {
   if (someCondition) navigateToX();
   return null;
@@ -255,24 +215,19 @@ useEffect(() {
 
 ## Step 6: Wire up the Page
 
-**From:**
 ```dart
+// ❌ BLoC
 class TaskListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => TaskListCubit(context.read<TaskRepository>()),
-      child: BlocConsumer<TaskListCubit, TaskListState>(
-        listener: (context, state) { /* ... */ },
-        builder: (context, state) { /* ... */ },
-      ),
+      child: BlocConsumer<TaskListCubit, TaskListState>(...),
     );
   }
 }
-```
 
-**To:**
-```dart
+// ✅ Hooks — minimal coordinator
 class TaskListPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
@@ -282,109 +237,63 @@ class TaskListPage extends HookWidget {
 }
 ```
 
-The Page is minimal — just calls the hook and passes state to View.
-Navigation callbacks and context-dependent callbacks are injected here.
-
 ---
 
-## Step 7: Handle BlocProvider scope
+## Step 7: Update pubspec.yaml
 
-### Local BlocProvider (screen-only)
-```dart
-// BLoC — wraps a single screen
-BlocProvider(
-  create: (_) => TaskListCubit(repo),
-  child: TaskListPage(),
-)
-```
-
-**→ Nothing needed.** The hook is called inside the Page — state lives in the hook's lifecycle.
-
-### Global BlocProvider (app-wide)
-```dart
-// BLoC — at app root
-MultiBlocProvider(
-  providers: [
-    BlocProvider(create: (_) => AuthCubit(authRepo)),
-    BlocProvider(create: (_) => ThemeCubit()),
-  ],
-  child: App(),
-)
-```
-
-**→ See [global-state-migration.md](./global-state-migration.md)** for full migration.
-
----
-
-## Step 8: Update pubspec.yaml
-
-When ALL screens are migrated, update dependencies:
-
-**Remove:**
+**Remove (all of these):**
 ```yaml
-# dependencies:
-  bloc: ^9.0.0           # remove
-  flutter_bloc: ^9.1.0   # remove
+  bloc:                # remove
+  bloc_concurrency:    # remove
+  flutter_bloc:        # remove
+  hydrated_bloc:       # remove
 
 # dev_dependencies:
-  bloc_lint: ^0.3.0      # remove
-  bloc_test: ^10.0.0     # remove
-  mockingjay: ^2.0.0     # remove (BLoC-specific mock helper)
+  bloc_lint:           # remove
+  bloc_test:           # remove
+  mockingjay:          # remove (BLoC-specific)
 ```
 
 **Add:**
 ```yaml
-# dependencies:
-  utopia_arch: ^0.5.0    # add — re-exports utopia_hooks + DI + navigation + error handling
-  # OR, if the app only needs hooks with no arch utilities:
-  utopia_hooks: ^0.4.0   # add (standalone, no DI/navigation/error handling)
+  utopia_hooks:        # add (or utopia_arch if using DI/navigation/error handling)
 ```
 
-Most apps should depend on `utopia_arch`, not `utopia_hooks` directly — `utopia_arch` re-exports all of `utopia_hooks` and adds `useInjected` (DI), `NestedNavigator`, `GlobalErrorHandler`, `PreferencesService`, etc. If the app already has `utopia_arch` in pubspec.yaml, no separate `utopia_hooks` entry is needed.
+Keep `equatable` if model classes use it. Keep `mocktail` for mocking.
 
-Keep `equatable` if your model classes use it (e.g., `Todo extends Equatable`).
-Keep `mocktail` for general mocking.
+---
+
+## Step 8: Compilation gate
+
+**These MUST pass before committing. If they fail, fix first.**
+
+```bash
+flutter pub get          # dependencies resolve
+dart analyze             # zero errors, zero warnings
+```
+
+If `dart analyze` fails, fix the issues. Common post-migration errors:
+- Missing imports (`import 'package:utopia_hooks/utopia_hooks.dart'`)
+- Old state file references (update barrel exports)
+- Unused imports (`flutter_bloc` still imported somewhere)
 
 ---
 
 ## Step 9: Cleanup
 
 ```
-□ Delete the Cubit/Bloc class file
-□ Delete the Freezed state file (and its .freezed.dart generated file)
-□ Delete BLoC event classes (if Bloc, not Cubit)
-□ Remove BlocProvider/BlocListener/BlocBuilder from the widget tree
-□ Remove `flutter_bloc` import from the migrated file
-□ Remove `flutter_bloc`, `bloc`, `bloc_lint`, `bloc_test` from pubspec.yaml
-□ Add `utopia_hooks` to pubspec.yaml dependencies
-□ Run build_runner if other generated code exists in the project
-□ Rename files and directories to utopia_hooks conventions (see below)
+□ Verify: grep -r "flutter_bloc\|package:bloc/" lib/ returns zero results
+□ Verify: no files named *_bloc.dart or *_cubit.dart in lib/
+□ Verify: no copyWith() methods in state classes
+□ Verify: no extends Equatable on state classes
+□ Remove .freezed.dart generated files for deleted Freezed states
+□ Run build_runner if project has other generated code
 ```
-
-### File/directory naming conventions
-
-BLoC projects typically use flat directories (`cubit/`, `bloc/`, `pages/`). Rename to the utopia_hooks structure:
-
-| BLoC (old) | utopia_hooks (new) |
-|---|---|
-| `lib/cubit/task_list_cubit.dart` | _(deleted — logic is now in the hook)_ |
-| `lib/cubit/task_list_state.dart` | `lib/ui/pages/task_list/state/task_list_page_state.dart` |
-| `lib/bloc/task_list_bloc.dart` | _(deleted)_ |
-| `lib/bloc/task_list_event.dart` | _(deleted)_ |
-| `lib/pages/task_list_page.dart` | `lib/ui/pages/task_list/task_list_page.dart` |
-| _(no view file)_ | `lib/ui/pages/task_list/view/task_list_page_view.dart` |
-
-**Naming rules:**
-- Pages live under `lib/ui/pages/<feature_name>/`
-- State class file is `<feature_name>_page_state.dart` inside a `state/` subdirectory
-- View file is `<feature_name>_page_view.dart` inside a `view/` subdirectory
-- No `cubit/`, `bloc/`, or top-level `pages/` directories remain after migration
 
 ---
 
 ## Step 10: Verify
 
-### Quick smoke test
 ```
 □ App compiles without errors
 □ Screen loads data correctly
@@ -397,21 +306,9 @@ BLoC projects typically use flat directories (`cubit/`, `bloc/`, `pages/`). Rena
 ```dart
 test('tasks load on init', () async {
   final context = SimpleHookContext(() => useTaskListPageState());
-
-  expect(context().tasks, isNull); // loading
-
+  expect(context().tasks, isNull);
   await context.waitUntil((s) => s.tasks != null);
   expect(context().tasks, isNotEmpty);
-});
-
-test('delete calls repo and refreshes', () async {
-  final context = SimpleHookContext(() => useTaskListPageState());
-  await context.waitUntil((s) => s.tasks != null);
-
-  context().onDeletePressed('task-1');
-  await context.waitUntil((s) => !s.isDeleting);
-
-  // verify repo was called, tasks refreshed
 });
 ```
 
@@ -422,14 +319,14 @@ test('delete calls repo and refreshes', () async {
 1. **Global state first** — Migrate Cubits/Blocs at app root to `_providers`
 2. **Leaf screens** — Screens with no children or dependencies
 3. **Feature modules** — Group related screens and migrate together
-4. **Shared Cubits** — Cubits used by multiple screens (already migrated to global state in step 1)
-5. **Remove flutter_bloc** — Only after ALL screens are migrated
+4. **Shared Cubits** — already migrated to global state in step 1
+5. **pubspec + compilation gate** — only after ALL screens are migrated
 
 **Never** leave a screen half-migrated (mixing BLoC and hooks in one screen).
 
 ## Related
 
-- [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping reference
+- [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
-- `../utopia-hooks/references/page-state-view.md` — full Page/State/View pattern
+- `../utopia-hooks/references/page-state-view.md` — Page/State/View pattern
 - `../utopia-hooks/references/testing.md` — SimpleHookContext testing
