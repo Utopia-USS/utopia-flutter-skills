@@ -41,11 +41,10 @@ Future<void> submit() async {
 ```dart
 final submitState = useSubmitState();
 
-void submit() => submitState.runSimple<void, AppError>(
+// Default: let errors crash. Don't swallow exceptions.
+void submit() => submitState.runSimple<void, Never>(
   submit: () async => service.save(data),
   afterSubmit: (_) => navigateBack(),
-  mapError: (e) => e is AppError ? e : null,
-  afterKnownError: (e) => showSnackbar(e.message),
 );
 
 // In State output:
@@ -61,8 +60,8 @@ The go-to hook for any write/mutation operation. Manages the full lifecycle: idl
 
 Built-in protections:
 - **Blocks duplicate requests** — while `inProgress`, calling `run`/`runSimple` again is a no-op; `skipIfInProgress: true` silently drops
+- **Unhandled errors crash by default** — don't swallow exceptions; only use `mapError`/`afterKnownError` when you have specific error UX (e.g. showing a snackbar for a known API error)
 - **Retry support** — `isRetryable` flag for recoverable failures
-- **Typed error routing** — `mapError` converts raw exception → typed `E`, `afterKnownError` handles it
 
 ### runSimple
 
@@ -81,27 +80,24 @@ Future<void> runSimple<T, E>({
 })
 ```
 
-Example:
+**Default — let errors crash:**
 ```dart
 final saveState = useSubmitState();
 
+void save() => saveState.runSimple<void, Never>(
+  submit: () async => service.saveItem(data),
+  afterSubmit: (_) => navigateBack(),
+);
+```
+
+**With error handling — only when you have specific error UX:**
+```dart
 void save() => saveState.runSimple<SaveResult, SaveError>(
-  submit: () async {
-    return await service.saveItem(data);
-  },
-  afterSubmit: (result) {
-    // called after submit completes successfully
-    navigateBack();
-  },
-  mapError: (e) => e is SaveError ? e : null,
-  afterKnownError: (error) {
-    // called when mapError returns non-null
-    showErrorSnackbar(error.message);
-  },
-  afterError: () {
-    // called after any error (known or unknown) — use for analytics, cleanup
-    analytics.track('save_failed');
-  },
+  submit: () async => service.saveItem(data),
+  afterSubmit: (_) => navigateBack(),
+  mapError: (e) => e is SaveError ? e : null,   // known error → typed
+  afterKnownError: (e) => showSnackbar(e.message), // show to user
+  // unknown errors still crash — that's correct
 );
 ```
 
@@ -310,7 +306,7 @@ CrazySquashButton.withState(state: state.loginButtonState, child: const Text("Lo
 ## Common Pitfalls
 
 - **Multiple `useSubmitState` for the same action** — one per action, don't reuse across different operations
-- **Not propagating errors to UI** — always handle `mapError` + `afterKnownError` and surface the message via snackbar or field error
+- **Swallowing errors with catch-all mapError** — default is `Never` (let it crash). Only add `mapError`/`afterKnownError` when you have specific error UX for the user. Unhandled errors should crash, not get logged and ignored
 - **`useAutoComputedState` without `shouldCompute`** — if prerequisites (like `userId`) may be null, guard with `shouldCompute: userId != null` or the future will run with null
 - **Reading `.value` before `isInitialized`** — `.value` throws `StateError`; use `.valueOrNull` for safe access
 - **Using `useSubmitState` for streaming** — `useSubmitState` is for one-shot operations; use `useMemoizedStream` for ongoing streams

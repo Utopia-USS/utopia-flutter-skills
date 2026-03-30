@@ -267,17 +267,15 @@ Use for any read operation: loading a screen's data, fetching a list, computing 
 
 Built-in protections:
 - **Blocks duplicate requests** — `inProgress` prevents firing the same action twice; `skipIfInProgress` param silently drops
-- **Retry support** — `isRetryable` parameter for failed operations
-- **Typed error routing** — `mapError` converts raw exception to typed `E`, `afterKnownError` handles it
+- **Unhandled errors crash** — default behavior, don't swallow; only use `mapError`/`afterKnownError` for specific error UX
 
 ```dart
 final saveState = useSubmitState();
 
-void save() => saveState.runSimple<void, AppError>(
+// Default — let errors crash
+void save() => saveState.runSimple<void, Never>(
   submit: () async => service.save(data),
   afterSubmit: (_) => navigateBack(),
-  mapError: (e) => e is AppError ? e : null,
-  afterKnownError: (e) => showSnackbar(e.message),
 );
 
 saveState.inProgress       // bool — true while request is in flight

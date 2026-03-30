@@ -145,13 +145,11 @@ final product = useAutoComputedState(
 );
 // product.isInitialized / product.valueOrNull
 
-// UPLOAD (write) → useSubmitState
+// UPLOAD (write) → useSubmitState — let errors crash by default
 final submitState = useSubmitState();
-void save() => submitState.runSimple<void, AppError>(
+void save() => submitState.runSimple<void, Never>(
   submit: () async => service.save(data),
   afterSubmit: (_) => navigateBack(),
-  mapError: (e) => e is AppError ? e : null,
-  afterKnownError: (e) => showSnackbar(e.message),
 );
 // submitState.inProgress — blocks duplicate requests
 // submitState.toButtonState(enabled: isValid, onTap: save)
