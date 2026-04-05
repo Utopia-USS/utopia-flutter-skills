@@ -679,6 +679,100 @@ FavState useFavState() {
 
 ---
 
+## 12. TextEditingController → useFieldState + TextEditingControllerWrapper
+
+The most common form pattern in BLoC apps. **Never carry raw `TextEditingController` into hooks.**
+
+### BLoC
+
+```dart
+class SubmitCubit extends Cubit<SubmitState> {
+  SubmitCubit() : super(const SubmitState());
+
+  void onTitleChanged(String value) => emit(state.copyWith(title: value));
+  void onUrlChanged(String value) => emit(state.copyWith(url: value));
+}
+
+// In widget:
+final controller = TextEditingController();
+
+TextField(
+  controller: controller,
+  onChanged: context.read<SubmitCubit>().onTitleChanged,
+)
+```
+
+### ❌ Wrong migration (raw controller + useState sync)
+
+```dart
+// This is BLoC-brain in hooks — DO NOT DO THIS
+final controller = useMemoized(() => TextEditingController());
+final title = useState('');
+useEffect(() {
+  void onChange() => title.value = controller.text;
+  controller.addListener(onChange);
+  return () { controller.removeListener(onChange); controller.dispose(); };
+}, const []);
+```
+
+### ✅ Correct migration (useFieldState + TextEditingControllerWrapper)
+
+```dart
+// ── Hook ──
+SubmitPageState useSubmitPageState() {
+  final title = useFieldState();
+  final url = useFieldState();
+  final text = useFieldState();
+
+  // Validation, submit logic, etc. uses title.value, url.value, text.value directly
+
+  return SubmitPageState(title: title, url: url, text: text, ...);
+}
+
+// ── State class ──
+class SubmitPageState {
+  final MutableFieldState title;
+  final MutableFieldState url;
+  final MutableFieldState text;
+  const SubmitPageState({required this.title, required this.url, required this.text});
+
+  bool get canSubmit => title.value.isNotEmpty && (url.value.isNotEmpty || text.value.isNotEmpty);
+}
+
+// ── View ── TextEditingControllerWrapper manages the controller
+TextEditingControllerWrapper(
+  text: state.title,
+  builder: (controller) => TextField(
+    controller: controller,
+    decoration: const InputDecoration(hintText: 'Title'),
+  ),
+)
+```
+
+`TextEditingControllerWrapper` is a View-side widget that:
+- Takes `MutableValue<String>` (from `useFieldState()`)
+- Creates, syncs, and disposes a `TextEditingController` internally
+- Bidirectional sync: typing updates state, programmatic state changes update the field
+
+**With validation errors:**
+```dart
+TextEditingControllerWrapper(
+  text: state.email,
+  builder: (controller) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TextField(controller: controller),
+      if (state.email.errorMessage != null)
+        Text(state.email.errorMessage!(context), style: TextStyle(color: Colors.red)),
+    ],
+  ),
+)
+```
+
+**Rule:** Every `TextEditingController` in the old code becomes a `useFieldState()` in the hook + `TextEditingControllerWrapper` in the View. No exceptions.
+
+---
+
 ## Common Pitfalls During Migration
 
 - **Keeping BLoC state union types** — don't port the Freezed union; flatten to nullable fields + bools
@@ -687,6 +781,7 @@ FavState useFavState() {
 - **Keeping `emit()` mental model** — there's no emit; `useState` is direct mutation, `useAutoComputedState` is automatic
 - **Migrating one file at a time within a screen** — migrate the entire screen (Page + State + View) at once
 - **Leaving `flutter_bloc` as a dependency "just in case"** — remove it when all screens are migrated
+- **Using raw `TextEditingController` in hooks** — always use `useFieldState` + `TextEditingControllerWrapper`
 
 ## Related
 

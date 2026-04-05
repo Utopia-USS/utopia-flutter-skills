@@ -10,9 +10,27 @@ Migrate screen-by-screen, not file-by-file. Each screen fully migrated before mo
 
 ---
 
-## Step 0: Pre-Migration Assessment
+## Step 0: pubspec.yaml — FIRST, before writing any migration code
 
-Before touching code:
+Update dependencies before touching any Dart file. This ensures `dart analyze` works
+as a cross-check from the very first migrated file onward.
+
+Follow [pubspec-migration.md](./pubspec-migration.md) exactly:
+
+1. **Fetch** latest `utopia_arch` version from pub.dev (dynamic — `curl` the API, never from memory)
+2. **Add** `utopia_arch: ^X.Y.Z`
+3. **Remove** bloc, flutter_bloc, hydrated_bloc, bloc_concurrency, bloc_test, bloc_lint
+4. **Never add** `flutter_hooks` — utopia_hooks is a completely separate implementation
+5. **Run `flutter pub get`** — must pass before writing any code
+6. **Run `dart analyze`** — note existing errors (pre-migration baseline); new errors after this point = your problem
+
+Only proceed to Step 1 after `flutter pub get` succeeds.
+
+---
+
+## Step 1: Pre-Migration Assessment
+
+Before touching Dart code:
 
 ```
 □ Identify the Cubit/Bloc class and its state class
@@ -25,7 +43,7 @@ Before touching code:
 
 ---
 
-## Step 1: Rename + delete files
+## Step 2: Rename + delete files
 
 Do this FIRST, before writing any code.
 
@@ -50,9 +68,11 @@ lib/bloc/auth_state.dart         ← old state — merged into renamed bloc file
 
 ---
 
-## Step 2: Design the State class
+## Step 3: Design the State class
 
-Write the State class in the renamed file. Rules — **ALL mandatory, no exceptions:**
+Write the State class in the renamed file. See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) sections 1, 7, 9, 12 for detailed before/after examples of each pattern.
+
+Rules — **ALL mandatory, no exceptions:**
 
 - **No `copyWith()`** — hooks use individual `useState` per field, not immutable state objects
 - **No `extends Equatable`** — hooks don't need equality checks, no `props` getter
@@ -102,7 +122,7 @@ class TaskListPageState {
 
 ---
 
-## Step 3: Migrate Cubit methods → hook body
+## Step 4: Migrate Cubit methods → hook body
 
 | Cubit pattern | Hook equivalent |
 |---|---|
@@ -111,9 +131,22 @@ class TaskListPageState {
 | Method that submits/mutates | `useSubmitState` + `runSimple` |
 | `emit(state.copyWith(...))` | `useState` + `.value = ...` |
 | Method that toggles a flag | `useState<bool>` + `.value = !.value` |
+| Computed/derived/filtered value | `useMemoized(() => derive(source), [source])` — NEVER `useEffect` + `useState` |
 | Timer / periodic | `usePeriodicalSignal` |
-| Stream subscription | `useMemoizedStream` |
+| Stream → read latest value | `useMemoizedStream` / `useMemoizedStreamData` |
+| Stream → side effect per event | `useStreamSubscription` (auto-disposed, NOT `useState<StreamSubscription?>`) |
 | Cubit depends on another Cubit | `useProvided<XState>()` |
+| `TextEditingController` + `onChanged` | `useFieldState` + `TextEditingControllerWrapper` in View (see mapping #12) |
+
+**Cascade trap — the #1 BLoC-brain mistake in hooks:**
+
+In BLoC, the pattern is: event → handler → compute derived value → `emit(state.copyWith(derived: value))`.
+Naively translated to hooks, this becomes: source changes → `useEffect` fires → writes to `useState` → triggers rebuild → repeat.
+
+This is **structurally wrong**. Each `useEffect` → `useState` write is an extra rebuild frame.
+Three cascading effects = four rebuilds where one suffices.
+
+**Rule:** If a value is **computable** from other state, use `useMemoized` (runs synchronously during build, single rebuild). Only use `useEffect` for **fire-and-forget side effects** (analytics, stream subscriptions, external writes).
 
 ```dart
 TaskListPageState useTaskListPageState() {
@@ -142,7 +175,7 @@ TaskListPageState useTaskListPageState() {
 
 ---
 
-## Step 4: Migrate BlocBuilder → View
+## Step 5: Migrate BlocBuilder → View
 
 ```dart
 // ❌ BLoC
@@ -183,7 +216,7 @@ Changes:
 
 ---
 
-## Step 5: Migrate BlocListener → useEffect or callback
+## Step 6: Migrate BlocListener → useEffect or callback
 
 ```dart
 // ❌ BLoC
@@ -213,7 +246,7 @@ useEffect(() {
 
 ---
 
-## Step 6: Wire up the Page
+## Step 7: Wire up the Page
 
 ```dart
 // ❌ BLoC
@@ -239,47 +272,47 @@ class TaskListPage extends HookWidget {
 
 ---
 
-## Step 7: Update pubspec.yaml
+## Step 8: Compilation gate — BLOCKING, loop until zero errors
 
-**Remove (all of these):**
-```yaml
-  bloc:                # remove
-  bloc_concurrency:    # remove
-  flutter_bloc:        # remove
-  hydrated_bloc:       # remove
-
-# dev_dependencies:
-  bloc_lint:           # remove
-  bloc_test:           # remove
-  mockingjay:          # remove (BLoC-specific)
-```
-
-**Add:**
-```yaml
-  utopia_hooks:        # add (or utopia_arch if using DI/navigation/error handling)
-```
-
-Keep `equatable` if model classes use it. Keep `mocktail` for mocking.
-
----
-
-## Step 8: Compilation gate
-
-**These MUST pass before committing. If they fail, fix first.**
+**Do NOT proceed to Step 9 until both commands pass with zero issues.**
+**Do NOT report the migration as complete if any errors remain.**
 
 ```bash
-flutter pub get          # dependencies resolve
-dart analyze             # zero errors, zero warnings
+# A: Dependencies must resolve
+flutter pub get
+
+# B: Static analysis — loop until clean
+dart analyze
+# ↳ If ANY errors → fix each one → re-run → repeat until "No issues found"
 ```
 
-If `dart analyze` fails, fix the issues. Common post-migration errors:
-- Missing imports (`import 'package:utopia_hooks/utopia_hooks.dart'`)
-- Old state file references (update barrel exports)
-- Unused imports (`flutter_bloc` still imported somewhere)
+This is a loop, not a one-shot:
+
+```
+┌─────────────────────┐
+│   dart analyze       │
+│   ↓                  │
+│   errors? ──yes──→ fix them ──→ (back to dart analyze)
+│   ↓ no               │
+│   PASS — proceed     │
+└─────────────────────┘
+```
+
+Common post-migration errors:
+
+| `dart analyze` error | Fix |
+|---|---|
+| `Undefined class 'XCubit'` | Old import → replace with `import 'state/x_state.dart'` |
+| `'read' isn't defined for 'BuildContext'` | Leftover `context.read<X>()` → replace with `state.field` |
+| `Unused import 'package:flutter_bloc/...'` | Remove the import line |
+| `Unused import 'package:flutter_hooks/...'` | Remove — utopia_hooks is NOT flutter_hooks |
+| `Missing concrete implementation` | State class missing required field |
+| `The argument type 'X' can't be assigned to 'Y'` | State class shape changed → update call site |
+| `'XState' is imported from both...` | Duplicate export in barrel file → remove one |
 
 ---
 
-## Step 9: Cleanup
+## Step 9: Cleanup + grep audit
 
 ```
 □ Verify: grep -r "flutter_bloc\|package:bloc/" lib/ returns zero results
@@ -316,13 +349,15 @@ test('tasks load on init', () async {
 
 ## Migration Order (for a full codebase)
 
-1. **Global state first** — Migrate Cubits/Blocs at app root to `_providers`
-2. **Leaf screens** — Screens with no children or dependencies
-3. **Feature modules** — Group related screens and migrate together
-4. **Shared Cubits** — already migrated to global state in step 1
-5. **pubspec + compilation gate** — only after ALL screens are migrated
+1. **pubspec FIRST** (Step 0) — add `utopia_arch`, remove BLoC packages, `flutter pub get`. This unlocks `dart analyze` as a cross-check for every subsequent step.
+2. **Global state** — Migrate Cubits/Blocs at app root to `_providers`
+3. **Leaf screens** — Screens with no children or dependencies
+4. **Feature modules** — Group related screens and migrate together
+5. **Compilation gate** (Step 8) — `dart analyze` loop until zero errors
+6. **Cleanup + grep audit** (Step 9) — verify zero BLoC artifacts remain
 
 **Never** leave a screen half-migrated (mixing BLoC and hooks in one screen).
+**Run `dart analyze` after each screen** — catch errors immediately, not at the end.
 
 ## Related
 

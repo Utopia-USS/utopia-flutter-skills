@@ -158,10 +158,12 @@ class CounterPageView extends StatelessWidget {
 | File | Impact | Description |
 |------|--------|-------------|
 | [bloc-to-hooks-mapping.md][mapping] | CRITICAL | Every BLoC pattern → hooks equivalent with side-by-side code |
+| [pubspec-migration.md][pubspec] | CRITICAL | Dependency changes: version resolution, BLoC removal, validation |
 | [migration-steps.md][steps] | HIGH | Step-by-step checklist for converting one screen |
 | [global-state-migration.md][global] | HIGH | Provider tree → _providers, RepositoryProvider → Injector |
 
 [mapping]: references/bloc-to-hooks-mapping.md
+[pubspec]: references/pubspec-migration.md
 [steps]: references/migration-steps.md
 [global]: references/global-state-migration.md
 
@@ -176,7 +178,8 @@ class CounterPageView extends StatelessWidget {
 | Step-by-step process for one screen | [migration-steps.md][steps] |
 | Freezed union state → hooks state | [bloc-to-hooks-mapping.md][mapping] |
 | BlocListener side effects | [bloc-to-hooks-mapping.md][mapping] |
-| Removing flutter_bloc dependency | [migration-steps.md][steps] |
+| Adding/removing pubspec dependencies | [pubspec-migration.md][pubspec] |
+| Which package version to use | [pubspec-migration.md][pubspec] |
 
 ## Non-Negotiable Migration Rules
 
@@ -185,6 +188,9 @@ class CounterPageView extends StatelessWidget {
 - **State class must NOT import widgets** — same rule as in utopia-hooks
 - **View never calls hooks** — BlocBuilder's `builder:` becomes a StatelessWidget
 - **Delete BLoC files after migration** — don't leave dead code
+- **Never hardcode package versions** — fetch latest `utopia_arch` from pub.dev dynamically (see [pubspec-migration.md][pubspec])
+- **Never add `flutter_hooks`** — utopia_hooks is a completely separate implementation, not an extension of flutter_hooks
+- **Migration is done when `dart analyze` returns zero errors** — not before. Loop: fix → re-run → fix → re-run
 - **The ~30% code reduction is a consequence** — focus on correctness, not size
 
 ## Migration Anti-Patterns — NEVER DO THESE
@@ -216,11 +222,13 @@ final Status status;
 //            State class exposes: T? data (via .valueOrNull), bool isSaving (via .inProgress)
 
 // ❌ NEVER: passing Cubit/Bloc instances to hooks
+// WHY: breaks reactivity (Cubit changes won't trigger rebuilds), couples to BLoC API,
+//      makes testing require real/mocked Cubits instead of plain state objects
 FavState useFavState({required AuthBloc authBloc}) {
   authBloc.stream.listen(...);   // BLoC API in hooks
   authBloc.state.username;       // reading .state from BLoC
 }
-// ✅ INSTEAD: useProvided for global state
+// ✅ INSTEAD: useProvided for global state — reactive, decoupled, testable
 FavState useFavState() {
   final authState = useProvided<AuthState>();
   // authState.username — direct field access, reactive
@@ -235,35 +243,55 @@ void emit(MyState newState) { state.value = newState; }
 // ❌ NEVER: adding comments like "// State", "// Hook", "// ---" section dividers
 // ✅ INSTEAD: clean code, no noise comments
 
-// ❌ NEVER: manual stream subscriptions in useEffect for data that should be reactive
-useEffect(() { cubit.stream.listen(...); }, []);
-// ✅ INSTEAD: useMemoizedStream or useAutoComputedState
+// ❌ NEVER: manual stream subscriptions via useState<StreamSubscription?>
+// WHY: manual lifecycle management (forget cancel → leak), wastes a state slot,
+//      no error handling strategy — useStreamSubscription does all of this automatically
+final subscription = useState<StreamSubscription?>(null);
+useEffect(() { subscription.value = stream.listen(...); return () => subscription.value?.cancel(); }, []);
+// ✅ INSTEAD: useStreamSubscription for side effects per event (auto-disposed)
+useStreamSubscription(stream, (event) async => handleEvent(event));
+// ✅ OR: useMemoizedStream / useMemoizedStreamData for reading latest value
 final data = useMemoizedStream(service.streamData);
 ```
 
-## Pre-Submit Checklist
+## Exit Gate — migration is NOT done until ALL of these pass
 
-Before considering migration complete, verify ALL of these. **If any fail, the migration is not done.**
+**This is not a checklist to review at the end. It is a hard gate. Do not report completion until every item is green.**
 
-### Compilation gates (run these first)
-```
-□ flutter pub get succeeds
-□ dart analyze returns zero errors
+### 1. `flutter pub get` passes
+
+See [pubspec-migration.md][pubspec] for exact steps: fetch version from pub.dev, add `utopia_arch`, remove all BLoC packages, never add `flutter_hooks`.
+
+### 2. `dart analyze` returns zero errors
+
+Run `dart analyze`. If it reports ANY issues → fix → re-run → fix → re-run. Loop until `No issues found`.
+
+| Common error | Fix |
+|---|---|
+| `Undefined class 'XCubit'` | Old import → replace with state import |
+| `'read' isn't defined for 'BuildContext'` | Leftover `context.read` → use state field |
+| `Unused import 'package:flutter_bloc/...'` | Remove the import |
+| `Unused import 'package:flutter_hooks/...'` | Remove — utopia_hooks is NOT flutter_hooks |
+| `Missing concrete implementation` | State class missing a required field |
+
+### 3. Code audit greps — every one returns zero
+
+```bash
+grep -rn 'package:flutter_bloc\|package:bloc/\|package:hydrated_bloc\|package:bloc_concurrency' lib/
+grep -rn 'package:flutter_hooks' lib/
+grep -rn 'extends Equatable' lib/state/
+find lib/ -name '*_bloc.dart' -o -name '*_cubit.dart'
+ls -d lib/blocs lib/cubits 2>/dev/null
+grep -E '^\s+(bloc|flutter_bloc|hydrated_bloc|bloc_concurrency|flutter_hooks):' pubspec.yaml
 ```
 
-### Code audit (grep to verify)
+### 4. Zero leftover BLoC artifacts in running code
+
+```bash
+grep -rn 'context\.read<\|context\.watch<\|context\.select<\|BlocBuilder\|BlocListener\|BlocConsumer\|BlocProvider\|MultiBlocProvider' lib/
 ```
-□ Zero imports of flutter_bloc, bloc, hydrated_bloc anywhere in lib/
-□ Zero copyWith() methods in state classes
-□ Zero extends Equatable on state classes
-□ Zero Status enums — hooks have built-in state machines (ComputedStateValue, submitState.inProgress)
-□ Zero files named _bloc.dart or _cubit.dart (renamed to _state.dart)
-□ Zero cubit/bloc class parameters in hooks (use useProvided instead)
-□ Zero .stream or .state access on old cubit/bloc objects
-□ Zero added comments (no "// State", "// Hook", "// ---" dividers, no typedefs for backward compat)
-□ flutter_bloc, bloc, bloc_concurrency, hydrated_bloc, bloc_test, bloc_lint removed from pubspec.yaml
-□ utopia_hooks (or utopia_arch) added to pubspec.yaml
-```
+
+**If ANY grep returns results → fix them. The migration is not done.**
 
 ## Attribution
 
