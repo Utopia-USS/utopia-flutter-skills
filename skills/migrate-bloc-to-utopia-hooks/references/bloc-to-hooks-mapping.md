@@ -7,7 +7,7 @@ tags: bloc, cubit, migration, mapping, side-by-side, emit, BlocBuilder, BlocList
 # BLoC → utopia_hooks: Pattern-by-Pattern Mapping
 
 Every BLoC/Cubit concept has a direct hooks equivalent. This file provides side-by-side
-code examples for each pattern. All hooks examples use correct Page/State/View architecture.
+code examples for each pattern. All hooks examples use correct Screen/State/View architecture.
 
 ---
 
@@ -50,19 +50,19 @@ class TaskListState with _$TaskListState {
 ### utopia_hooks
 
 ```dart
-class TaskListPageState {
+class TaskListScreenState {
   final IList<Task>? tasks;        // null = loading (no union type needed)
   final bool isDeleting;
   final void Function(TaskId) onDeletePressed;
 
-  const TaskListPageState({
+  const TaskListScreenState({
     required this.tasks,
     required this.isDeleting,
     required this.onDeletePressed,
   });
 }
 
-TaskListPageState useTaskListPageState() {
+TaskListScreenState useTaskListScreenState() {
   final repository = useInjected<TaskRepository>();
 
   // Download: auto-loads on mount
@@ -80,7 +80,7 @@ TaskListPageState useTaskListPageState() {
     },
   );
 
-  return TaskListPageState(
+  return TaskListScreenState(
     tasks: tasksState.valueOrNull,
     isDeleting: deleteState.inProgress,
     onDeletePressed: deleteTask,
@@ -89,7 +89,7 @@ TaskListPageState useTaskListPageState() {
 ```
 
 **What changed:**
-- `Cubit` class → `useTaskListPageState()` function (no class to extend, no constructor)
+- `Cubit` class → `useTaskListScreenState()` function (no class to extend, no constructor)
 - `emit(state)` → direct `useState` / `useAutoComputedState` (no immutable state copying)
 - Freezed union `loading | loaded | error` → nullable `tasks` field (`null` = loading)
 - `_repository` field → `useInjected<TaskRepository>()`
@@ -147,14 +147,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 ### utopia_hooks
 
 ```dart
-class LoginPageState {
+class LoginScreenState {
   final FieldState email;
   final FieldState password;
   final bool isLoggingIn;
   final ButtonState loginButton;
   final void Function() onLogout;
 
-  const LoginPageState({
+  const LoginScreenState({
     required this.email,
     required this.password,
     required this.isLoggingIn,
@@ -163,7 +163,7 @@ class LoginPageState {
   });
 }
 
-LoginPageState useLoginPageState({
+LoginScreenState useLoginScreenState({
   required void Function() navigateToHome,
   required void Function(String) showError,
 }) {
@@ -181,7 +181,7 @@ LoginPageState useLoginPageState({
 
   void logout() => authRepo.logout();
 
-  return LoginPageState(
+  return LoginScreenState(
     email: emailState,
     password: passwordState,
     isLoggingIn: loginState.inProgress,
@@ -223,9 +223,9 @@ BlocBuilder<TaskListCubit, TaskListState>(
 ### utopia_hooks
 
 ```dart
-class TaskListPageView extends StatelessWidget {
-  final TaskListPageState state;
-  const TaskListPageView({required this.state});
+class TaskListScreenView extends StatelessWidget {
+  final TaskListScreenState state;
+  const TaskListScreenView({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +265,7 @@ BlocListener<AuthCubit, AuthState>(
 
 ```dart
 // In the state hook — not in the widget tree
-AuthPageState useAuthPageState({
+AuthScreenState useAuthScreenState({
   required void Function() navigateToLogin,
 }) {
   final authState = useProvided<AuthState>();
@@ -284,12 +284,12 @@ AuthPageState useAuthPageState({
 **What changed:**
 - `BlocListener` widget in tree → `useEffect` in hook
 - `listenWhen:` → `useEffect` keys array `[authState.isLoggedIn]`
-- `Navigator.of(context)` → navigation callback injected from Page
+- `Navigator.of(context)` → navigation callback injected from Screen
 - Side effect is in the hook (logic layer), not in the widget tree (UI layer)
 
 ---
 
-## 5. BlocConsumer → Page + View
+## 5. BlocConsumer → Screen + View
 
 ### BLoC
 
@@ -324,19 +324,19 @@ class CheckoutPage extends StatelessWidget {
 ### utopia_hooks
 
 ```dart
-// Page — coordinator
+// Screen — coordinator
 class CheckoutPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final state = useCheckoutPageState(
+    final state = useCheckoutScreenState(
       showSuccessSnackbar: () => CrazyInfoSnackbar.show(context, 'Order placed!'),
     );
-    return CheckoutPageView(state: state);
+    return CheckoutScreenView(state: state);
   }
 }
 
 // State hook — logic (listener + builder logic combined)
-CheckoutPageState useCheckoutPageState({
+CheckoutScreenState useCheckoutScreenState({
   required void Function() showSuccessSnackbar,
 }) {
   final checkoutService = useInjected<CheckoutService>();
@@ -348,7 +348,7 @@ CheckoutPageState useCheckoutPageState({
     afterSubmit: (_) => showSuccessSnackbar(),
   );
 
-  return CheckoutPageState(
+  return CheckoutScreenState(
     total: cartState.total,
     isSubmitting: submitState.inProgress,
     placeOrderButton: submitState.toButtonState(
@@ -359,9 +359,9 @@ CheckoutPageState useCheckoutPageState({
 }
 
 // View — pure UI
-class CheckoutPageView extends StatelessWidget {
-  final CheckoutPageState state;
-  const CheckoutPageView({required this.state});
+class CheckoutScreenView extends StatelessWidget {
+  final CheckoutScreenState state;
+  const CheckoutScreenView({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +377,7 @@ class CheckoutPageView extends StatelessWidget {
 ```
 
 **What changed:**
-- `BlocConsumer` (listener + builder in one widget) → split into Page (coordinator) + State hook (logic) + View (UI)
+- `BlocConsumer` (listener + builder in one widget) → split into Screen (coordinator) + State hook (logic) + View (UI)
 - `listener:` → `afterSubmit` callback in `runSimple`
 - `builder:` → `StatelessWidget` View
 - `context.read<Cubit>().method()` → callback in State class
@@ -446,11 +446,11 @@ state.when(
 ### utopia_hooks
 
 ```dart
-class ProfilePageState {
+class ProfileScreenState {
   final UserProfile? profile;     // null = loading or not loaded
   final bool isSaving;
 
-  const ProfilePageState({
+  const ProfileScreenState({
     required this.profile,
     required this.isSaving,
   });
@@ -545,15 +545,15 @@ class TaskListCubit extends Cubit<TaskListState> {
 }
 
 // ✅ Hooks — ComputedStateValue handles all states
-class TaskListPageState {
+class TaskListScreenState {
   final IList<Task>? tasks;  // null = loading, non-null = loaded
   // No Status enum. No copyWith. No Equatable.
 }
 
-TaskListPageState useTaskListPageState() {
+TaskListScreenState useTaskListScreenState() {
   final repo = useInjected<TaskRepository>();
   final tasksState = useAutoComputedState(() async => (await repo.getAll()).toIList());
-  return TaskListPageState(tasks: tasksState.valueOrNull);
+  return TaskListScreenState(tasks: tasksState.valueOrNull);
 }
 ```
 
@@ -604,13 +604,13 @@ class SettingsCubit extends HydratedCubit<SettingsState> {
 ### utopia_hooks
 
 ```dart
-class SettingsPageState {
+class SettingsScreenState {
   final ThemeMode themeMode;
   final void Function(ThemeMode) onUpdateTheme;
-  const SettingsPageState({required this.themeMode, required this.onUpdateTheme});
+  const SettingsScreenState({required this.themeMode, required this.onUpdateTheme});
 }
 
-SettingsPageState useSettingsPageState() {
+SettingsScreenState useSettingsScreenState() {
   final prefs = useInjected<PreferencesService>();
 
   final themeMode = usePersistedState<ThemeMode>(
@@ -618,7 +618,7 @@ SettingsPageState useSettingsPageState() {
     (value) async => prefs.save('themeMode', value),
   );
 
-  return SettingsPageState(
+  return SettingsScreenState(
     themeMode: themeMode.value ?? ThemeMode.system,
     onUpdateTheme: (mode) => themeMode.value = mode,
   );
@@ -719,22 +719,22 @@ useEffect(() {
 
 ```dart
 // ── Hook ──
-SubmitPageState useSubmitPageState() {
+SubmitScreenState useSubmitScreenState() {
   final title = useFieldState();
   final url = useFieldState();
   final text = useFieldState();
 
   // Validation, submit logic, etc. uses title.value, url.value, text.value directly
 
-  return SubmitPageState(title: title, url: url, text: text, ...);
+  return SubmitScreenState(title: title, url: url, text: text, ...);
 }
 
 // ── State class ──
-class SubmitPageState {
+class SubmitScreenState {
   final MutableFieldState title;
   final MutableFieldState url;
   final MutableFieldState text;
-  const SubmitPageState({required this.title, required this.url, required this.text});
+  const SubmitScreenState({required this.title, required this.url, required this.text});
 
   bool get canSubmit => title.value.isNotEmpty && (url.value.isNotEmpty || text.value.isNotEmpty);
 }
@@ -785,7 +785,7 @@ TextEditingControllerWrapper(
 
 ## Related
 
-- `../utopia-hooks/references/page-state-view.md` — full Page/State/View pattern reference
+- `../utopia-hooks/references/page-state-view.md` — full Screen/State/View pattern reference
 - `../utopia-hooks/references/hooks-reference.md` — complete hook catalog
 - `../utopia-hooks/references/async-patterns.md` — download/upload mental model
 - [migration-steps.md](./migration-steps.md) — step-by-step migration checklist

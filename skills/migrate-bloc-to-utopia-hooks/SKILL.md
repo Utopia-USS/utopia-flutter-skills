@@ -51,10 +51,10 @@ result will be simpler (typically ~30% less code) with the same functionality. W
 | `emit(newState)` | `useState` / `.value =` | Direct state mutation, no immutable state copying |
 | Freezed BLoC state (union) | Flat State class with nullable fields | `state.when(loading:, loaded:, error:)` → `if (state.isLoading)` |
 | `BlocProvider` | `_providers` map at app root | Global state registered once |
-| `BlocProvider` (local, per-screen) | Hook called inside `useXPageState()` | State lives in the hook, no Provider widget needed |
+| `BlocProvider` (local, per-screen) | Hook called inside `useXScreenState()` | State lives in the hook, no Provider widget needed |
 | `BlocBuilder` | `StatelessWidget` View with State param | View receives state via constructor |
 | `BlocListener` | `useEffect` / callback in hook | Side effects live in hook, not in widget tree |
-| `BlocConsumer` | `HookWidget` Page + `StatelessWidget` View | Page = coordinator, View = pure UI |
+| `BlocConsumer` | `HookWidget` Screen + `StatelessWidget` View | Page = coordinator, View = pure UI |
 | `MultiBlocProvider` | `HookConsumerProviderContainerWidget` | Single widget at app root, flat map |
 | `RepositoryProvider` | `Injector` + `useInjected<T>()` | Service registration via DI container |
 | `context.read<XCubit>()` | `useProvided<XState>()` | Reads global state (auto-rebuilds) |
@@ -77,8 +77,8 @@ class CounterCubit extends Cubit<int> {
   void decrement() => emit(state - 1);
 }
 
-// counter_page.dart
-class CounterPage extends StatelessWidget {
+// counter_screen.dart
+class CounterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -102,41 +102,41 @@ class CounterPage extends StatelessWidget {
 ### After (utopia_hooks)
 
 ```dart
-// state/counter_page_state.dart
-class CounterPageState {
+// state/counter_screen_state.dart
+class CounterScreenState {
   final int count;
   final void Function() onIncrement;
   final void Function() onDecrement;
 
-  const CounterPageState({
+  const CounterScreenState({
     required this.count,
     required this.onIncrement,
     required this.onDecrement,
   });
 }
 
-CounterPageState useCounterPageState() {
+CounterScreenState useCounterScreenState() {
   final count = useState(0);
-  return CounterPageState(
+  return CounterScreenState(
     count: count.value,
     onIncrement: () => count.value++,
     onDecrement: () => count.value--,
   );
 }
 
-// counter_page.dart
-class CounterPage extends HookWidget {
+// counter_screen.dart
+class CounterScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final state = useCounterPageState();
-    return CounterPageView(state: state);
+    final state = useCounterScreenState();
+    return CounterScreenView(state: state);
   }
 }
 
-// view/counter_page_view.dart
-class CounterPageView extends StatelessWidget {
-  final CounterPageState state;
-  const CounterPageView({required this.state});
+// view/counter_screen_view.dart
+class CounterScreenView extends StatelessWidget {
+  final CounterScreenState state;
+  const CounterScreenView({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -183,8 +183,8 @@ class CounterPageView extends StatelessWidget {
 
 ## Non-Negotiable Migration Rules
 
-- **Never mix BLoC and hooks in the same screen** — migrate completely or leave as-is
-- **Always create Page/State/View** — don't replace BlocBuilder with a HookWidget that has inline UI
+- **Never mix BLoC and hooks in the same screen** — migrate a screen completely or leave it as BLoC. BLoC and hooks CAN coexist across different screens during incremental migration.
+- **Always create Screen/State/View** — don't replace BlocBuilder with a HookWidget that has inline UI
 - **State class must NOT import widgets** — same rule as in utopia-hooks
 - **View never calls hooks** — BlocBuilder's `builder:` becomes a StatelessWidget
 - **Delete BLoC files after migration** — don't leave dead code

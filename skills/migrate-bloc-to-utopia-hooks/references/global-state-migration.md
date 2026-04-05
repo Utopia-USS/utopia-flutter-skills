@@ -191,7 +191,7 @@ const _providers = {
 };
 
 // ✅ Screen-specific state in page state hook (created on navigation)
-CheckoutPageState useCheckoutPageState() {
+CheckoutScreenState useCheckoutScreenState() {
   // all checkout logic here — lives only while screen is mounted
 }
 ```
@@ -210,7 +210,7 @@ class TaskListState extends HasInitialized {
 Consumers guard with:
 ```dart
 final tasks = useProvided<TaskListState>();
-if (!tasks.isInitialized) return SomePageState.loading();
+if (!tasks.isInitialized) return SomeScreenState.loading();
 ```
 
 ---

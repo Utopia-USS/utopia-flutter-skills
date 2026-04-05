@@ -15,11 +15,11 @@ Migrate screen-by-screen, not file-by-file. Each screen fully migrated before mo
 Update dependencies before touching any Dart file. This ensures `dart analyze` works
 as a cross-check from the very first migrated file onward.
 
-Follow [pubspec-migration.md](./pubspec-migration.md) exactly:
+Follow [pubspec-migration.md](./pubspec-migration.md) for version resolution.
 
 1. **Fetch** latest `utopia_arch` version from pub.dev (dynamic — `curl` the API, never from memory)
-2. **Add** `utopia_arch: ^X.Y.Z`
-3. **Remove** bloc, flutter_bloc, hydrated_bloc, bloc_concurrency, bloc_test, bloc_lint
+2. **Add** `utopia_arch: ^X.Y.Z` alongside existing BLoC packages (both coexist during migration)
+3. **Do NOT remove BLoC packages yet** — other screens still need them. Remove only in the final cleanup.
 4. **Never add** `flutter_hooks` — utopia_hooks is a completely separate implementation
 5. **Run `flutter pub get`** — must pass before writing any code
 6. **Run `dart analyze`** — note existing errors (pre-migration baseline); new errors after this point = your problem
@@ -51,7 +51,12 @@ Do this FIRST, before writing any code.
 ```
 lib/cubit/task_list_cubit.dart  →  lib/state/task_list_state.dart
 lib/bloc/auth_bloc.dart         →  lib/state/auth_state.dart
+lib/screens/home_screen.dart    →  lib/screens/home/home_screen.dart
 ```
+
+The target pattern is **Screen/State/View**. The `_screen.dart` filename stays — just restructure into the tripartite pattern:
+- `home_screen.dart` stays as `home_screen.dart` (class `HomeScreen extends HookWidget`)
+- Add `state/home_screen_state.dart` and `view/home_screen_view.dart`
 
 **Delete immediately:**
 ```
@@ -105,13 +110,13 @@ class TaskListState with _$TaskListState {
 }
 
 // ✅ Hooks — flat, no union, no copyWith, no Equatable
-class TaskListPageState {
+class TaskListScreenState {
   final IList<Task>? tasks;        // null = loading
   final bool isDeleting;
   final void Function(TaskId) onDeletePressed;
   final void Function() onRefreshPressed;
 
-  const TaskListPageState({
+  const TaskListScreenState({
     required this.tasks,
     required this.isDeleting,
     required this.onDeletePressed,
@@ -149,7 +154,7 @@ Three cascading effects = four rebuilds where one suffices.
 **Rule:** If a value is **computable** from other state, use `useMemoized` (runs synchronously during build, single rebuild). Only use `useEffect` for **fire-and-forget side effects** (analytics, stream subscriptions, external writes).
 
 ```dart
-TaskListPageState useTaskListPageState() {
+TaskListScreenState useTaskListScreenState() {
   final repo = useInjected<TaskRepository>();
 
   // Constructor + loadTasks() → auto-load on mount
@@ -164,7 +169,7 @@ TaskListPageState useTaskListPageState() {
     },
   );
 
-  return TaskListPageState(
+  return TaskListScreenState(
     tasks: tasksState.valueOrNull,
     isDeleting: deleteState.inProgress,
     onDeletePressed: deleteTask,
@@ -190,9 +195,9 @@ BlocBuilder<TaskListCubit, TaskListState>(
 )
 
 // ✅ Hooks — StatelessWidget receives state
-class TaskListPageView extends StatelessWidget {
-  final TaskListPageState state;
-  const TaskListPageView({required this.state});
+class TaskListScreenView extends StatelessWidget {
+  final TaskListScreenState state;
+  const TaskListScreenView({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +237,7 @@ BlocListener<TaskListCubit, TaskListState>(
 deleteState.runSimple<void, AppError>(
   submit: () async => repo.delete(id),
   mapError: (e) => e is AppError ? e : null,
-  afterKnownError: (e) => showError(e.message),  // injected from Page
+  afterKnownError: (e) => showError(e.message),  // injected from Screen
 );
 ```
 
@@ -246,11 +251,11 @@ useEffect(() {
 
 ---
 
-## Step 7: Wire up the Page
+## Step 7: Wire up the Screen
 
 ```dart
 // ❌ BLoC
-class TaskListPage extends StatelessWidget {
+class TaskListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -261,11 +266,11 @@ class TaskListPage extends StatelessWidget {
 }
 
 // ✅ Hooks — minimal coordinator
-class TaskListPage extends HookWidget {
+class TaskListScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final state = useTaskListPageState();
-    return TaskListPageView(state: state);
+    final state = useTaskListScreenState();
+    return TaskListScreenView(state: state);
   }
 }
 ```
@@ -338,7 +343,7 @@ Common post-migration errors:
 ### Unit test with SimpleHookContext
 ```dart
 test('tasks load on init', () async {
-  final context = SimpleHookContext(() => useTaskListPageState());
+  final context = SimpleHookContext(() => useTaskListScreenState());
   expect(context().tasks, isNull);
   await context.waitUntil((s) => s.tasks != null);
   expect(context().tasks, isNotEmpty);
@@ -349,19 +354,43 @@ test('tasks load on init', () async {
 
 ## Migration Order (for a full codebase)
 
-1. **pubspec FIRST** (Step 0) — add `utopia_arch`, remove BLoC packages, `flutter pub get`. This unlocks `dart analyze` as a cross-check for every subsequent step.
-2. **Global state** — Migrate Cubits/Blocs at app root to `_providers`
-3. **Leaf screens** — Screens with no children or dependencies
-4. **Feature modules** — Group related screens and migrate together
-5. **Compilation gate** (Step 8) — `dart analyze` loop until zero errors
-6. **Cleanup + grep audit** (Step 9) — verify zero BLoC artifacts remain
+Migrate **screen by screen**, not big-bang. BLoC and hooks coexist during migration — that's fine.
+Commit after each working screen. The app must compile and run at every commit.
 
-**Never** leave a screen half-migrated (mixing BLoC and hooks in one screen).
-**Run `dart analyze` after each screen** — catch errors immediately, not at the end.
+1. **pubspec FIRST** (Step 0) — add `utopia_arch` alongside existing BLoC packages. Both coexist. `flutter pub get`.
+2. **Global state that the first screen needs** — if a screen reads `AuthBloc`, migrate `AuthBloc` → `AuthState` in `_providers` first. This may temporarily break other screens that still read `AuthBloc` — that's OK, they'll be fixed when you migrate them.
+3. **One screen** — migrate fully (Screen + State + View), `dart analyze`, fix errors, commit.
+4. **Next screen** — if it needs a global state that isn't migrated yet, migrate that state first. Repeat.
+5. **After ALL screens are migrated** — remove BLoC packages from pubspec, delete old files, final cleanup.
+
+```
+┌─────────────────────────────────────────────────────┐
+│ pubspec: add utopia_arch (keep flutter_bloc for now) │
+│   ↓                                                  │
+│ Migrate GlobalStateA (needed by Screen1)             │
+│   ↓                                                  │
+│ Migrate Screen1 → commit                             │
+│   ↓                                                  │
+│ Migrate GlobalStateB (needed by Screen2)             │
+│   ↓                                                  │
+│ Migrate Screen2 → commit                             │
+│   ↓                                                  │
+│ ... repeat for all screens ...                       │
+│   ↓                                                  │
+│ Remove flutter_bloc from pubspec → final commit      │
+└─────────────────────────────────────────────────────┘
+```
+
+**Rules:**
+- **Never** leave a screen half-migrated (mixing BLoC and hooks in ONE screen)
+- **BLoC and hooks CAN coexist across screens** — Screen A uses hooks, Screen B still uses BLoC. That's the normal state during migration.
+- **Run `dart analyze` after each screen** — catch errors immediately, not at the end
+- **Commit after each working screen** — git history shows incremental progress, easy to bisect if something breaks
+- **Migrating a global state may break screens that depend on it** — that's expected. When you get to those screens, you'll fix them.
 
 ## Related
 
 - [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
-- `../utopia-hooks/references/page-state-view.md` — Page/State/View pattern
+- `../utopia-hooks/references/page-state-view.md` — Screen/State/View pattern
 - `../utopia-hooks/references/testing.md` — SimpleHookContext testing

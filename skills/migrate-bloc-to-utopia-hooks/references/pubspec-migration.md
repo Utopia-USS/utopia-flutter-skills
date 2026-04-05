@@ -51,9 +51,12 @@ This single dependency gives you:
 
 ---
 
-## 2. Remove BLoC packages — ALL of them
+## 2. Remove BLoC packages — AFTER all screens are migrated
 
-Every one of these must be removed from `dependencies:` and `dev_dependencies:`:
+During incremental migration, BLoC and hooks coexist. Keep BLoC packages in pubspec until
+every screen is migrated. Only remove them in the **final cleanup commit**.
+
+Packages to remove (when ALL screens are done):
 
 ```yaml
 # dependencies: — REMOVE all of these
