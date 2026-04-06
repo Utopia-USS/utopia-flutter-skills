@@ -55,8 +55,8 @@ result will be simpler (typically ~30% less code) with the same functionality. W
 | `BlocBuilder` | `StatelessWidget` View with State param | View receives state via constructor |
 | `BlocListener` | `useEffect` / callback in hook | Side effects live in hook, not in widget tree |
 | `BlocConsumer` | `HookWidget` Screen + `StatelessWidget` View | Page = coordinator, View = pure UI |
-| `MultiBlocProvider` | `HookConsumerProviderContainerWidget` | Single widget at app root, flat map |
-| `RepositoryProvider` | `Injector` + `useInjected<T>()` | Service registration via DI container |
+| `MultiBlocProvider` | `HookProviderContainerWidget` | Single widget at app root, flat map |
+| `RepositoryProvider` | Keep existing DI + `useInjected<T>()` bridge | One-liner hook wrapping your DI (get_it, etc.) |
 | `context.read<XCubit>()` | `useProvided<XState>()` | Reads global state (auto-rebuilds) |
 | `context.watch<XCubit>()` | `useProvided<XState>()` | Same hook — always reactive |
 | `context.select<C, T>()` | `useMemoized(() => derive(state), [state])` | Derived values via memoization |
@@ -159,13 +159,15 @@ class CounterScreenView extends StatelessWidget {
 |------|--------|-------------|
 | [bloc-to-hooks-mapping.md][mapping] | CRITICAL | Every BLoC pattern → hooks equivalent with side-by-side code |
 | [pubspec-migration.md][pubspec] | CRITICAL | Dependency changes: version resolution, BLoC removal, validation |
-| [migration-steps.md][steps] | HIGH | Step-by-step checklist for converting one screen |
-| [global-state-migration.md][global] | HIGH | Provider tree → _providers, RepositoryProvider → Injector |
+| [migration-steps.md][steps] | HIGH | Project-level migration orchestration: pubspec, providers, screen loop, final cleanup |
+| [global-state-migration.md][global] | HIGH | Provider tree → _providers, RepositoryProvider → useInjected bridge |
+| [screen-migration-flow.md][flow] | HIGH | Per-screen 4-phase migration: analysis, migration, self-review, exit gate |
 
 [mapping]: references/bloc-to-hooks-mapping.md
 [pubspec]: references/pubspec-migration.md
 [steps]: references/migration-steps.md
 [global]: references/global-state-migration.md
+[flow]: references/screen-migration-flow.md
 
 ## Problem → Reference
 
@@ -180,6 +182,10 @@ class CounterScreenView extends StatelessWidget {
 | BlocListener side effects | [bloc-to-hooks-mapping.md][mapping] |
 | Adding/removing pubspec dependencies | [pubspec-migration.md][pubspec] |
 | Which package version to use | [pubspec-migration.md][pubspec] |
+| Per-screen migration with self-review | [screen-migration-flow.md][flow] |
+| Complex screen with streams/lifecycle/large state | [screen-migration-flow.md][flow] |
+| Migrating stream.listen() calls | [bloc-to-hooks-mapping.md][mapping] (section 13) |
+| Migrating StatefulWidget with lifecycle | [bloc-to-hooks-mapping.md][mapping] (section 14) |
 
 ## Non-Negotiable Migration Rules
 
@@ -188,9 +194,10 @@ class CounterScreenView extends StatelessWidget {
 - **State class must NOT import widgets** — same rule as in utopia-hooks
 - **View never calls hooks** — BlocBuilder's `builder:` becomes a StatelessWidget
 - **Delete BLoC files after migration** — don't leave dead code
-- **Never hardcode package versions** — fetch latest `utopia_arch` from pub.dev dynamically (see [pubspec-migration.md][pubspec])
+- **Never hardcode package versions** — fetch latest `utopia_hooks` from pub.dev dynamically (see [pubspec-migration.md][pubspec])
 - **Never add `flutter_hooks`** — utopia_hooks is a completely separate implementation, not an extension of flutter_hooks
 - **Migration is done when `dart analyze` returns zero errors** — not before. Loop: fix → re-run → fix → re-run
+- **StatefulWidget with lifecycle → HookWidget** — if a StatefulWidget exists only to manage subscriptions, controllers, or timers in `initState`/`dispose`, convert it to HookWidget with `useEffect`/`useStreamSubscription`
 - **The ~30% code reduction is a consequence** — focus on correctness, not size
 
 ## Migration Anti-Patterns — NEVER DO THESE
@@ -243,6 +250,23 @@ void emit(MyState newState) { state.value = newState; }
 // ❌ NEVER: adding comments like "// State", "// Hook", "// ---" section dividers
 // ✅ INSTEAD: clean code, no noise comments
 
+// ❌ NEVER: keeping StatefulWidget with lifecycle management
+// WHY: initState/dispose for subscriptions and controllers is exactly what hooks replace.
+//      Leaving StatefulWidget means the screen is half-migrated.
+class HomeScreen extends StatefulWidget { ... }
+class _HomeScreenState extends State<HomeScreen> {
+  late final StreamSubscription _sub;
+  void initState() { _sub = stream.listen(...); }
+  void dispose() { _sub.cancel(); super.dispose(); }
+}
+// ✅ INSTEAD: HookWidget with useStreamSubscription (auto-disposed)
+class HomeScreen extends HookWidget {
+  Widget build(BuildContext context) {
+    final state = useHomeScreenState();
+    return HomeScreenView(state: state);
+  }
+}
+
 // ❌ NEVER: manual stream subscriptions via useState<StreamSubscription?>
 // WHY: manual lifecycle management (forget cancel → leak), wastes a state slot,
 //      no error handling strategy — useStreamSubscription does all of this automatically
@@ -260,7 +284,7 @@ final data = useMemoizedStream(service.streamData);
 
 ### 1. `flutter pub get` passes
 
-See [pubspec-migration.md][pubspec] for exact steps: fetch version from pub.dev, add `utopia_arch`, remove all BLoC packages, never add `flutter_hooks`.
+See [pubspec-migration.md][pubspec] for exact steps: fetch version from pub.dev, add `utopia_hooks`, never add `flutter_hooks`. BLoC packages are removed only in the final cleanup after ALL screens are migrated — during incremental migration they coexist.
 
 ### 2. `dart analyze` returns zero errors
 
@@ -285,7 +309,17 @@ ls -d lib/blocs lib/cubits 2>/dev/null
 grep -E '^\s+(bloc|flutter_bloc|hydrated_bloc|bloc_concurrency|flutter_hooks):' pubspec.yaml
 ```
 
-### 4. Zero leftover BLoC artifacts in running code
+### 4. Stream and lifecycle audit
+
+```bash
+# No manual stream subscriptions in state files
+grep -rn '\.listen(' lib/state/
+
+# No StatefulWidget in screens (each must have justification if present)
+grep -rn 'extends StatefulWidget' lib/screens/
+```
+
+### 5. Zero leftover BLoC artifacts in running code
 
 ```bash
 grep -rn 'context\.read<\|context\.watch<\|context\.select<\|BlocBuilder\|BlocListener\|BlocConsumer\|BlocProvider\|MultiBlocProvider' lib/
@@ -296,5 +330,4 @@ grep -rn 'context\.read<\|context\.watch<\|context\.select<\|BlocBuilder\|BlocLi
 ## Attribution
 
 Migration from [flutter_bloc](https://pub.dev/packages/flutter_bloc) to
-[utopia_hooks](https://pub.dev/packages/utopia_hooks) / [utopia_arch](https://pub.dev/packages/utopia_arch)
-by UtopiaSoftware.
+[utopia_hooks](https://pub.dev/packages/utopia_hooks) by UtopiaSoftware.

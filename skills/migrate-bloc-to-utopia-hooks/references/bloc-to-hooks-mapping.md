@@ -773,6 +773,210 @@ TextEditingControllerWrapper(
 
 ---
 
+## 13. stream.listen() → useStreamSubscription
+
+The most commonly missed pattern during migration. Manual `.listen()` + `.cancel()` is the stream equivalent of manual `try/catch/finally` for loading state — hooks eliminate the ceremony.
+
+### BLoC / StatefulWidget
+
+```dart
+class NotificationsCubit extends Cubit<NotificationsState> {
+  StreamSubscription<Notification>? _subscription;
+
+  void startListening(Stream<Notification> stream) {
+    _subscription = stream.listen(
+      (notification) => _handleNotification(notification),
+      onError: (e) => emit(state.copyWith(error: e.toString())),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
+  }
+}
+```
+
+### utopia_hooks
+
+```dart
+NotificationsScreenState useNotificationsScreenState() {
+  final service = useInjected<NotificationService>();
+
+  // Side effect per event — auto-disposed, no manual cancel needed
+  useStreamSubscription(service.notificationStream, (notification) async {
+    handleNotification(notification);
+  });
+
+  // ...
+}
+```
+
+**What changed:**
+- `StreamSubscription?` field + manual `.cancel()` in `close()` → `useStreamSubscription` (auto-disposed on unmount)
+- `onError` callback → `useStreamSubscription`'s `onError` parameter
+- No `ValueNotifier<StreamSubscription?>` — that pattern is always wrong in hooks
+
+### Which stream hook to use
+
+| Need | Hook | Returns |
+|------|------|---------|
+| Side effect per event (sync, navigate, toast) | `useStreamSubscription(stream, handler)` | `void` |
+| Latest value from stream, drives UI | `useMemoizedStream(() => stream)` | `AsyncSnapshot<T>` |
+| Latest value, simplified (data only) | `useMemoizedStreamData(() => stream)` | `T?` |
+| Both (react to events AND show latest value) | `useMemoizedStreamData` for UI + `useStreamSubscription` for side effects | — |
+
+**Rule:** If you see `.listen(` in a state hook file, it should be `useStreamSubscription`. No exceptions. Manual subscription management is the #1 source of resource leaks in migrated code.
+
+---
+
+## 14. StatefulWidget lifecycle → HookWidget
+
+When a `StatefulWidget` exists primarily to manage lifecycle (subscriptions in `initState`, cleanup in `dispose`, side effects in `didChangeDependencies`), it should become a `HookWidget`.
+
+### StatefulWidget
+
+```dart
+class HomeScreen extends StatefulWidget {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late final StreamSubscription<Uri> _linkSubscription;
+  late final StreamSubscription<String?> _notificationSubscription;
+  StoriesDownloadStatus? _lastDownloadStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _linkSubscription = appLinks.uriLinkStream.listen((uri) {
+      context.push(uri.path);
+    });
+    _notificationSubscription = notifications.stream.listen((id) {
+      if (id != null) navigateToItem(id);
+    });
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription.cancel();
+    _notificationSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final storiesState = context.get<StoriesState>();
+    // ❌ Side effect in build — comparing old/new value manually
+    if (_lastDownloadStatus != storiesState.downloadStatus) {
+      _lastDownloadStatus = storiesState.downloadStatus;
+      if (storiesState.downloadStatus == StoriesDownloadStatus.finished) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDownloadCompletedDialog();
+        });
+      }
+    }
+    return /* ... */;
+  }
+}
+```
+
+### utopia_hooks
+
+```dart
+class HomeScreen extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final state = useHomeScreenState(
+      navigateToItem: (id) => context.push('/item/$id'),
+      showDownloadCompleted: () => showDownloadCompletedDialog(),
+    );
+    return HomeScreenView(state: state);
+  }
+}
+
+HomeScreenState useHomeScreenState({
+  required void Function(String) navigateToItem,
+  required void Function() showDownloadCompleted,
+}) {
+  final storiesState = useProvided<StoriesState>();
+
+  // initState stream subscriptions → useStreamSubscription (auto-disposed)
+  useStreamSubscription(appLinks.uriLinkStream, (uri) async {
+    navigateToItem(uri.path);
+  });
+  useStreamSubscription(notifications.stream, (id) async {
+    if (id != null) navigateToItem(id);
+  });
+
+  // Side effect in build → useEffect with keys
+  useEffect(() {
+    if (storiesState.downloadStatus == StoriesDownloadStatus.finished) {
+      showDownloadCompleted();
+    }
+    return null;
+  }, [storiesState.downloadStatus]);
+
+  return HomeScreenState(/* ... */);
+}
+```
+
+### Lifecycle mapping
+
+| StatefulWidget | Hook equivalent |
+|----------------|-----------------|
+| `initState` + `dispose` (general setup/teardown) | `useEffect(() { ...; return cleanup; }, const [])` |
+| `initState` stream `.listen()` + `dispose` `.cancel()` | `useStreamSubscription(stream, handler)` |
+| Non-text controller creation + `dispose` (e.g., `PageController`, `ScrollController`) | `useMemoized(() => Controller(), [args], (it) => it.dispose())` + listener hook. **NOT for TextEditingController** — use `useFieldState` + `TextEditingControllerWrapper` (section 12) |
+| `didChangeDependencies` | Hook body runs on every rebuild (reactive by default) |
+| `didUpdateWidget` | `useEffect` with keys matching changed widget parameters |
+| Side effects in `build()` (comparing old/new) | `useEffect` with keys — never put side effects in build |
+| `context.get<T>()` / `context.watch<T>()` | `useProvided<T>()` — always reactive |
+
+**Rule:** After migration, no `StatefulWidget` should remain unless it has a genuine reason (e.g., wrapping a platform view). If it exists only to manage subscriptions, controllers, or timers — convert to `HookWidget`.
+
+---
+
+## 15. Global mutable state from Cubit
+
+Cubits sometimes carry top-level mutable variables or `static` fields that act as cross-instance caches or singletons. These don't belong as top-level variables in hooks code.
+
+### BLoC
+
+```dart
+// Top-level mutable state — shared across Cubit instances
+final Map<int, CollapseState> _globalCollapseStates = {};
+DateTime? _retryAfterDateTime;
+
+class CommentsCubit extends Cubit<CommentsState> {
+  void toggleCollapse(int id) {
+    _globalCollapseStates[id] = /* ... */;
+    // ...
+  }
+}
+```
+
+### utopia_hooks
+
+```dart
+// Option A: move to a registered service (if it's app-wide state)
+class CollapseService {
+  final _states = <int, CollapseState>{};
+  CollapseState? getState(int id) => _states[id];
+  void setState(int id, CollapseState state) => _states[id] = state;
+}
+// Register in your DI (e.g. get_it), access via useInjected<CollapseService>()
+
+// Option B: move to global state via _providers (if other screens need to react)
+// See global-state-migration.md
+```
+
+**Rule:** Top-level mutable variables and `static` mutable fields from Cubits should become either a registered service (in your DI, accessed via `useInjected`) or global state (via `_providers`). Never keep them as top-level `late` / mutable variables in hook files.
+
+---
+
 ## Common Pitfalls During Migration
 
 - **Keeping BLoC state union types** — don't port the Freezed union; flatten to nullable fields + bools
@@ -782,6 +986,9 @@ TextEditingControllerWrapper(
 - **Migrating one file at a time within a screen** — migrate the entire screen (Page + State + View) at once
 - **Leaving `flutter_bloc` as a dependency "just in case"** — remove it when all screens are migrated
 - **Using raw `TextEditingController` in hooks** — always use `useFieldState` + `TextEditingControllerWrapper`
+- **Manual stream subscription management** — never use `useState<StreamSubscription?>()` + manual `.cancel()`; always `useStreamSubscription`. This is the #1 source of resource leaks in migrated code.
+- **Cascade trap (the #1 BLoC-brain mistake)** — In BLoC: event → handler → compute derived value → `emit(state.copyWith(derived: value))`. Naively translated to hooks: source changes → `useEffect` fires → writes to `useState` → triggers rebuild → repeat. This is structurally wrong — each `useEffect` → `useState` write is an extra rebuild frame. Three cascading effects = four rebuilds where one suffices. **Rule:** If a value is computable from other state, use `useMemoized` (runs synchronously during build, single rebuild). Only use `useEffect` for fire-and-forget side effects (analytics, stream subscriptions, external writes).
+- **Leaving StatefulWidget with lifecycle management** — if a StatefulWidget only exists to manage subscriptions/controllers/timers in `initState`/`dispose`, convert it to HookWidget (see section 14)
 
 ## Related
 

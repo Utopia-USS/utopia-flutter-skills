@@ -1,7 +1,7 @@
 ---
 title: pubspec.yaml Migration
 impact: CRITICAL
-tags: pubspec, dependencies, version, utopia_arch, utopia_hooks, flutter_hooks, cleanup, bloc
+tags: pubspec, dependencies, version, utopia_hooks, flutter_hooks, cleanup, bloc
 ---
 
 # pubspec.yaml Migration
@@ -18,21 +18,22 @@ The version MUST come from pub.dev at the time of migration.
 
 ### Which package to add
 
-The target package is **`utopia_arch`**, not `utopia_hooks` alone.
-`utopia_arch` depends on `utopia_hooks` and adds `Injector`, `useInjected`, navigation helpers,
-and error handling — all needed for a real migration.
+The target package is **`utopia_hooks`**.
 
 **Do NOT add `flutter_hooks`.** `utopia_hooks` is a completely separate implementation — it does
 NOT extend or depend on `flutter_hooks`. Adding `flutter_hooks` is wrong and will cause conflicts.
+
+**Leave your existing DI library (get_it, provider, etc.) untouched.** The migration does not
+replace your DI — it wraps it with a thin `useInjected<T>()` bridge hook.
 
 ### Fetch the latest version
 
 ```bash
 # Run this BEFORE touching pubspec.yaml
-curl -s https://pub.dev/api/packages/utopia_arch | grep -o '"version":"[^"]*"' | head -1
+curl -s https://pub.dev/api/packages/utopia_hooks | grep -o '"version":"[^"]*"' | head -1
 ```
 
-If `curl` is unavailable, use `WebFetch` on `https://pub.dev/packages/utopia_arch` and read the
+If `curl` is unavailable, use `WebFetch` on `https://pub.dev/packages/utopia_hooks` and read the
 version from the page. If that also fails, **ask the user** — do not guess.
 
 ### Add to pubspec.yaml
@@ -41,13 +42,15 @@ Use the **exact version** returned by the command above:
 
 ```yaml
 dependencies:
-  utopia_arch: ^X.Y.Z    # version from pub.dev, verified just now
+  utopia_hooks: ^X.Y.Z    # version from pub.dev, verified just now
 ```
 
-This single dependency gives you:
-- `utopia_hooks` (useState, useEffect, useMemoized, useAutoComputedState, useSubmitState, ...)
-- `utopia_arch` (Injector, useInjected, HookConsumerProviderContainerWidget, HasInitialized, ...)
-- `HookWidget` (from utopia_hooks, NOT from flutter_hooks)
+This dependency gives you:
+- All hooks (useState, useEffect, useMemoized, useAutoComputedState, useSubmitState, ...)
+- `HookWidget`
+- `HookProviderContainerWidget`
+- `HasInitialized`
+- `useProvided<T>()` for global state access
 
 ---
 
@@ -78,8 +81,7 @@ Packages to remove (when ALL screens are done):
   equatable:             # KEEP if model classes (Item, Story, etc.) use it
                          # (only remove if ZERO non-state classes extend Equatable)
   rxdart:                # KEEP if used for BehaviorSubject or stream operators outside BLoC
-  get_it:                # KEEP temporarily if repositories still call locator.get<T>() internally
-                         # (remove after repositories are refactored to accept deps via constructor)
+  get_it:                # KEEP — existing DI stays as-is
   mocktail:              # KEEP — general-purpose mocking, not BLoC-specific
 ```
 
@@ -106,7 +108,7 @@ flutter pub get
 If `flutter pub get` fails:
 - **Version not found** → re-run the `curl` command, you may have a typo or stale version
 - **Dependency conflict** → read the error, adjust version constraints
-- **Package not found** → check the package name spelling (`utopia_arch`, not `utopia-arch`)
+- **Package not found** → check the package name spelling (`utopia_hooks`, not `utopia-hooks`)
 
 ```bash
 # B: Verify no BLoC packages remain
@@ -131,8 +133,8 @@ grep -rn 'package:flutter_bloc\|package:bloc/\|package:hydrated_bloc\|package:bl
 grep -rn 'package:flutter_hooks' lib/
 # Expected: zero results
 
-# utopia_arch (or utopia_hooks) is actually imported somewhere
-grep -rn 'package:utopia_hooks\|package:utopia_arch' lib/
+# utopia_hooks is actually imported somewhere
+grep -rn 'package:utopia_hooks' lib/
 # Expected: at least 1 result per state file
 
 # No leftover _bloc.dart or _cubit.dart files

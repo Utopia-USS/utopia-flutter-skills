@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: UtopiaSoftware
-  tags: flutter, dart, utopia_hooks, utopia_arch, state-management, hooks
+  tags: flutter, dart, utopia_hooks, state-management, hooks
 ---
 
 # utopia_hooks — Flutter State Management
@@ -165,10 +165,10 @@ Full documentation with code examples in [references/][references]:
 | [hooks-reference.md][hooks-reference] | CRITICAL | Full hook catalog: useState, useMemoized, useEffect, useProvided, useInjected, useIf, useMap, useComputedState |
 | [global-state.md][global-state] | CRITICAL | App-wide state: StateClass, HasInitialized, MutableValue, _providers registration |
 | [async-patterns.md][async-patterns] | HIGH | useSubmitState, useAutoComputedState, useMemoizedStream, loading guards |
-| [composable-hooks.md][composable-hooks] | HIGH | Widget-level hooks (expand/animate/lazy-load) and composed hook state (paging, reusable fields) |
+| [composable-hooks.md][composable-hooks] | HIGH | Widget-level hooks, composed hook state, and screen hook decomposition for large hooks |
 | [testing.md][testing] | HIGH | Unit testing hooks with SimpleHookContext and SimpleHookProviderContainer — no widget tree needed |
 | [flutter-conventions.md][flutter-conventions] | HIGH | IList/IMap/ISet, `it` lambdas, strict analyzer, widget extraction, spacing, generated code |
-| [di-services.md][di-services] | MEDIUM | Injector registration, useInjected, service types (Firebase/Api/Data) |
+| [di-services.md][di-services] | MEDIUM | DI bridge hook, useInjected pattern, service types (Firebase/Api/Data) |
 
 ## Searching References
 
@@ -207,6 +207,7 @@ grep -rl "useProvided" references/
 | Lambda style, naming, widget extraction | [flutter-conventions.md][flutter-conventions] |
 | Generated code out of date | [flutter-conventions.md][flutter-conventions] |
 | Replacing StatefulWidget | [page-state-view.md][page-state-view] + [hooks-reference.md][hooks-reference] |
+| Screen hook is too large (>300 lines, >10 useState) | [composable-hooks.md][composable-hooks] (screen hook decomposition, Pattern 3) |
 
 [references]: references/
 [page-state-view]: references/page-state-view.md
@@ -242,7 +243,8 @@ After generating a screen, verify:
 5. Are there more than 2 `useSubmitState()` in one hook? → Group mutually exclusive actions
 6. Is any view file > 150 lines? → Extract widgets to `widget/` folder
 7. Does the View extend `HookWidget`? → Must be `StatelessWidget`
+8. Is any screen hook > ~300 lines or > ~10 useState? → Decompose into sub-hooks (see [composable-hooks.md][composable-hooks] Pattern 3)
 
 ## Attribution
 
-Built on [utopia_hooks](https://pub.dev/packages/utopia_hooks) and [utopia_arch](https://pub.dev/packages/utopia_arch) by UtopiaSoftware.
+Built on [utopia_hooks](https://pub.dev/packages/utopia_hooks) by UtopiaSoftware.

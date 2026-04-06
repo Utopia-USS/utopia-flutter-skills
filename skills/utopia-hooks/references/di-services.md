@@ -1,12 +1,12 @@
 ---
 title: Dependency Injection & Services
 impact: MEDIUM
-tags: di, injection, services, injector, register, useInjected
+tags: di, injection, services, useInjected, bridge, get_it, provider
 ---
 
 # Skill: Dependency Injection & Services
 
-Services are registered in an Injector and accessed via `useInjected<T>()` in hooks.
+Services are accessed via a `useInjected<T>()` bridge hook that wraps your project's existing DI.
 This decouples screens from concrete implementations and enables testability.
 
 ## Quick Pattern
@@ -22,7 +22,7 @@ TasksPageState useTasksPageState() {
 **Correct (injected service):**
 ```dart
 TasksPageState useTasksPageState() {
-  final service = useInjected<TaskService>(); // resolved from Injector
+  final service = useInjected<TaskService>(); // resolved via DI bridge
   // ...
 }
 ```
@@ -104,46 +104,41 @@ class TaskDataService {
 
 ---
 
-## Registering Services
+## Creating the useInjected Bridge Hook
 
-Services are registered in a class that extends `Injector`:
+`useInjected<T>()` is not a framework class — it's a one-liner you write yourself to bridge
+your project's existing DI into hook context. Pick the variant matching your DI:
+
+### For get_it (most common)
 
 ```dart
-class AppInjector extends Injector {
-  @override
-  void register() {
-    // No dependencies
-    register.noarg(TaskDataService.new);
+// hooks/use_injected.dart
+T useInjected<T extends Object>() => GetIt.I<T>();
+```
 
-    // With dependencies — Injector resolves them automatically
-    register(TaskFirebaseService.new);  // TaskFirebaseService(FirebaseFirestore instance)
-    register(TaskApiService.new);       // TaskApiService(GrpcClient instance)
-  }
+Services are registered as usual in get_it:
+```dart
+// di/injection.dart
+final getIt = GetIt.instance;
+
+void setupDependencies() {
+  getIt.registerSingleton(TaskDataService());
+  getIt.registerSingleton(TaskFirebaseService());
+  getIt.registerFactory(() => TaskApiService(getIt<GrpcClient>()));
 }
 ```
 
-**`register.noarg`** — service constructor takes no arguments:
+### For a simple service locator
+
 ```dart
-register.noarg(AnalyticsService.new);
-register.noarg(DateFormatterService.new);
+// hooks/use_injected.dart
+T useInjected<T>() => ServiceLocator.instance.get<T>();
 ```
 
-**`register`** — service constructor has dependencies resolved by Injector:
-```dart
-// TaskService(TaskFirebaseService fb, TaskApiService api, TaskDataService data)
-register(TaskService.new);
-// Injector finds registered TaskFirebaseService, TaskApiService, TaskDataService
-// and passes them automatically
-```
+### For BuildContext-based DI (provider, etc.)
 
-**Registering the Injector itself** in `_providers`:
-```dart
-const _providers = {
-  Injector: AppInjector.use,  // first entry
-  AuthState: useAuthState,
-  // ...
-};
-```
+If your services are provided via `Provider` in the widget tree, you can use
+`useProvided<T>()` directly — no bridge needed.
 
 ---
 
@@ -184,8 +179,7 @@ TasksPageState useTasksPageState() {
 
 - **Accessing infrastructure directly in hooks** — `FirebaseDatabase.instance.ref(...)`, `SharedPreferences.getInstance()`, raw HTTP clients in a hook body. Always wrap in a service and use `useInjected<Service>()`. The hook should never know *how* data is stored or fetched — only *what* to ask for.
 - **Injecting in View** — `View extends StatelessWidget` cannot call hooks; pass services via State if needed (rare — usually pass results, not services)
-- **Forgetting `register.noarg`** — if the constructor takes no parameters and you use `register(...)`, it will fail at runtime when Injector tries to resolve dependencies
-- **Circular dependencies** — Service A → Service B → Service A will throw; redesign to extract shared logic into a third service
+- **Ensure your DI has the type registered** — if `useInjected<T>()` throws at runtime, the service isn't registered in your DI container
 - **Using `useInjected` inside a regular function** — only valid inside a hook build context; don't call it inside a `Future` or callback body
 - **One service doing too much** — split large services by type (Firebase vs API vs Data); keeps responsibilities clear and tests isolated
 

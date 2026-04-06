@@ -1,15 +1,16 @@
 ---
 title: Composable & Widget-Level Hooks
 impact: HIGH
-tags: composition, reusable, widget-hooks, extract, paging, HookWidget
+tags: composition, reusable, widget-hooks, extract, paging, HookWidget, decomposition, large-hook
 ---
 
 # Skill: Composable & Widget-Level Hooks
 
-Hooks are extractable and composable. Two patterns emerge from this:
+Hooks are extractable and composable. Three patterns emerge from this:
 
 1. **Widget-level hook** — a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Page/State/View breakdown at widget scope.
 2. **Composed hook state** — a reusable widget's state is a hook called *from the parent screen's state hook* and passed down. The widget receives state; it doesn't create it.
+3. **Screen hook decomposition** — a large screen hook is split into focused sub-hooks that the main hook composes. Used when a single hook grows too large or mixes unrelated domains.
 
 ---
 
@@ -311,6 +312,114 @@ No `view/` subdirectory — the widget is simple enough to not need it. No `Hook
 
 ---
 
+## Pattern 3: Screen Hook Decomposition
+
+Use when a screen's state hook grows too large — too many concerns, too many `useState` calls, too many lines. Instead of one monolithic hook, split it into focused sub-hooks that the main screen hook composes.
+
+**Signals to decompose:**
+- More than ~10 `useState` calls in one hook
+- More than ~300 lines in one hook function
+- Unrelated domains mixed together (data fetching + search + scroll + selection)
+- State class has too many unrelated fields (overchunked)
+
+**Quick Pattern:**
+
+```dart
+// ❌ One monolithic hook — 1200 lines, 15 useState, fetch + search + scroll interleaved
+OrderScreenState useOrderScreenState() {
+  // ... data fetching (200 lines)
+  // ... search/filter (150 lines)
+  // ... infinite scroll (100 lines)
+  // ... selection management (80 lines)
+  // ... all tangled together, hard to follow
+}
+
+// ✅ Main hook composes focused sub-hooks
+OrderScreenState useOrderScreenState({
+  required void Function(OrderId) navigateToDetail,
+}) {
+  final fetch = useOrderFetchState();
+  final search = useOrderSearchState(orders: fetch.orders);
+  final scroll = useOrderScrollState(
+    hasMore: fetch.hasMore,
+    onLoadMore: fetch.loadMore,
+  );
+
+  return OrderScreenState(
+    orders: search.filteredOrders,
+    isLoading: fetch.isLoading,
+    searchQuery: search.query,
+    isLoadingMore: scroll.isLoadingMore,
+    onOrderTapped: navigateToDetail,
+    onSearchChanged: search.onQueryChanged,
+    scrollController: scroll.controller,
+  );
+}
+```
+
+**How sub-hooks communicate:**
+- Each sub-hook returns its own typed state object (e.g., `OrderFetchState`, `OrderSearchState`)
+- The main hook passes outputs from one sub-hook as inputs to another
+- Sub-hooks never call each other directly — the main hook is the coordinator
+- The Screen State class aggregates fields from all sub-hooks into a single flat interface for the View
+
+**Sub-hook example:**
+
+```dart
+class OrderFetchState {
+  final IList<Order>? orders;
+  final bool isLoading;
+  final bool hasMore;
+  final void Function() loadMore;
+
+  const OrderFetchState({
+    required this.orders,
+    required this.isLoading,
+    required this.hasMore,
+    required this.loadMore,
+  });
+}
+
+OrderFetchState useOrderFetchState() {
+  final service = useInjected<OrderService>();
+  final ordersState = useAutoComputedState(
+    () async => (await service.loadOrders()).toIList(),
+  );
+  final loadMoreState = useSubmitState();
+
+  return OrderFetchState(
+    orders: ordersState.valueOrNull,
+    isLoading: !ordersState.isInitialized,
+    hasMore: /* ... */,
+    loadMore: () => loadMoreState.runSimple<void, Never>(
+      submit: () async { /* ... */ },
+    ),
+  );
+}
+```
+
+**File structure:**
+
+```
+ui/screens/orders/
+  orders_screen.dart
+  state/
+    orders_screen_state.dart       ← main hook, composes sub-hooks
+    order_fetch_state.dart         ← sub-hook: data loading
+    order_search_state.dart        ← sub-hook: search/filter
+    order_scroll_state.dart        ← sub-hook: infinite scroll
+  view/orders_screen_view.dart
+```
+
+Sub-hooks live in the same `state/` directory as the main hook. They are private to this screen — not reusable (that's Pattern 2).
+
+**What this is NOT:**
+- Not Pattern 1 — sub-hooks are not extracted to child widgets; they're called from the same screen hook
+- Not Pattern 2 — sub-hooks are not reusable across screens; they're specific to this screen's domain
+- If a sub-hook IS reusable (e.g., paging logic used on 3 screens), it becomes Pattern 2
+
+---
+
 ## Decision Guide
 
 | Situation | Pattern |
@@ -320,6 +429,9 @@ No `view/` subdirectory — the widget is simple enough to not need it. No `Hook
 | Widget is simple, no async, no state coordination needed | Plain `StatelessWidget`, no hook |
 | Screen state would get polluted with per-tile logic for N tiles | Widget-level hook (Pattern 1) |
 | Multiple fields of the same type on one screen | Composed hook state (Pattern 2) — one `useXState()` call per instance in screen state hook |
+| Screen hook > ~300 lines or > ~10 useState | Screen hook decomposition (Pattern 3) |
+| Screen hook mixes unrelated domains (fetch + search + scroll) | Screen hook decomposition (Pattern 3) |
+| State class has too many unrelated fields | Screen hook decomposition (Pattern 3) — split into sub-hooks with own state objects |
 
 ---
 
@@ -329,6 +441,8 @@ No `view/` subdirectory — the widget is simple enough to not need it. No `Hook
 - **Widget-level hook for simple state** — if the widget only has one `useState`, it doesn't need the full [state, widget, view] breakdown; a single `HookWidget` with inline hook calls is fine
 - **Mixing both patterns** — don't have a widget that both calls its own hook AND accepts state from outside; pick one
 - **Screen state passing individual fields instead of state object** — pass the whole `PagingState`, not `currentPage: paging.currentPage, onNext: paging.onNext, …`
+- **Sub-hooks calling each other directly** — sub-hooks should return state; the main screen hook coordinates and passes values between them
+- **Decomposing too early** — a hook with 5 useState and 100 lines doesn't need Pattern 3; only decompose when the signals are clearly present
 
 ## Related Skills
 

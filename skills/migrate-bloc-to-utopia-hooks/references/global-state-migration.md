@@ -1,13 +1,14 @@
 ---
 title: Global State Migration — BLoC Provider Tree → _providers
 impact: HIGH
-tags: migration, global-state, MultiBlocProvider, RepositoryProvider, Injector, providers
+tags: migration, global-state, MultiBlocProvider, RepositoryProvider, providers, useInjected
 ---
 
-# Global State Migration: BLoC Provider Tree → _providers + Injector
+# Global State Migration: BLoC Provider Tree → _providers
 
-Migrating the app-level BLoC provider tree to utopia_hooks' flat `_providers` map
-and `Injector` for services. This is typically step 1 in a codebase-wide migration.
+Migrating the app-level BLoC provider tree to utopia_hooks' flat `_providers` map.
+Existing DI (get_it, provider, etc.) stays as-is — only a thin `useInjected` bridge hook is added.
+This is typically step 1 in a codebase-wide migration.
 
 ---
 
@@ -15,9 +16,9 @@ and `Injector` for services. This is typically step 1 in a codebase-wide migrati
 
 | BLoC | utopia_hooks |
 |------|-------------|
-| `MultiBlocProvider` wrapping `MaterialApp` | `HookConsumerProviderContainerWidget` wrapping `MaterialApp` |
+| `MultiBlocProvider` wrapping `MaterialApp` | `HookProviderContainerWidget` wrapping `MaterialApp` |
 | Nested `BlocProvider(create: ...)` | Flat `_providers` map: `{Type: useXState}` |
-| `RepositoryProvider` / `MultiRepositoryProvider` | `Injector` class with `register()` calls |
+| `RepositoryProvider` / `MultiRepositoryProvider` | Keep existing DI + create `useInjected` bridge hook |
 | `context.read<XCubit>()` from any widget | `useProvided<XState>()` from any hook |
 | `context.read<XRepository>()` from any widget | `useInjected<XService>()` from any hook |
 | Lazy init (BlocProvider creates on first read) | Eager init (all providers build at startup, in order) |
@@ -52,24 +53,28 @@ class App extends StatelessWidget {
 
 ---
 
-## After: _providers + Injector
+## After: _providers + useInjected bridge
 
-### 1. Create Injector (replaces RepositoryProvider)
+### 1. Create useInjected bridge hook (wraps existing DI)
+
+Create a one-liner hook that bridges your project's existing DI into hook context.
+The project keeps its DI library — no need to migrate service registrations.
 
 ```dart
-// app_injector.dart
-class AppInjector extends Injector {
-  @override
-  void register() {
-    // Services with no dependencies
-    register.noarg(AuthRepository.new);
-    register.noarg(SettingsRepository.new);
+// hooks/use_injected.dart
 
-    // Services with dependencies (Injector resolves them)
-    register(TaskRepository.new);  // TaskRepository(ApiClient) — auto-resolved
-  }
-}
+// For get_it:
+T useInjected<T extends Object>() => GetIt.I<T>();
+
+// For provider (if services are in provider):
+// T useInjected<T>() => useProvided<T>();
+
+// For a custom service locator:
+// T useInjected<T>() => ServiceLocator.instance.get<T>();
 ```
+
+**Key point:** `useInjected` is not a framework class — it's a one-liner you write yourself.
+Pick the variant that matches your project's DI. Keep existing service registrations unchanged.
 
 ### 2. Create global state hooks (replace Cubits)
 
@@ -113,9 +118,6 @@ SettingsState useSettingsState() {
 ```dart
 // app.dart
 const _providers = {
-  // Injector FIRST — services become available to all hooks below
-  Injector: AppInjector.use,
-
   // Global state hooks — order matters (earlier = available to later)
   AuthState: useAuthState,
   SettingsState: useSettingsState,
@@ -128,14 +130,10 @@ const _providers = {
 class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return HookConsumerProviderContainerWidget(
+    return HookProviderContainerWidget(
       _providers,
       alwaysNotifyDependents: false,
-      child: HookConsumer(
-        builder: (context, ref) {
-          return MaterialApp(/* ... */);
-        },
-      ),
+      child: MaterialApp(/* ... */),
     );
   }
 }
@@ -155,10 +153,9 @@ to hooks registered later.
 
 ```dart
 const _providers = {
-  Injector: AppInjector.use,          // 1. Services available first
-  AuthState: useAuthState,            // 2. Auth available to everything below
-  SettingsState: useSettingsState,    // 3. Can useProvided<AuthState>() if needed
-  TaskListState: useTaskListState,    // 4. Can use Auth + Settings
+  AuthState: useAuthState,            // 1. Auth available to everything below
+  SettingsState: useSettingsState,    // 2. Can useProvided<AuthState>() if needed
+  TaskListState: useTaskListState,    // 3. Can use Auth + Settings
 };
 ```
 
@@ -228,7 +225,7 @@ BlocProvider(
 ```
 
 ```dart
-// Hooks — useInjected resolves from Injector
+// Hooks — useInjected resolves from your existing DI (e.g. get_it)
 TaskListState useTaskListState() {
   final repo = useInjected<TaskRepository>();
   // ...
@@ -255,7 +252,7 @@ TaskListState useTaskListState() {
 }
 ```
 
-No constructor wiring needed — `useProvided` and `useInjected` handle all dependency resolution.
+No constructor wiring needed — `useProvided` reads global state, `useInjected` reads services from your DI.
 
 ---
 
@@ -288,18 +285,8 @@ void main() {
 
 No direct equivalent. Instead:
 - **State change logging** — add logging inside individual hooks if needed
-- **Error handling** — use `GlobalErrorHandler` from `utopia_arch`, or error callbacks in `runSimple`
+- **Error handling** — use error callbacks in `runSimple` (`afterError`), or a global error handler (e.g. `FlutterError.onError`, Sentry, Crashlytics)
 - **Analytics** — track in `afterSubmit` / `afterError` callbacks
-
-```dart
-// Global error handler (utopia_arch)
-void main() {
-  runWithReporterAndUiErrors(
-    () => runApp(const App()),
-    reporter: SentryReporter(),
-  );
-}
-```
 
 ---
 
@@ -329,12 +316,12 @@ See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full s
 ## Migration Checklist
 
 ```
-□ Create AppInjector class with all service registrations
+□ Create useInjected bridge hook wrapping your existing DI (one-liner)
 □ Create global state classes (extending HasInitialized where needed)
 □ Create corresponding useXState() hooks
-□ Register in _providers map (correct order: Injector first, init-dependent last)
-□ Replace MultiBlocProvider with HookConsumerProviderContainerWidget
-□ Replace MultiRepositoryProvider with Injector
+□ Register in _providers map (correct order: init-dependent last)
+□ Replace MultiBlocProvider with HookProviderContainerWidget
+□ Keep existing DI registrations (get_it, provider, etc.) as-is
 □ Update all screens: context.read<XCubit>() → useProvided<XState>()
 □ Update all screens: context.read<XRepository>() → useInjected<XService>()
 □ Remove flutter_bloc and bloc from pubspec.yaml (after all screens migrated)
@@ -347,4 +334,4 @@ See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full s
 - [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern code mapping
 - [migration-steps.md](./migration-steps.md) — per-screen migration process
 - `../utopia-hooks/references/global-state.md` — full global state documentation
-- `../utopia-hooks/references/di-services.md` — Injector and service patterns
+- `../utopia-hooks/references/di-services.md` — useInjected bridge hook and service patterns
