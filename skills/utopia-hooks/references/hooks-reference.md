@@ -332,9 +332,10 @@ themePreference.value           // current value
 themePreference.value = ThemeMode.dark;  // triggers save
 ```
 
-### usePreferencesPersistedState (from utopia_arch)
+### usePreferencesPersistedState (requires utopia_arch — optional)
 
-Convenience wrapper that combines `usePersistedState` with `PreferencesService` (SharedPreferences):
+Convenience wrapper that combines `usePersistedState` with `PreferencesService` (SharedPreferences).
+Only available if `utopia_arch` is added as a dependency — not required for core utopia_hooks usage.
 
 ```dart
 // Simple types (String, int, double, bool)
@@ -421,7 +422,7 @@ TasksPageState useTasksPageState() {
 
 ### useInjected\<T\>
 
-Gets a registered service. Only valid in State hooks. See [di-services.md](./di-services.md).
+Gets a service from your DI via the bridge hook you define. Only valid in State hooks. See [di-services.md](./di-services.md).
 
 ```dart
 final taskService = useInjected<TaskService>();

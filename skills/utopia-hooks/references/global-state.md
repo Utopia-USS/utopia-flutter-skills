@@ -111,7 +111,6 @@ CoursesState useCoursesState() {
 ```dart
 // classroom_app.dart (or equivalent app root)
 const _providers = {
-  Injector: MyInjector.use,
   AuthState: useAuthState,
   CoursesState: useCoursesState,
   ThemeState: useThemeState,
@@ -121,7 +120,7 @@ const _providers = {
 
 class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
-    return HookConsumerProviderContainerWidget(
+    return HookProviderContainerWidget(
       _providers,
       alwaysNotifyDependents: false,
       child: /* ... */,
