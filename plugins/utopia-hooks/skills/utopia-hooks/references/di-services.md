@@ -13,7 +13,7 @@ This decouples screens from concrete implementations and enables testability.
 
 **Incorrect (direct instantiation):**
 ```dart
-TasksPageState useTasksPageState() {
+TasksScreenState useTasksScreenState() {
   final service = TaskService(apiClient: ApiClient()); // tight coupling, not testable
   // ...
 }
@@ -21,7 +21,7 @@ TasksPageState useTasksPageState() {
 
 **Correct (injected service):**
 ```dart
-TasksPageState useTasksPageState() {
+TasksScreenState useTasksScreenState() {
   final service = useInjected<TaskService>(); // resolved via DI bridge
   // ...
 }
@@ -29,7 +29,7 @@ TasksPageState useTasksPageState() {
 
 ## When to Use
 
-- Accessing Firebase services, API clients, or data transformation services in a page state hook
+- Accessing Firebase services, API clients, or data transformation services in a screen state hook
 - Accessing services in a global state hook
 - Adding a new service to the app
 - Writing a service that depends on other services
@@ -145,8 +145,8 @@ If your services are provided via `Provider` in the widget tree, you can use
 ## Accessing Services via useInjected
 
 ```dart
-// In any state hook (page or global)
-TasksPageState useTasksPageState() {
+// In any state hook (screen or global)
+TasksScreenState useTasksScreenState() {
   final taskService = useInjected<TaskService>();
   final analyticsService = useInjected<AnalyticsService>();
 
@@ -167,10 +167,10 @@ TasksPageState useTasksPageState() {
 
 | Location | Allowed? |
 |----------|----------|
-| Page state hook (`useXPageState`) | ✅ Yes |
+| Screen state hook (`useXScreenState`) | ✅ Yes |
 | Global state hook (`useXState` in `_providers`) | ✅ Yes |
 | View (`StatelessWidget.build`) | ❌ No — not a hook context |
-| Page widget (`HookWidget.build`) | ⚠️ Technically possible, but put it in the State hook |
+| Screen widget (`HookWidget.build`) | ❌ No — Screen is pure wiring; all services go in the state hook |
 | Custom hooks | ✅ Yes, if called from an allowed hook |
 
 ---
@@ -178,13 +178,13 @@ TasksPageState useTasksPageState() {
 ## Common Pitfalls
 
 - **Accessing infrastructure directly in hooks** — `FirebaseDatabase.instance.ref(...)`, `SharedPreferences.getInstance()`, raw HTTP clients in a hook body. Always wrap in a service and use `useInjected<Service>()`. The hook should never know *how* data is stored or fetched — only *what* to ask for.
-- **Injecting in View** — `View extends StatelessWidget` cannot call hooks; pass services via State if needed (rare — usually pass results, not services)
+- **Injecting in View or Screen** — `View extends StatelessWidget` cannot call hooks; `Screen` is pure wiring and must not call `useInjected`. All services go in the state hook.
 - **Ensure your DI has the type registered** — if `useInjected<T>()` throws at runtime, the service isn't registered in your DI container
 - **Using `useInjected` inside a regular function** — only valid inside a hook build context; don't call it inside a `Future` or callback body
 - **One service doing too much** — split large services by type (Firebase vs API vs Data); keeps responsibilities clear and tests isolated
 
 ## Related Skills
 
-- [page-state-view.md](./page-state-view.md) — useInjected in the State hook
+- [screen-state-view.md](./screen-state-view.md) — useInjected in the State hook
 - [global-state.md](./global-state.md) — useInjected in global state hooks
 - [async-patterns.md](./async-patterns.md) — calling service methods via useSubmitState

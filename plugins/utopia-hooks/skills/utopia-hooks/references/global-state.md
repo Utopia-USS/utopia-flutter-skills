@@ -54,7 +54,7 @@ const _providers = {
   AuthState: useAuthState,
 };
 
-// Any page state hook accesses it with one line:
+// Any screen state hook accesses it with one line:
 final auth = useProvided<AuthState>();
 ```
 
@@ -143,19 +143,19 @@ ValueProvider(
 
 Use `_providers` + hook for reactive state. Use `ValueProvider` for static or already-computed values.
 
-### 4. Consume in any page state hook
+### 4. Consume in any screen state hook
 
 ```dart
-SettingsPageState useSettingsPageState() {
+SettingsScreenState useSettingsScreenState() {
   final auth = useProvided<AuthState>();
   final courses = useProvided<CoursesState>();
 
   // Guard: don't proceed until data is ready
   if (!courses.isInitialized) {
-    return SettingsPageState.loading();
+    return SettingsScreenState.loading();
   }
 
-  return SettingsPageState(
+  return SettingsScreenState(
     userName: auth.user?.displayName,
     availableCourses: courses.courses!.values.toIList(),
   );
@@ -185,9 +185,9 @@ class UserProfileState extends HasInitialized {
 
 **Loading guard pattern:**
 ```dart
-// In page state hook
+// In screen state hook
 final profile = useProvided<UserProfileState>();
-if (!profile.isInitialized) return UserProfilePageState.loading();
+if (!profile.isInitialized) return UserProfileScreenState.loading();
 
 // In View
 if (state.isLoading) return const CrazyLoader();
@@ -226,10 +226,10 @@ SegmentedControl(
 ```dart
 // MutableValue — View drives the value, no business logic involved
 final tabState = useState(TabIndex.first);
-return PageState(tab: tabState);  // View: state.tab.value = TabIndex.second
+return ScreenState(tab: tabState);  // View: state.tab.value = TabIndex.second
 
 // Callback — async work involved, State hook owns the logic
-return PageState(onSavePressed: save);  // View: state.onSavePressed()
+return ScreenState(onSavePressed: save);  // View: state.onSavePressed()
 ```
 
 ---
@@ -239,12 +239,12 @@ return PageState(onSavePressed: save);  // View: state.onSavePressed()
 - **State registered but not initialized** — check the order in `_providers`; states registered earlier are available to those registered later
 - **useProvided in a regular StatelessWidget** — only works in `HookWidget` (and hooks called from it)
 - **Mutable state in State class** — `var` fields or setters on the State class create hidden mutation; use `MutableValue<T>` explicitly
-- **Global state for screen-local data** — if only one screen uses it, it belongs in the page state hook, not in `_providers`
+- **Global state for screen-local data** — if only one screen uses it, it belongs in the screen state hook, not in `_providers`
 - **Side effects in State class** — the class is a pure data holder; all logic lives in the hook
 
 ## Related Skills
 
 - [hooks-reference.md](./hooks-reference.md) — useMemoizedStream, useAutoComputedState used inside global state hooks
 - [di-services.md](./di-services.md) — useInjected inside global state hooks to access services
-- [page-state-view.md](./page-state-view.md) — useProvided consuming global state in page state hooks
+- [screen-state-view.md](./screen-state-view.md) — useProvided consuming global state in screen state hooks
 - [async-patterns.md](./async-patterns.md) — loading states and HasInitialized patterns

@@ -3,7 +3,7 @@ name: utopia-hooks
 description: >
   Flutter state management with utopia_hooks. Applies when writing Flutter screens,
   adding shared app state, handling async operations, injecting services, or migrating
-  away from StatefulWidget. Covers the Page/State/View pattern, hook catalog, global
+  away from StatefulWidget. Covers the Screen/State/View pattern, hook catalog, global
   state registration, useSubmitState, useAutoComputedState, and dependency injection.
 license: MIT
 metadata:
@@ -16,7 +16,7 @@ metadata:
 ## Overview
 
 Holistic state management for Flutter using hooks. Every screen follows the
-**Page → State → View** tripartite pattern. Shared app state lives in
+**Screen → State → View** tripartite pattern. Shared app state lives in
 **StateClass + hook + `_providers`**. All logic belongs in hooks — never in widgets.
 
 ## Skill Format
@@ -40,9 +40,9 @@ Reference these guidelines when:
 
 ## Priority-Ordered Guidelines
 
-| Priority | Category                              | Impact   | Reference |
-|----------|---------------------------------------|----------|-----------|
-| 1        | Screen architecture (Page/State/View) | CRITICAL | [page-state-view.md][page-state-view] |
+| Priority | Category                                | Impact   | Reference |
+|----------|-----------------------------------------|----------|-----------|
+| 1        | Screen architecture (Screen/State/View) | CRITICAL | [screen-state-view.md][screen-state-view] |
 | 2        | Hook catalog & correct usage          | CRITICAL | [hooks-reference.md][hooks-reference] |
 | 3        | Async patterns (download / upload)    | HIGH     | [async-patterns.md][async-patterns] |
 | 4        | Flutter code conventions              | HIGH     | [flutter-conventions.md][flutter-conventions] |
@@ -58,36 +58,36 @@ Reference these guidelines when:
 Every screen = **3 files**. No exceptions.
 
 ```
-feature_page.dart          ← HookWidget, zero logic
-state/feature_page_state.dart   ← State class + hook
-view/feature_page_view.dart     ← StatelessWidget, UI only
+feature_screen.dart                ← HookWidget, zero logic
+state/feature_screen_state.dart    ← State class + hook
+view/feature_screen_view.dart      ← StatelessWidget, UI only
 ```
 
-**Page** — connects callbacks, renders View:
+**Screen** — pure wiring: builds nav callbacks from `BuildContext`, calls `useXScreenState`, renders View:
 ```dart
-class TaskPage extends HookWidget {
+class TaskScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final state = useTaskPageState(
-      navigateToDetail: (id) => context.router.push(TaskDetailRoute(id: id)),
+    final state = useTaskScreenState(
+      navigateToDetail: (id) => Navigator.of(context).pushNamed('/task', arguments: id),
     );
-    return TaskPageView(state: state);
+    return TaskScreenView(state: state);
   }
 }
 ```
 
 **State** — immutable data class + hook with all logic:
 ```dart
-class TaskPageState {
+class TaskScreenState {
   final IList<Task> tasks;
   final bool isLoading;
   final void Function(TaskId) onTaskTapped;
-  const TaskPageState({required this.tasks, required this.isLoading, required this.onTaskTapped});
+  const TaskScreenState({required this.tasks, required this.isLoading, required this.onTaskTapped});
 }
 
-TaskPageState useTaskPageState({required void Function(TaskId) navigateToDetail}) {
+TaskScreenState useTaskScreenState({required void Function(TaskId) navigateToDetail}) {
   final tasksState = useProvided<TasksState>();
-  return TaskPageState(
+  return TaskScreenState(
     tasks: tasksState.tasks ?? const IList.empty(),
     isLoading: !tasksState.isInitialized,
     onTaskTapped: navigateToDetail,
@@ -97,9 +97,9 @@ TaskPageState useTaskPageState({required void Function(TaskId) navigateToDetail}
 
 **View** — pure UI, no hooks, no logic:
 ```dart
-class TaskPageView extends StatelessWidget {
-  final TaskPageState state;
-  const TaskPageView({required this.state});
+class TaskScreenView extends StatelessWidget {
+  final TaskScreenState state;
+  const TaskScreenView({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -161,13 +161,13 @@ Full documentation with code examples in [references/][references]:
 
 | File | Impact | Description |
 |------|--------|-------------|
-| [page-state-view.md][page-state-view] | CRITICAL | 3-file screen pattern: Page, State class + hook, View |
+| [screen-state-view.md][screen-state-view] | CRITICAL | 3-file screen pattern: Screen, State class + hook, View |
 | [hooks-reference.md][hooks-reference] | CRITICAL | Full hook catalog: useState, useMemoized, useEffect, useProvided, useInjected, useIf, useMap, useComputedState |
 | [global-state.md][global-state] | CRITICAL | App-wide state: StateClass, HasInitialized, MutableValue, _providers registration |
 | [async-patterns.md][async-patterns] | HIGH | useSubmitState, useAutoComputedState, useMemoizedStream, loading guards |
 | [composable-hooks.md][composable-hooks] | HIGH | Widget-level hooks, composed hook state, and screen hook decomposition for large hooks |
 | [testing.md][testing] | HIGH | Unit testing hooks with SimpleHookContext and SimpleHookProviderContainer — no widget tree needed |
-| [flutter-conventions.md][flutter-conventions] | HIGH | IList/IMap/ISet, `it` lambdas, strict analyzer, widget extraction, spacing, generated code |
+| [flutter-conventions.md][flutter-conventions] | HIGH | IList/IMap/ISet, `it` lambdas, strict analyzer, widget extraction, spacing, generated code, TextEditingController |
 | [di-services.md][di-services] | MEDIUM | DI bridge hook, useInjected pattern, service types (Firebase/Api/Data) |
 
 ## Searching References
@@ -186,9 +186,9 @@ grep -rl "useProvided" references/
 
 | Problem | Start With |
 |---------|------------|
-| Adding a new screen | [page-state-view.md][page-state-view] |
-| Logic is leaking into the View | [page-state-view.md][page-state-view] |
-| Widget imports in a State class | [page-state-view.md][page-state-view] |
+| Adding a new screen | [screen-state-view.md][screen-state-view] |
+| Logic is leaking into the View | [screen-state-view.md][screen-state-view] |
+| Widget imports in a State class | [screen-state-view.md][screen-state-view] |
 | App-wide state (auth, config, data) | [global-state.md][global-state] |
 | Screen not reacting to state changes | [global-state.md][global-state] → [hooks-reference.md][hooks-reference] |
 | Form submission with loading/error | [async-patterns.md][async-patterns] |
@@ -199,18 +199,19 @@ grep -rl "useProvided" references/
 | Reusable widget used N times on one screen | [composable-hooks.md][composable-hooks] (composed hook state) |
 | Screen state polluted with per-tile logic | [composable-hooks.md][composable-hooks] (widget-level hook) |
 | Paging, specialized text field, reusable control | [composable-hooks.md][composable-hooks] (composed hook state) |
-| Testing a page state hook | [testing.md][testing] |
+| TextEditingController / FocusNode handling | [flutter-conventions.md][flutter-conventions] |
+| Testing a screen state hook | [testing.md][testing] |
 | Testing global state and state interactions | [testing.md][testing] |
 | Injecting a service into a screen | [di-services.md][di-services] |
 | Registering a new service or state | [di-services.md][di-services] |
 | Using `List` / `Map` / `Set` instead of immutable | [flutter-conventions.md][flutter-conventions] |
 | Lambda style, naming, widget extraction | [flutter-conventions.md][flutter-conventions] |
 | Generated code out of date | [flutter-conventions.md][flutter-conventions] |
-| Replacing StatefulWidget | [page-state-view.md][page-state-view] + [hooks-reference.md][hooks-reference] |
-| Screen hook is too large (>300 lines, >10 useState) | [composable-hooks.md][composable-hooks] (screen hook decomposition, Pattern 3) |
+| Replacing StatefulWidget | [screen-state-view.md][screen-state-view] + [hooks-reference.md][hooks-reference] |
+| State hook is too large (>300 lines, >10 useState) | [composable-hooks.md][composable-hooks] (screen hook decomposition, Pattern 3) |
 
 [references]: references/
-[page-state-view]: references/page-state-view.md
+[screen-state-view]: references/screen-state-view.md
 [hooks-reference]: references/hooks-reference.md
 [global-state]: references/global-state.md
 [async-patterns]: references/async-patterns.md
@@ -223,27 +224,30 @@ grep -rl "useProvided" references/
 
 - **View never calls hooks** — no `useState`, `useProvided`, `useInjected` in `*_view.dart`. View is always `StatelessWidget`.
 - **View constructor takes ONLY `state`** — no extra `onBack`, `onNavigate`, or other parameters. All callbacks are fields on the State class.
-- **Page = pure wiring** — Page must not call `useInjected` or contain business logic. Only `useProvided<NavigatorKey>` / context-dependent values to build navigation callbacks passed to the state hook.
-- **State never imports widgets** — no Flutter widget imports in `*_page_state.dart`
-- **`useProvided` / `useInjected` only in page state hooks** — not in View, not passed down as parameters
+- **Screen = pure wiring** — Screen's `build()` reads `BuildContext` (for navigation/dialogs/args) and calls exactly one hook: `useXScreenState(...)`. Screen must NOT call `useInjected`, `useProvided`, `useEffect`, `useState`, or any other hook.
+- **Navigation flows Screen → State → View as callbacks** — never `useProvided<NavigatorKey>` or `useInjected<AppRouter>`. State hook receives navigation as `void Function()` / `Future<T?> Function()` parameters.
+- **State never imports widgets** — no Flutter widget imports in `*_screen_state.dart`
+- **`useProvided` / `useInjected` only in screen state hooks** — not in Screen, not in View, not passed down as parameters
 - **No mutable collections in State classes** — always `IList`/`IMap`/`ISet`, never `List`/`Map`/`Set`, including static data
 - **No manual loading state** — never use `useState<bool>` + `try/catch/finally` for data loading. Always `useAutoComputedState`.
 - **Prefer `useMemoized` over `useEffect`** for derived state — effects cascade; memoized values don't
 - **One State class per screen** — all screen data in one place, not scattered `useState` calls across the widget tree
-- **View files ≤ ~150 lines** — extract complex widgets to `widget/` folder, using widget-level hook pattern from [composable-hooks.md](references/composable-hooks.md) when they have own state
+- **Never wrap `TextEditingController` in `useMemoized` + `useListenable`** — always `useFieldState` in the state hook + `TextEditingControllerWrapper` in the View. See [flutter-conventions.md][flutter-conventions].
+- **View files ≤ ~300 lines** — extract complex widgets to `widget/` folder, using widget-level hook pattern from [composable-hooks.md](references/composable-hooks.md) when they have own state
 
 ## Self-Audit Checklist
 
 After generating a screen, verify:
 
 1. Does the View constructor take anything beyond `state`? → Move it to the State class
-2. Does the Page call `useInjected` or `useProvided` (beyond `NavigatorKey`)? → Move to state hook
+2. Does the Screen call any hook other than `useXScreenState(...)` (e.g., `useInjected`, `useProvided`, `useEffect`)? → Move to state hook
 3. Are there `useState<bool>(true)` / `useState<T?>(null)` for loading/error? → Use `useAutoComputedState`
 4. Are there mutable `List<T>`, `Map<K,V>`, `Set<T>` in the State class? → Use `IList`/`IMap`/`ISet`
 5. Are there more than 2 `useSubmitState()` in one hook? → Group mutually exclusive actions
-6. Is any view file > 150 lines? → Extract widgets to `widget/` folder
+6. Is any view file > 300 lines? → Extract widgets to `widget/` folder
 7. Does the View extend `HookWidget`? → Must be `StatelessWidget`
-8. Is any screen hook > ~300 lines or > ~10 useState? → Decompose into sub-hooks (see [composable-hooks.md][composable-hooks] Pattern 3)
+8. Is any state hook > ~300 lines or > ~10 useState? → Decompose into sub-hooks (see [composable-hooks.md][composable-hooks] Pattern 3)
+9. Any `useProvided<NavigatorKey>` / `useInjected<AppRouter>` / `useMemoized(TextEditingController.new)`? → All three are forbidden; see [screen-state-view.md][screen-state-view] and [flutter-conventions.md][flutter-conventions]
 
 ## Attribution
 

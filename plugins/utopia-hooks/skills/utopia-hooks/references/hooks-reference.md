@@ -412,14 +412,14 @@ Reads global state registered in `_providers`. Only valid in State hooks.
 
 ```dart
 // ❌ In View
-class TasksPageView extends StatelessWidget {
+class TasksScreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = useProvided<AuthState>(); // WRONG
   }
 }
 
 // ✅ In State hook only
-TasksPageState useTasksPageState() {
+TasksScreenState useTasksScreenState() {
   final auth = useProvided<AuthState>();
   final tasks = useProvided<TasksState>();
   // ...
@@ -630,7 +630,7 @@ if (!allReady.isInitialized) return const SplashScreen();
 
 ## Related Skills
 
-- [page-state-view.md](./page-state-view.md) — where hooks live (State hook)
+- [screen-state-view.md](./screen-state-view.md) — where hooks live (State hook)
 - [global-state.md](./global-state.md) — global state registration and useProvided
 - [async-patterns.md](./async-patterns.md) — useSubmitState and useAutoComputedState in depth
 - [composable-hooks.md](./composable-hooks.md) — useMap and useIf in widget-level hooks

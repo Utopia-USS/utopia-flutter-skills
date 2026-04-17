@@ -178,7 +178,7 @@ TaskListState useTaskListState() {
 In BLoC, a screen-specific Cubit provided locally is created only when that screen opens.
 In hooks, if you put it in `_providers`, it's always running.
 
-**Rule:** Only put truly global state in `_providers`. Screen-local state stays in the page state hook:
+**Rule:** Only put truly global state in `_providers`. Screen-local state stays in the screen state hook:
 
 ```dart
 // ❌ Screen-specific state in _providers (always running)
@@ -187,7 +187,7 @@ const _providers = {
   CheckoutState: useCheckoutState,  // only needed on checkout screen
 };
 
-// ✅ Screen-specific state in page state hook (created on navigation)
+// ✅ Screen-specific state in screen state hook (created on navigation)
 CheckoutScreenState useCheckoutScreenState() {
   // all checkout logic here — lives only while screen is mounted
 }
@@ -333,5 +333,5 @@ See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full s
 
 - [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern code mapping
 - [migration-steps.md](./migration-steps.md) — per-screen migration process
-- `../utopia-hooks/references/global-state.md` — full global state documentation
-- `../utopia-hooks/references/di-services.md` — useInjected bridge hook and service patterns
+- `utopia-hooks:references/global-state.md` — full global state documentation
+- `utopia-hooks:references/di-services.md` — useInjected bridge hook and service patterns
