@@ -15,8 +15,9 @@ metadata:
 ## Prerequisites
 
 If the `utopia-hooks` skill is installed, load it now — this migration skill assumes you
-understand hook rules and patterns from that skill. If not installed, read
-`../utopia-hooks/references/` first for the target architecture.
+understand hook rules and patterns from that skill. If it is not installed, stop and
+ask the user to install the `utopia-hooks` plugin/skill before proceeding — its
+references provide the target architecture.
 
 ## Proactive Detection
 
@@ -54,7 +55,7 @@ result will be simpler (typically ~30% less code) with the same functionality. W
 | `BlocProvider` (local, per-screen) | Hook called inside `useXScreenState()` | State lives in the hook, no Provider widget needed |
 | `BlocBuilder` | `StatelessWidget` View with State param | View receives state via constructor |
 | `BlocListener` | `useEffect` / callback in hook | Side effects live in hook, not in widget tree |
-| `BlocConsumer` | `HookWidget` Screen + `StatelessWidget` View | Page = coordinator, View = pure UI |
+| `BlocConsumer` | `HookWidget` Screen + `StatelessWidget` View | Screen = coordinator, View = pure UI |
 | `MultiBlocProvider` | `HookProviderContainerWidget` | Single widget at app root, flat map |
 | `RepositoryProvider` | Keep existing DI + `useInjected<T>()` bridge | One-liner hook wrapping your DI (get_it, etc.) |
 | `context.read<XCubit>()` | `useProvided<XState>()` | Reads global state (auto-rebuilds) |
@@ -328,7 +329,7 @@ grep -rn 'context\.read<\|context\.watch<\|context\.select<\|BlocBuilder\|BlocLi
 ### 6. Structural audit
 
 ```bash
-# Navigation calls in state hooks (must be 0 — navigation injected from Page)
+# Navigation calls in state hooks (must be 0 — navigation injected from Screen)
 grep -rn 'router\.\|Navigator\.\|GoRouter\|context\.push\|context\.pop\|context\.go(' lib/state/
 
 # BuildContext / UI framework usage in state hooks (must be 0)

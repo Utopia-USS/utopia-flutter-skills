@@ -294,7 +294,7 @@ AuthScreenState useAuthScreenState({
 ### BLoC
 
 ```dart
-class CheckoutPage extends StatelessWidget {
+class CheckoutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<CheckoutCubit, CheckoutState>(
@@ -325,7 +325,7 @@ class CheckoutPage extends StatelessWidget {
 
 ```dart
 // Screen — coordinator
-class CheckoutPage extends HookWidget {
+class CheckoutScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final state = useCheckoutScreenState(
@@ -837,6 +837,24 @@ For complex stream patterns (accumulation, dynamic stream creation, init/refresh
 
 When a `StatefulWidget` exists primarily to manage lifecycle (subscriptions in `initState`, cleanup in `dispose`, side effects in `didChangeDependencies`), it should become a `HookWidget`.
 
+### Never scal `build()` into one place
+
+**The #1 migration mistake: copying the whole `StatefulWidget.build()` into the new View verbatim.** The old `build()` is a junk drawer — it mixes UI composition, side effects, and `BuildContext`-dependent primitives. Migrating means splitting those concerns across three files.
+
+Walk the old `build()` line by line and classify each fragment into exactly one of:
+
+| Fragment | Goes to | Example |
+|---|---|---|
+| UI composition — `Scaffold`, `Stack`, `Column`, `ListView`, layout, conditional widgets | **View** | `return Scaffold(body: Column(children: [...]))` |
+| Side effect — reactive comparisons of old/new state, snackbar on change, controller sync, `addPostFrameCallback` | **State hook** (`useEffect` with keys) | `if (oldStatus != newStatus) showToast(...)` → `useEffect(() { if (newStatus == X) showToast(...); return null; }, [newStatus])` |
+| `BuildContext`-dependent primitive — `showDialog`, `showModalBottomSheet`, `showMenu`, `Navigator.push`, `Scaffold.of(context)` | **Screen** (as callback passed to `useXScreenState`) | `onEdit: () => showModalBottomSheet(context: context, ...)` |
+| `context.read<Cubit>()` / `context.watch<Cubit>()` | **State hook** (`useProvided<XState>()` / `useInjected<XService>()`) | — |
+| Cubit method call followed by navigation | **State hook** does the work, Screen-injected callback handles navigation | `cubit.save().then((_) => Navigator.pop(context))` → hook `runSimple(submit: service.save, afterSubmit: (_) => navigateBack())` |
+
+If a `BlocListener` wraps the old `build()`, its `listener:` body is always a side effect → state-hook `useEffect` (or a hook-level callback like `afterSubmit`). Never inline it in the new View.
+
+**Anti-pattern**: the new `*_view.dart` contains eight handler functions with business logic plus 9 `useX` calls. That means everything landed in the View. Go back and split.
+
 ### StatefulWidget
 
 ```dart
@@ -985,7 +1003,7 @@ class CollapseService {
 - **Putting `useProvided` in View** — View is a StatelessWidget; state access stays in the hook
 - **Creating a "HookCubit"** — don't wrap hooks in a class; the hook function IS the replacement for the Cubit class
 - **Keeping `emit()` mental model** — there's no emit; `useState` is direct mutation, `useAutoComputedState` is automatic
-- **Migrating one file at a time within a screen** — migrate the entire screen (Page + State + View) at once
+- **Migrating one file at a time within a screen** — migrate the entire screen (Screen + State + View) at once
 - **Leaving `flutter_bloc` as a dependency "just in case"** — remove it when all screens are migrated
 - **Using raw `TextEditingController` in hooks** — always use `useFieldState` + `TextEditingControllerWrapper`
 - **Manual stream subscription management** — never use `useState<StreamSubscription?>()` + manual `.cancel()`; always `useStreamSubscription`. This is the #1 source of resource leaks in migrated code.
@@ -994,8 +1012,8 @@ class CollapseService {
 
 ## Related
 
-- `../utopia-hooks/references/page-state-view.md` — full Screen/State/View pattern reference
-- `../utopia-hooks/references/hooks-reference.md` — complete hook catalog
-- `../utopia-hooks/references/async-patterns.md` — download/upload mental model
+- `utopia-hooks:references/screen-state-view.md` — full Screen/State/View pattern reference
+- `utopia-hooks:references/hooks-reference.md` — complete hook catalog
+- `utopia-hooks:references/async-patterns.md` — download/upload mental model
 - [migration-steps.md](./migration-steps.md) — step-by-step migration checklist
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration

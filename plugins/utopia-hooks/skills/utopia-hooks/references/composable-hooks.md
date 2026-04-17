@@ -8,7 +8,7 @@ tags: composition, reusable, widget-hooks, extract, paging, HookWidget, decompos
 
 Hooks are extractable and composable. Three patterns emerge from this:
 
-1. **Widget-level hook** — a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Page/State/View breakdown at widget scope.
+1. **Widget-level hook** — a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Screen/State/View breakdown at widget scope.
 2. **Composed hook state** — a reusable widget's state is a hook called *from the parent screen's state hook* and passed down. The widget receives state; it doesn't create it.
 3. **Screen hook decomposition** — a large screen hook is split into focused sub-hooks that the main hook composes. Used when a single hook grows too large or mixes unrelated domains.
 
@@ -254,7 +254,7 @@ class PagingWidget extends StatelessWidget {
 }
 
 // Screen state hook — composes usePagingState
-ProductListPageState useProductListPageState() {
+ProductListScreenState useProductListScreenState() {
   final service = useInjected<ProductService>();
   final totalCount = useProvided<ProductsState>().totalCount ?? 0;
   final totalPages = (totalCount / 20).ceil();
@@ -267,7 +267,7 @@ ProductListPageState useProductListPageState() {
     keys: [paging.currentPage],
   );
 
-  return ProductListPageState(
+  return ProductListScreenState(
     products: products.valueOrNull,
     isLoading: !products.isInitialized,
     paging: paging,  // passed to PagingWidget in View
@@ -275,7 +275,7 @@ ProductListPageState useProductListPageState() {
 }
 
 // Screen state class
-class ProductListPageState {
+class ProductListScreenState {
   final IList<Product>? products;
   final bool isLoading;
   final PagingState paging;  // ← View passes this to PagingWidget
@@ -283,8 +283,8 @@ class ProductListPageState {
 }
 
 // View wires it up
-class ProductListPageView extends StatelessWidget {
-  final ProductListPageState state;
+class ProductListScreenView extends StatelessWidget {
+  final ProductListScreenState state;
   // ...
 
   @override
@@ -446,6 +446,6 @@ Sub-hooks live in the same `state/` directory as the main hook. They are private
 
 ## Related Skills
 
-- [page-state-view.md](./page-state-view.md) — same rules apply at widget scope
+- [screen-state-view.md](./screen-state-view.md) — same rules apply at widget scope
 - [hooks-reference.md](./hooks-reference.md) — useState, useAutoComputedState inside widget-level hooks
 - [async-patterns.md](./async-patterns.md) — lazy loading in widget-level hooks

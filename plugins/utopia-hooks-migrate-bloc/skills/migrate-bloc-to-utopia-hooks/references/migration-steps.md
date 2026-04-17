@@ -185,6 +185,6 @@ test('tasks load on init', () async {
 - [screen-migration-flow.md](./screen-migration-flow.md) — per-screen 4-phase migration process
 - [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
-- `../utopia-hooks/references/page-state-view.md` — Screen/State/View pattern
-- `../utopia-hooks/references/composable-hooks.md` — hook decomposition (Pattern 3)
-- `../utopia-hooks/references/testing.md` — SimpleHookContext testing
+- `utopia-hooks:references/screen-state-view.md` — Screen/State/View pattern
+- `utopia-hooks:references/composable-hooks.md` — hook decomposition (Pattern 3)
+- `utopia-hooks:references/testing.md` — SimpleHookContext testing

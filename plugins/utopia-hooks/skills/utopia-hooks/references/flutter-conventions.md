@@ -129,7 +129,7 @@ useState<IList<Task>>(const IList.empty());  // generic parameter for hook
 | Kind | Convention | Example |
 |------|-----------|---------|
 | Files | `snake_case` | `task_page_state.dart` |
-| Classes | `PascalCase` | `TaskPageState` |
+| Classes | `PascalCase` | `TaskScreenState` |
 | Variables, functions | `camelCase` | `taskCount`, `loadTasks()` |
 | Private members | `_prefixed` | `_buildHeader()`, `_items` |
 | Constants | `camelCase` | `defaultPageSize` (not `DEFAULT_PAGE_SIZE`) |
@@ -178,7 +178,7 @@ Widget _buildFooter() { ... }
 | > ~40 lines or has own state | Extract to `screen/{feature}/widget/` — see [composable-hooks.md](./composable-hooks.md) for widget-level hook pattern |
 | Reusable across screens | `common/widget/` directory |
 
-- View files should stay under ~150 lines — extract beyond that
+- View files should stay under ~300 lines — extract beyond that
 - Stateful/HookWidget classes never live inside a view file — always extract them
 
 ---
@@ -296,6 +296,114 @@ After editing a `part` file (e.g., a file with `part 'file.freezed.dart';`), alw
 
 ---
 
+## 9. TextEditingController — always `useFieldState` + `TextEditingControllerWrapper`
+
+**Never manage a `TextEditingController` directly from hooks.** Always use `useFieldState()` as the source of truth in the state hook, and render the field through `TextEditingControllerWrapper` in the View.
+
+```dart
+// ❌ FORBIDDEN — useMemoized + useListenable cannot resync cleanly when the
+//                external value changes while the user is typing
+final controller = useMemoized(TextEditingController.new);
+useListenable(controller);
+useEffect(() {
+  controller.text = externalValue;
+  return null;
+}, [externalValue]);
+
+// ❌ ALSO FORBIDDEN — manual dispose leaks on hot reload and double-disposes
+//                      when keys change
+final controller = useMemoized(() => TextEditingController(text: initial));
+useEffect(() => controller.dispose, const []);
+
+// ❌ ALSO FORBIDDEN — any useEffect that writes to controller.text
+useEffect(() {
+  if (controller.text != external) controller.text = external;
+  return null;
+}, [external]);
+```
+
+**Why**: `TextEditingController` has its own lifecycle (focus, selection, composing region) that does not compose with hook rebuilds. `useMemoized` does not rebuild the controller when the source of truth changes; `useEffect` writes to `.text` stomp on user input and lose cursor position. `useFieldState` was designed specifically because `useMemoized` + `useListenable` fail to stay in sync under concurrent external updates + user edits.
+
+### Correct pattern
+
+**State hook** — `useFieldState` is the source of truth:
+
+```dart
+class EditProductScreenState {
+  final MutableFieldState nameField;
+  final bool isSaving;
+  final void Function() onSavePressed;
+  const EditProductScreenState({
+    required this.nameField,
+    required this.isSaving,
+    required this.onSavePressed,
+  });
+}
+
+EditProductScreenState useEditProductScreenState({
+  required String initialName,
+  required void Function() navigateBack,
+}) {
+  final nameField = useFieldState(initialValue: initialName);
+  final saveState = useSubmitState();
+  // ...
+  return EditProductScreenState(
+    nameField: nameField,
+    isSaving: saveState.inProgress,
+    onSavePressed: () => saveState.runSimple<void, Never>(
+      submit: () async => service.update(name: nameField.value),
+      afterSubmit: (_) => navigateBack(),
+    ),
+  );
+}
+```
+
+**View** — `TextEditingControllerWrapper` owns the controller and bi-directionally syncs with the field state:
+
+```dart
+class EditProductScreenView extends StatelessWidget {
+  final EditProductScreenState state;
+  const EditProductScreenView({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      TextEditingControllerWrapper(
+        text: state.nameField,
+        builder: (controller) => TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+      ),
+      ElevatedButton(
+        onPressed: state.onSavePressed,
+        child: const Text('Save'),
+      ),
+    ]);
+  }
+}
+```
+
+Projects typically wrap `TextEditingControllerWrapper` in their own field widget (`AppTextField(state: nameField)`, `CrazyTextField(state: nameField)`) — that's fine and encouraged for UI consistency. The core contract stays: the field state is the source of truth, and `TextEditingControllerWrapper` owns the controller lifecycle.
+
+### FocusNode follows the same rule
+
+Use `useFocusNode()` for a node you own. **Never** sync focus with `useEffect` + `focusNode.requestFocus()` / `unfocus()` based on an external flag — that's the same class of bug.
+
+```dart
+// ❌ FORBIDDEN
+useEffect(() {
+  if (shouldFocus) focusNode.requestFocus();
+  else focusNode.unfocus();
+  return null;
+}, [shouldFocus]);
+
+// ✅ Instead: trigger focus from the callback that sets shouldFocus (imperatively),
+//            or use a dedicated focus wrapper that coordinates with the field's state.
+```
+
+---
+
 ## Common Pitfalls
 
 - **`List<Task>` instead of `IList<Task>`** — mutable collections in state lead to missed rebuilds and mutation bugs
@@ -308,4 +416,4 @@ After editing a `part` file (e.g., a file with `part 'file.freezed.dart';`), alw
 ## Related Skills
 
 - [hooks-reference.md](./hooks-reference.md) — hooks follow all these conventions (IList in state, `it` lambdas, etc.)
-- [page-state-view.md](./page-state-view.md) — widget extraction rules apply to View `_buildXxx` helpers
+- [screen-state-view.md](./screen-state-view.md) — widget extraction rules apply to View `_buildXxx` helpers

@@ -285,7 +285,7 @@ FetchState useFetchState({
 
 ### Pattern B: Pass the stream as a hook parameter
 
-When the stream decision is simple, move it to the Page or main hook:
+When the stream decision is simple, move it to the Screen or main hook:
 
 ```dart
 // Main hook decides, sub-hook subscribes
@@ -530,11 +530,11 @@ void _onDone() {
 }
 ```
 
-### Hooks pattern (callbacks injected from Page)
+### Hooks pattern (callbacks injected from Screen)
 
 ```dart
-// Page injects navigation and UI callbacks
-class ItemPage extends HookWidget {
+// Screen injects navigation and UI callbacks
+class ItemScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final state = useItemScreenState(
@@ -542,7 +542,7 @@ class ItemPage extends HookWidget {
       showCompletionSnackbar: (count) => CrazyInfoSnackbar.show(context, '$count new items'),
       highlightItem: (key) => _startShine(context, key),
     );
-    return ItemPageView(state: state);
+    return ItemScreenView(state: state);
   }
 }
 
@@ -563,7 +563,7 @@ ItemScreenState useItemScreenState({
 }
 ```
 
-**Rule:** If you find `router.`, `Navigator.`, `context.push`, `context.pop`, `BuildContext`, `Overlay.`, `MediaQuery.`, `showSnackBar`, or `ScaffoldMessenger` in a state hook file — it must become a callback parameter injected from the Page.
+**Rule:** If you find `router.`, `Navigator.`, `context.push`, `context.pop`, `BuildContext`, `Overlay.`, `MediaQuery.`, `showSnackBar`, or `ScaffoldMessenger` in a state hook file — it must become a callback parameter injected from the Screen.
 
 ---
 
@@ -578,7 +578,7 @@ Use this checklist after Phase 1 analysis, before starting Phase 2:
 □ Dynamic stream creation restructured — stream available at declaration time via useMemoizedIf / useMemoized + keys
 □ Top-level mutable state mapped — each global → service or useState (with scope justification)
 □ init/refresh separated — stream = no refresh needed; pull-to-refresh = useAutoComputedState + .refresh()
-□ Navigation/UI callbacks listed — each becomes a parameter on the main hook, injected from Page
+□ Navigation/UI callbacks listed — each becomes a parameter on the main hook, injected from Screen
 □ No sub-hook file expected to exceed ~300 lines
 □ No sub-hook expected to have >10 useState calls
 □ State class expected to have <15 fields per sub-state

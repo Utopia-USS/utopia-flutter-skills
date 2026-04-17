@@ -210,7 +210,7 @@ product.valueOrNull     // null while loading, T after
 product.value           // T, throws StateError if not initialized
 
 // Typical usage in State hook
-return ProductPageState(
+return ProductScreenState(
   isLoading: !product.isInitialized,
   product: product.valueOrNull,
 );
@@ -309,7 +309,7 @@ void validateAndSubmit() {
   );
 }
 
-return LoginPageState(
+return LoginScreenState(
   email: emailState,
   password: passwordState,
   loginButtonState: submitState.toButtonState(
@@ -337,5 +337,5 @@ CrazySquashButton.withState(state: state.loginButtonState, child: const Text("Lo
 ## Related Skills
 
 - [hooks-reference.md](./hooks-reference.md) — useSubmitState, useAutoComputedState, useMemoizedStream in context
-- [page-state-view.md](./page-state-view.md) — where async state is exposed (State class) and consumed (View)
+- [screen-state-view.md](./screen-state-view.md) — where async state is exposed (State class) and consumed (View)
 - [global-state.md](./global-state.md) — HasInitialized for global async state

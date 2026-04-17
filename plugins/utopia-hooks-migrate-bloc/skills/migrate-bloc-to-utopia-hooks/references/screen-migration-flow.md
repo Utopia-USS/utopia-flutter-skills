@@ -49,7 +49,7 @@ If any indicator is "Complex", plan the decomposition BEFORE writing code:
 3. List the sub-hooks and their inputs/outputs
 4. Identify how the main screen hook will compose them
 
-See `../utopia-hooks/references/composable-hooks.md` Pattern 3 for the decomposition pattern and [complex-cubit-patterns.md](./complex-cubit-patterns.md) section 1 for domain identification techniques and shared state handling.
+See `utopia-hooks:references/composable-hooks.md` Pattern 3 for the decomposition pattern and [complex-cubit-patterns.md](./complex-cubit-patterns.md) section 1 for domain identification techniques and shared state handling.
 
 **Output:** A list like:
 ```
@@ -148,7 +148,7 @@ If found → see [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 
 
 ### 3c. Hook size check
 
-- Is any hook function > ~300 lines? → Decompose (see `../utopia-hooks/references/composable-hooks.md` Pattern 3)
+- Is any hook function > ~300 lines? → Decompose (see `utopia-hooks:references/composable-hooks.md` Pattern 3)
 - Does any hook have > ~10 `useState` calls? → Same
 - Does the State class have > ~15 fields from unrelated domains? → Decompose into sub-states (see composable-hooks.md Pattern 3)
 
@@ -175,14 +175,14 @@ All of these should be `useEffect` with appropriate keys.
 ### 3f. Navigation and UI in state hooks
 
 ```bash
-# Navigation calls in state hooks (must be 0 — navigation is injected from Page)
+# Navigation calls in state hooks (must be 0 — navigation is injected from Screen)
 grep -n 'router\.\|Navigator\.\|GoRouter\|context\.push\|context\.pop\|context\.go(' <migrated_state_files>
 
 # BuildContext / UI framework usage in state hooks (must be 0)
 grep -n 'BuildContext\|Overlay\.\|MediaQuery\.\|showSnackBar\|ScaffoldMessenger' <migrated_state_files>
 ```
 
-**Expected: 0 results.** Navigation and UI operations must be callbacks injected from the Page, not called directly from the hook. See [page-state-view.md](../utopia-hooks/references/page-state-view.md).
+**Expected: 0 results.** Navigation and UI operations must be callbacks injected from the Screen, not called directly from the hook. See [screen-state-view.md](utopia-hooks:references/screen-state-view.md).
 
 ### 3g. Top-level mutable state
 
@@ -250,5 +250,5 @@ All checks pass → commit this screen. Move to the next screen (back to Phase 1
 - [complex-cubit-patterns.md](./complex-cubit-patterns.md) — decomposition, stream accumulation, dynamic streams, global state (Complex screens)
 - [migration-steps.md](./migration-steps.md) — project-level migration orchestration
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
-- `../utopia-hooks/references/composable-hooks.md` — hook decomposition (Pattern 3)
-- `../utopia-hooks/references/async-patterns.md` — download/upload mental model
+- `utopia-hooks:references/composable-hooks.md` — hook decomposition (Pattern 3)
+- `utopia-hooks:references/async-patterns.md` — download/upload mental model

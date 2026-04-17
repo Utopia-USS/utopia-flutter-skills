@@ -12,7 +12,7 @@ and focus on the hook's behavior, not the UI.
 
 | Tool | Use when |
 |------|----------|
-| `SimpleHookContext` | Testing a single hook or a page state hook in isolation |
+| `SimpleHookContext` | Testing a single hook or a screen state hook in isolation |
 | `SimpleHookProviderContainer` | Testing global state hooks that use `useProvided` |
 
 ---
@@ -22,7 +22,7 @@ and focus on the hook's behavior, not the UI.
 **Incorrect (widget test for hook logic):**
 ```dart
 testWidgets('saves task', (tester) async {
-  await tester.pumpWidget(MaterialApp(home: TasksPage()));
+  await tester.pumpWidget(MaterialApp(home: TasksScreen()));
   await tester.tap(find.text('Save'));
   await tester.pumpAndSettle();
   expect(find.text('Saved!'), findsOneWidget); // testing UI, not logic
@@ -35,7 +35,7 @@ test('save triggers service and navigates back', () async {
   var navigatedBack = false;
   final mockService = MockTaskService();
 
-  final context = SimpleHookContext(() => useTaskPageState(
+  final context = SimpleHookContext(() => useTaskScreenState(
     navigateBack: () => navigatedBack = true,
   ));
 
@@ -104,7 +104,7 @@ test('loads product on init', () async {
   final mockService = MockProductService();
   when(mockService.load('123')).thenAnswer((_) async => Product(id: '123', name: 'Widget'));
 
-  final context = SimpleHookContext(() => useProductPageState(
+  final context = SimpleHookContext(() => useProductScreenState(
     productId: '123',
     navigateBack: () {},
   ));
@@ -154,7 +154,7 @@ test('onSavePressed calls service and navigates', () async {
   final mockService = MockItemService();
   when(mockService.save(any)).thenAnswer((_) async {});
 
-  final context = SimpleHookContext(() => useItemPageState(
+  final context = SimpleHookContext(() => useItemScreenState(
     itemId: 'item-1',
     navigateBack: () => navigatedBack = true,
   ));
@@ -173,7 +173,7 @@ test('onSavePressed calls service and navigates', () async {
 
 ```dart
 test('filter change updates displayed items', () {
-  final context = SimpleHookContext(() => useTasksPageState(
+  final context = SimpleHookContext(() => useTasksScreenState(
     navigateToDetail: (_) {},
   ));
 
@@ -227,7 +227,7 @@ test('courses state waits for auth', () async {
 Use the `provided` map for values that come from outside the container (mock services, injected values):
 
 ```dart
-test('page state hook uses provided auth', () async {
+test('screen state hook uses provided auth', () async {
   final fakeUser = FakeUser(uid: 'user-123');
 
   final container = SimpleHookProviderContainer(
@@ -311,6 +311,6 @@ await container.waitUntil<StateA>((it) => it.isReady);
 ## Related Skills
 
 - [hooks-reference.md](./hooks-reference.md) — all hooks used in state hooks under test
-- [page-state-view.md](./page-state-view.md) — what a page state hook looks like
+- [screen-state-view.md](./screen-state-view.md) — what a screen state hook looks like
 - [global-state.md](./global-state.md) — testing global state hooks with SimpleHookProviderContainer
 - [async-patterns.md](./async-patterns.md) — testing useSubmitState and useAutoComputedState
