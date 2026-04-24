@@ -292,7 +292,7 @@ saveState.toButtonState(enabled: isValid, onTap: save)  // ButtonState for UI
 
 ### useAutoComputedState (continued)
 
-Auto-loads async data, re-fetches when `keys` change.
+Auto-loads async data, re-fetches when `keys` change. Returns `MutableComputedState<T>` — you can not only read it, but also drive it manually.
 
 ```dart
 final product = useAutoComputedState(
@@ -301,19 +301,27 @@ final product = useAutoComputedState(
   shouldCompute: authState.isInitialized,
 );
 
-product.isInitialized   // false while loading
-product.valueOrNull     // T? — null while loading
+// Reading
+product.isInitialized   // false until first ready value
+product.valueOrNull     // T? — null while loading / not initialized
+product.value           // ComputedStateValue<T> — notInitialized / inProgress / ready(T) / failed(e)
+
+// Driving it manually — do NOT wrap it in a parallel useState
+product.refresh();          // re-run the future
+product.updateValue(next);  // set to ready(next) without re-fetching — for optimistic updates, mutation results, etc.
+product.clear();            // reset to notInitialized, cancels in-flight computation
 ```
 
 ### useComputedState
 
-Manual version of `useAutoComputedState` — you call `refresh()` yourself:
+Manual version of `useAutoComputedState` — you call `refresh()` yourself. Returns the same `MutableComputedState<T>`, so `updateValue(T)` and `clear()` apply here too:
 
 ```dart
 final state = useComputedState(() async => service.load());
 
-// Trigger manually
-state.refresh();
+state.refresh();            // run the future
+state.updateValue(result);  // set ready(result) directly, e.g. after a mutation
+state.clear();              // reset to notInitialized, cancels in-flight computation
 
 // States: notInitialized / inProgress / ready(T) / failed(Object)
 state.value.when(

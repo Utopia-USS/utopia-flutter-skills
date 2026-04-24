@@ -208,6 +208,8 @@ If the target repo doesn't use fvm, drop it: `claude mcp add -s user dart -- dar
 - **One State class per screen** — all screen data in one place, not scattered `useState` calls across the widget tree
 - **Never wrap `TextEditingController` in `useMemoized` + `useListenable`** — always `useFieldState` in the state hook + `TextEditingControllerWrapper` in the View. See [flutter-conventions.md][flutter-conventions].
 - **View files ≤ ~300 lines** — extract complex widgets to `widget/` folder, using widget-level hook pattern from [composable-hooks.md](references/composable-hooks.md) when they have own state
+- **Screen files ≤ ~100 lines (soft redflag)** — Screen is pure wiring; if over ~100 it almost always holds Scaffold/layout chrome (belongs in View) or business logic (belongs in state hook). Typical Screen is 30–80 lines. See [screen-state-view.md](references/screen-state-view.md).
+- **Global state hooks ≤ ~300 lines** — same threshold as screen state hooks. If over, the global is spanning multiple domains; split into separate globals (one per domain in `_providers`), or extract pure helpers/derivations to services. See [global-state.md](references/global-state.md).
 
 ## Self-Audit Checklist
 
@@ -223,6 +225,9 @@ After generating a screen, verify:
 8. Is any state hook > ~300 lines or > ~10 useState? → Decompose into sub-hooks (see [composable-hooks.md][composable-hooks] Pattern 3)
 9. Any `useProvided<NavigatorKey>` / `useInjected<AppRouter>` / `useMemoized(TextEditingController.new)`? → All three are forbidden; see [screen-state-view.md][screen-state-view] and [flutter-conventions.md][flutter-conventions]
 10. Paginated list built from `useState<List<T>>` + `hasMore` + `cursor` + manual `useEffect` load? → Use `usePaginatedComputedState` + `PaginatedComputedStateWrapper`. See [paginated.md][paginated]
+11. Is any screen file > ~100 lines? → Screen is pure wiring; soft redflag. Look for Scaffold/layout chrome (move to View) or business logic (move to state hook). See [screen-state-view.md][screen-state-view]
+12. Any `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected`? → Mis-classified View. Rename to `view/x_screen_view.dart`, convert to `StatelessWidget`, hoist hooks to state hook. See [screen-state-view.md][screen-state-view] Common Pitfalls
+13. Any global state hook > ~300 lines? → Split into multiple globals (one per domain in `_providers`), or extract pure helpers to services. See [global-state.md][global-state]
 
 ## Attribution
 

@@ -309,7 +309,7 @@ SettingsState useSettingsState() {
 }
 ```
 
-See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full side-by-side.
+See [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) section 6 for full side-by-side.
 
 ---
 
@@ -331,7 +331,8 @@ See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 10 for full s
 
 ## Related
 
-- [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern code mapping
+- [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) — state-layer pattern mapping
+- [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) — widget-layer pattern mapping
 - [migration-steps.md](./migration-steps.md) — per-screen migration process
 - `utopia-hooks:references/global-state.md` — full global state documentation
 - `utopia-hooks:references/di-services.md` — useInjected bridge hook and service patterns

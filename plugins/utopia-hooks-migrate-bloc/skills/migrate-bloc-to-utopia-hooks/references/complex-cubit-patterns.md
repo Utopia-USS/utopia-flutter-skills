@@ -6,7 +6,7 @@ tags: complex, decomposition, streams, accumulation, dynamic-stream, global-stat
 
 # Complex Cubit Migration Patterns
 
-This reference covers patterns that appear **only in complex cubits** (>10 public methods, multiple streams, global mutable state, >300 estimated hook lines). Simple 1:1 mappings are in [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — this file picks up where that one stops.
+This reference covers patterns that appear **only in complex cubits** (>10 public methods, multiple streams, global mutable state, >300 estimated hook lines). Simple 1:1 mappings are in [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) and [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) — this file picks up where those stop.
 
 A complex cubit is identifiable by Phase 1b's complexity classification. If any indicator is "Complex", you will encounter patterns from this file. **Read this before Phase 2.**
 
