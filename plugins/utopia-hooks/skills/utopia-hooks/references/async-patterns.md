@@ -177,6 +177,44 @@ Widget build(BuildContext context) {
 }
 ```
 
+### Driving it manually — `refresh`, `updateValue`, `clear`
+
+`useAutoComputedState` returns `MutableComputedState<T>`, not a read-only snapshot. Three mutators sit alongside the loaded value:
+
+- `refresh()` — re-run the future (same as a keys change)
+- `updateValue(T value)` — set to `ready(value)` without re-fetching; cancels any in-flight computation
+- `clear()` — reset to `notInitialized`; cancels any in-flight computation
+
+```dart
+final product = useAutoComputedState(() => service.load(id), keys: [id]);
+
+// After a save that returns the updated entity — no round-trip needed
+void onSaved(Product updated) => product.updateValue(updated);
+
+// Local edit, reflect immediately then reconcile on next keys change
+void onFieldEdited(Product edited) => product.updateValue(edited);
+
+// Log out — drop cached value
+void onLogout() => product.clear();
+```
+
+**Anti-pattern: parallel `useState` override for a computed state.** If you find yourself writing `useState<T?>` next to `useAutoComputedState<T>` to "override" the loaded value after a mutation or local edit, call `updateValue` on the computed state instead. Mirroring the value in a separate `useState` duplicates the source of truth and silently drifts from `refresh()` / keys-triggered reloads.
+
+```dart
+// ❌ Duplicated state — productOverride shadows product
+final product = useAutoComputedState(() => service.load(id), keys: [id]);
+final productOverride = useState<Product?>(null);
+final current = productOverride.value ?? product.valueOrNull;
+void onEdited(Product p) => productOverride.value = p;
+
+// ✅ Single source of truth
+final product = useAutoComputedState(() => service.load(id), keys: [id]);
+final current = product.valueOrNull;
+void onEdited(Product p) => product.updateValue(p);
+```
+
+The same applies to `useComputedState` — it returns the same `MutableComputedState<T>`.
+
 ### Anti-pattern: counter-as-trigger
 
 Never bump a `useState<int>` to force a recompute — `MutableComputedState` already exposes `.refresh()`.
@@ -312,6 +350,7 @@ CrazySquashButton.withState(state: state.loginButtonState, child: const Text("Lo
 - **Too many submitStates** — one per independent flow, not per button. See "Multiple submit states" section above.
 - **Swallowing errors with catch-all mapError** — default is `Never` (let it crash). Only add `mapError`/`afterKnownError` when you have specific error UX for the user. Unhandled errors should crash, not get logged and ignored
 - **`useAutoComputedState` without `shouldCompute`** — if prerequisites (like `userId`) may be null, guard with `shouldCompute: userId != null` or the future will run with null
+- **Parallel `useState<T?>` shadowing a computed state** — to set the loaded value manually (after a mutation, local edit, logout), call `computed.updateValue(v)` / `computed.clear()`. Mirroring it in a `useState` duplicates the source of truth and drifts from `refresh()`
 - **Reading `.value` before `isInitialized`** — `.value` throws `StateError`; use `.valueOrNull` for safe access
 - **Using `useSubmitState` for streaming** — `useSubmitState` is for one-shot operations; use `useMemoizedStream` for ongoing streams
 - **Hand-rolling pagination with `useState` + `useEffect`** — use `usePaginatedComputedState`; see [paginated.md](./paginated.md) for the full set of pagination-specific pitfalls.

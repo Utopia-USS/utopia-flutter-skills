@@ -158,7 +158,8 @@ class CounterScreenView extends StatelessWidget {
 
 | File | Impact | Description |
 |------|--------|-------------|
-| [bloc-to-hooks-mapping.md][mapping] | CRITICAL | Every BLoC pattern → hooks equivalent with side-by-side code |
+| [bloc-to-hooks-state.md][mapping-state] | CRITICAL | State-layer BLoC patterns → hooks (Cubit/Bloc, events, context.read, Status, persistence, global mutable state) |
+| [bloc-to-hooks-widget.md][mapping-widget] | CRITICAL | Widget-layer BLoC patterns → hooks (BlocBuilder/Listener/Consumer, TextEditingController, stream.listen, StatefulWidget lifecycle, WidgetsBindingObserver) |
 | [pubspec-migration.md][pubspec] | CRITICAL | Dependency changes: version resolution, BLoC removal, validation |
 | [migration-steps.md][steps] | HIGH | Project-level migration orchestration: pubspec, providers, screen loop, final cleanup |
 | [global-state-migration.md][global] | HIGH | Provider tree → _providers, RepositoryProvider → useInjected bridge |
@@ -168,7 +169,8 @@ class CounterScreenView extends StatelessWidget {
 | [complex-state-examples.md][complex-examples] (foundation skill) | HIGH | Five anonymised reference shapes for complex state (pipeline / dashboard / parent-owned list / per-item widget-level / multi-step flow) — what the migrated result looks like. Lives in the foundation skill because the shapes apply to new screens too. |
 | [paginated.md][paginated] (foundation skill) | HIGH | `usePaginatedComputedState` + `PaginatedComputedStateWrapper`: cursor/page/token schemes, loadMore, refresh, debounce, dedup, optimistic overlay — target pattern for any BLoC/Cubit that paginated lists manually. |
 
-[mapping]: references/bloc-to-hooks-mapping.md
+[mapping-state]: references/bloc-to-hooks-state.md
+[mapping-widget]: references/bloc-to-hooks-widget.md
 [pubspec]: references/pubspec-migration.md
 [steps]: references/migration-steps.md
 [global]: references/global-state-migration.md
@@ -184,13 +186,13 @@ class CounterScreenView extends StatelessWidget {
 
 | Situation | Start With |
 |-----------|------------|
-| Converting a Cubit to hooks | [bloc-to-hooks-mapping.md][mapping] |
-| Converting a Bloc with events to hooks | [bloc-to-hooks-mapping.md][mapping] |
+| Converting a Cubit to hooks | [bloc-to-hooks-state.md][mapping-state] |
+| Converting a Bloc with events to hooks | [bloc-to-hooks-state.md][mapping-state] |
 | Migrating BlocProvider tree | [global-state-migration.md][global] |
 | Migrating RepositoryProvider | [global-state-migration.md][global] |
 | Step-by-step process for one screen | [migration-steps.md][steps] |
-| Freezed union state → hooks state | [bloc-to-hooks-mapping.md][mapping] |
-| BlocListener side effects | [bloc-to-hooks-mapping.md][mapping] |
+| Freezed union state → hooks state | [bloc-to-hooks-state.md][mapping-state] |
+| BlocListener side effects | [bloc-to-hooks-widget.md][mapping-widget] |
 | Adding/removing pubspec dependencies | [pubspec-migration.md][pubspec] |
 | Which package version to use | [pubspec-migration.md][pubspec] |
 | Per-screen migration with self-review | [screen-migration-flow.md][flow] |
@@ -201,8 +203,8 @@ class CounterScreenView extends StatelessWidget {
 | List item has its own state (expand, async, drafts) | [composable-hooks.md][composable] "Per-item state: three archetypes" (foundation skill) |
 | Migrating a Cubit/BLoC that loads paginated lists | [paginated.md][paginated] (foundation skill) |
 | What does good look like? | [complex-state-examples.md][complex-examples] (foundation skill) |
-| Migrating stream.listen() calls | [bloc-to-hooks-mapping.md][mapping] (section 13) |
-| Migrating StatefulWidget with lifecycle | [bloc-to-hooks-mapping.md][mapping] (section 14) |
+| Migrating stream.listen() calls | [bloc-to-hooks-widget.md][mapping-widget] (section 6) |
+| Migrating StatefulWidget with lifecycle | [bloc-to-hooks-widget.md][mapping-widget] (section 7) |
 | Screen migrated + exit gate passed, but state/ still feels bloated | [post-migration-refactor-checklist.md][post] |
 | Sub-hook grew over ~200 LoC during migration | [post-migration-refactor-checklist.md][post] §A (coordination in wrong layer) |
 | Aggregator has 20+ `required` fields mostly proxying sub-state | [post-migration-refactor-checklist.md][post] §D1 (getter-delegate collapse) |
@@ -402,7 +404,8 @@ The installed plugin is the authoritative source — load from there first. If `
 | Reference | Purpose | Loaded by |
 |---|---|---|
 | `SKILL.md` (this file) | Concept map + anti-patterns + exit gate + this table | all agents |
-| `references/bloc-to-hooks-mapping.md` | Every pattern → hooks equivalent | global-state, screen, review |
+| `references/bloc-to-hooks-state.md` | State-layer patterns → hooks (Cubit/Bloc, events, context.read, Status, persistence, global mutable state) | global-state, screen, review |
+| `references/bloc-to-hooks-widget.md` | Widget-layer patterns → hooks (BlocBuilder/Listener/Consumer, TextEditingController, stream.listen, StatefulWidget lifecycle, WidgetsBindingObserver) | screen, review |
 | `references/global-state-migration.md` | `_providers` + `useInjected` bridge patterns | foundation, global-state, screen |
 | `references/pubspec-migration.md` | Dependency changes, version fetching | foundation |
 | `references/screen-migration-flow.md` | Phase 1–4 per-screen flow | screen, review |

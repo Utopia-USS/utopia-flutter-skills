@@ -146,6 +146,8 @@ The Screen **must not** call:
 
 Everything the Screen needs (services, state, effects) is encapsulated by the single `useXScreenState(...)` call.
 
+A well-formed Screen file is typically 30–80 lines. **Past ~100 lines is a soft redflag** — the Screen is likely hosting Scaffold/Stack/layout chrome (belongs in View) or assembling widget trees beyond `return XScreenView(state: state)`. Callback-heavy screens with many dialog/menu builders may hover around 100–120 without anything wrong; past that, decompose.
+
 ### Navigation flows Screen → State → View as callbacks
 
 Navigation is built **in the Screen** from `BuildContext` and passed to the state hook as callback
@@ -533,6 +535,7 @@ View rules:
 - **Multiple hooks in Screen** — Screen calls `useXScreenState` once. Anything else belongs in the state hook
 - **Business callbacks built as View closures** — closures in View couple UI to services; callbacks go on the State class
 - **Shared State class across screens** — each screen has its own State class; don't reuse across routes
+- **Mis-classified View in `widgets/`** — `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected` is almost always a View under a different name (classic: `widgets/main_view.dart`). Fix: rename to `view/x_screen_view.dart`, convert to `StatelessWidget`, hoist hooks up to the state hook. Don't wrap — consolidate.
 
 ## Related Skills
 

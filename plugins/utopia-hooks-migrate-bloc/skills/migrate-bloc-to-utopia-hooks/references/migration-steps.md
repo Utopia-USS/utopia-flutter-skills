@@ -183,7 +183,8 @@ test('tasks load on init', () async {
 ## Related
 
 - [screen-migration-flow.md](./screen-migration-flow.md) — per-screen 4-phase migration process
-- [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping
+- [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) — state-layer pattern mapping (Cubit/Bloc, events, context.read, Status enums, persistence, global mutable state)
+- [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) — widget-layer pattern mapping (BlocBuilder/Listener/Consumer, TextEditingController, stream.listen, StatefulWidget lifecycle, WidgetsBindingObserver)
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
 - `utopia-hooks:references/screen-state-view.md` — Screen/State/View pattern
 - `utopia-hooks:references/composable-hooks.md` — hook decomposition (Pattern 3)

@@ -164,13 +164,110 @@ manifest:
 
 **Phase 2 scope = `manifest.owned` + any `shared` entries with `action: rewire`.** No partial migration: if a file is in the migration scope, every `BlocBuilder` / `BlocListener` / `context.read` / `context.watch` in it must be gone by the end of Phase 2, regardless of whether it sits in `_screen.dart` or a deep `widgets/**` file.
 
+### 1f. Target structure plan — MANDATORY for all screens
+
+Before writing any code, produce an explicit **current-state vs target-state** file map. This is the primary gate against the most common migration failure: state-layer gets migrated (sub-hooks done) but the View never gets extracted, producing a 400+ line `*_screen.dart` with inline Scaffold/Stack chrome. Exec-level review checks are a backup; this step catches it upfront.
+
+#### Step 1: scan current structure
+
+For each file in `manifest.owned`, record: path, class base (`StatefulWidget` / `HookWidget` / `StatelessWidget`), line count, hook calls.
+
+```bash
+# Screen file lines
+wc -l lib/screens/<stem>/*_screen.dart
+
+# All widget files under screen
+wc -l lib/screens/<stem>/widgets/*.dart 2>/dev/null
+
+# Find mis-classified Views (HookWidget + useProvided/useInjected in widgets/)
+grep -lE "extends HookWidget" lib/screens/<stem>/widgets/*.dart 2>/dev/null | \
+  xargs -I{} grep -lE "useProvided|useInjected" {}
+
+# Detect multi-page shell constructs
+grep -lE "TabController|TabBarView|PageView|PageController|IndexedStack|BottomNavigationBar|NavigationBar\b|DefaultTabController" \
+  lib/screens/<stem>/**/*.dart
+```
+
+#### Step 2: flag structural issues
+
+Produce flags for each finding:
+
+- **`[misplaced_view]`** — any `widgets/*.dart` that extends `HookWidget` AND calls `useProvided` or `useInjected`. Classic case: `widgets/main_view.dart` with 500+ lines consuming 3× global state. This is almost always the View wearing a different name. Must be addressed in the target plan (rename + move + convert to StatelessWidget + hoist hooks up to the state hook). See `utopia-hooks:references/screen-state-view.md` → "Mis-classified View living in `widgets/`" in Common Pitfalls.
+- **`[multi_page_shell]`** — any owned file contains `TabController` / `TabBarView` / `PageView` / `IndexedStack` / `BottomNavigationBar` / `NavigationBar` / `DefaultTabController`. The screen is a multi-page shell — **every inner tab/page content widget must become its own Screen/State/View triple**, not an inline widget or `HookWidget` in `widgets/`. Load `utopia-hooks:references/multi-page-shell.md` — it is mandatory for this class of screen. The target plan must list every inner page's file paths (page + state + view folder).
+- **`[screen_too_large]`** — current `*_screen.dart` > ~100 lines (soft redflag per `utopia-hooks:references/screen-state-view.md` "Screen file size — soft redflag"). Target must include extraction of Scaffold/Stack chrome to a dedicated `view/*_screen_view.dart`.
+- **`[view_missing]`** — no `lib/screens/<stem>/view/*_screen_view.dart` file exists. Target must create it.
+
+#### Step 3: produce target file map
+
+List every file that will exist after migration, with path + kind + purpose + rough line-count estimate. Do NOT skip files that already exist correctly — list them explicitly so reviewers can see the full picture.
+
+Example for a misfit screen like item_screen:
+
+```
+current:
+  lib/screens/item/item_screen.dart           | 481 lines | HookWidget | FLAGS: [screen_too_large]
+    — inline Scaffold/Stack/split-view chrome (~200 lines) belongs in View
+    — ~100 lines of dialog callbacks are legitimate Screen responsibility (keep)
+  lib/screens/item/widgets/main_view.dart     | 598 lines | HookWidget | FLAGS: [misplaced_view]
+    — consumes PreferenceGlobalState, EditGlobalState, StoriesGlobalState via useProvided
+    — this IS the View, mis-classified
+  lib/screens/item/state/item_screen_state.dart | 351 lines | hook | ok
+  lib/screens/item/state/comments_state.dart    | 407 lines | hook | ⚠ over 300
+  lib/screens/item/view/  (missing)           | — | — | FLAGS: [view_missing]
+
+target:
+  lib/screens/item/item_screen.dart           | ~60 lines  | HookWidget — pure wiring
+    — args class + build() builds dialog/menu callbacks + calls useItemScreenState + returns ItemScreenView
+  lib/screens/item/view/item_screen_view.dart | ~250 lines | StatelessWidget — owns Scaffold/Stack/split-view chrome
+    — receives state, assembles all sub-widgets, zero hook calls
+  lib/screens/item/state/item_screen_state.dart | ~400 lines | hook — adds preference/edit/stories fields
+    — all useProvided calls hoisted here from main_view.dart
+  lib/screens/item/state/comments_state.dart    | split per complex-cubit-patterns | decompose further if needed
+  lib/screens/item/widgets/                   | existing widgets unchanged (CustomAppBar, ReplyBox, etc.)
+  lib/screens/item/widgets/main_view.dart     | DELETED — content migrated into ItemScreenView
+
+transformations:
+  1. Hoist useProvided<PreferenceGlobalState>, EditGlobalState, StoriesGlobalState from main_view.dart into useItemScreenState
+  2. Add corresponding fields to ItemScreenState
+  3. Create view/item_screen_view.dart as StatelessWidget, move main_view.dart body + item_screen.dart chrome into it
+  4. Simplify item_screen.dart to pure wiring (~60 lines)
+  5. Delete widgets/main_view.dart
+```
+
+Example for a multi-page shell like home_screen:
+
+```
+current:
+  lib/screens/home/home_screen.dart           | 376 lines | StatefulWidget | FLAGS: [screen_too_large], [multi_page_shell], [view_missing]
+    — TabController + TabBarView with 5× StoriesListView + ProfileScreen inline
+    — 5 stream subscriptions + deep link + share intent + notifications in initState
+    — tab order from TabCubit.state.tabs
+  lib/screens/home/widgets/mobile_home_screen.dart / tablet_home_screen.dart — responsive variants
+
+target:
+  lib/screens/home/home_screen.dart              | ~70 lines  | HookWidget — pure wiring
+  lib/screens/home/state/home_screen_state.dart  | ~150 lines | hook — composes sub-hooks
+  lib/screens/home/state/_use_deep_link_handling.dart | ~40 lines | sub-hook
+  lib/screens/home/state/_use_share_intent.dart       | ~30 lines | sub-hook
+  lib/screens/home/state/_use_notification_routing.dart | ~40 lines | sub-hook
+  lib/screens/home/state/_use_feature_discovery.dart    | ~30 lines | sub-hook
+  lib/screens/home/view/home_screen_view.dart    | ~120 lines | StatelessWidget — shell chrome
+  lib/screens/home/pages/stories/stories_page.dart           | ~25 lines | HookWidget — pure wiring
+  lib/screens/home/pages/stories/state/stories_page_state.dart | ~80 lines | hook
+  lib/screens/home/pages/stories/view/stories_page_view.dart   | ~100 lines | StatelessWidget
+  lib/screens/home/pages/profile/profile_page.dart           | existing ProfileScreen — decide: migrate as embedded page or keep as routable screen
+  (+ one folder per story-type tab OR a single StoriesPage driven by StoryType argument — the decomposition plan must pick one and justify)
+```
+
+The target plan is the artifact Phase 2 executes against. Every file in `target` must exist and match its described role before Phase 4 exit gate passes.
+
 ---
 
 ## Phase 2: Migration
 
 > **Hard gate (Complex screens only):** If Phase 1 classified the screen as Complex, you MUST have a decomposition plan from Phase 1d with sub-hooks listed. Do NOT proceed without it. Each sub-hook MUST be a separate file. No single hook file may exceed ~300 lines. If you skipped 1d — go back now.
 
-Execute the migration using patterns from [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md). For complex cubits, also load [complex-cubit-patterns.md](./complex-cubit-patterns.md) — it covers stream accumulation, dynamic stream creation, init/refresh de-duplication, top-level mutable state, and navigation callbacks that simple mappings don't address.
+Execute the migration using patterns from [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) (state-layer) and [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) (widget-layer). For complex cubits, also load [complex-cubit-patterns.md](./complex-cubit-patterns.md) — it covers stream accumulation, dynamic stream creation, init/refresh de-duplication, top-level mutable state, and navigation callbacks that simple mappings don't address.
 
 ### 2a. Rename + delete files
 
@@ -183,11 +280,11 @@ Execute the migration using patterns from [bloc-to-hooks-mapping.md](./bloc-to-h
 
 ### 2b. Design State class + hook
 
-Reference [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md):
-- Cubit → hook: sections 1, 2
-- Freezed state → flat class: section 7
-- Status enum → built-in hooks: section 9
-- TextEditingController: section 12
+Reference mapping files:
+- Cubit → hook: [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) sections 1, 2
+- Freezed state → flat class: [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) section 4
+- Status enum → built-in hooks: [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) section 5
+- TextEditingController: [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) section 5
 
 Mandatory rules for State class:
 - No `copyWith()`, no `Equatable`, no `Status` enum, no `part` files
@@ -200,13 +297,13 @@ For each pattern encountered, use the correct mapping:
 
 | Pattern found | Reference |
 |---------------|-----------|
-| `stream.listen()` + manual cancel | Section 13 — `useStreamSubscription` |
-| `StatefulWidget` with `initState`/`dispose` | Section 14 — convert to `HookWidget` |
-| Top-level mutable vars / static fields | Section 15 — move to service or `_providers` |
-| `BlocBuilder` | Section 3 — `StatelessWidget` View |
-| `BlocListener` | Section 4 — `useEffect` / callback |
-| `BlocConsumer` | Section 5 — Screen + View |
-| `context.read` / `context.watch` | Section 6 — `useProvided` |
+| `stream.listen()` + manual cancel | `bloc-to-hooks-widget.md` §6 — `useStreamSubscription` |
+| `StatefulWidget` with `initState`/`dispose` | `bloc-to-hooks-widget.md` §7 — convert to `HookWidget` |
+| Top-level mutable vars / static fields | `bloc-to-hooks-state.md` §8 — move to service or `_providers` |
+| `BlocBuilder` | `bloc-to-hooks-widget.md` §1 — `StatelessWidget` View |
+| `BlocListener` | `bloc-to-hooks-widget.md` §2 — `useEffect` / callback |
+| `BlocConsumer` | `bloc-to-hooks-widget.md` §3 — Screen + View |
+| `context.read` / `context.watch` | `bloc-to-hooks-state.md` §3 — `useProvided` |
 
 ### 2d. Wire up Screen + View
 
@@ -239,7 +336,7 @@ grep -n '\.listen(' <migrated_state_files>
 ```
 
 **Expected: 0 results.** Every `.listen(` should be replaced with `useStreamSubscription`.
-If found → see [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 13.
+If found → see [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) section 6.
 
 ### 3b. StatefulWidget audit
 
@@ -248,13 +345,15 @@ grep -n 'extends StatefulWidget' <migrated_files>
 ```
 
 **Expected: 0 results**, or each has a documented justification (e.g., platform view wrapper).
-If found → see [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 14.
+If found → see [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) section 7.
 
 ### 3c. Hook size check
 
 - Is any hook function > ~300 lines? → Decompose (see `utopia-hooks:references/composable-hooks.md` Pattern 3)
 - Does any hook have > ~10 `useState` calls? → Same
 - Does the State class have > ~15 fields from unrelated domains? → Decompose into sub-states (see composable-hooks.md Pattern 3)
+- **Dumb 1:1 port heuristics** — a state file that's significantly larger than the Cubit it replaced, OR has high `useEffect` count in one hook (each effect is a candidate for `useMemoized` / a plain `final` / a getter / a pure helper — not every effect is a "dummy", but in state hooks they're usually derivations in disguise), OR carries derived-state as fields rather than getters/`useMemoized`, OR has `copyWith`/`Equatable` remnants, is a candidate for bloat from mechanical porting. Run `post-migration-refactor-checklist.md` §A/C/D before handoff — the review agent's §M trigger will make it mandatory anyway if you don't.
+- Global state hooks (`lib/state/*.dart`) follow the same ≤300 lines rule — if over, split into multiple globals (one per domain in `_providers`), don't decompose into sub-hooks (sub-hooks are a screen-scope pattern). See `utopia-hooks:SKILL.md` Non-Negotiable Rules.
 
 ### 3d. Async patterns
 
@@ -318,7 +417,7 @@ grep -n 'BuildContext\|Overlay\.\|MediaQuery\.\|showSnackBar\|ScaffoldMessenger'
 grep -n '^final Map\|^final List\|^final Set\|^DateTime?\|^int \|^bool ' <migrated_state_files>
 ```
 
-**Expected: 0 results.** Top-level mutable variables should become a registered service (`useInjected`) or global state (`_providers`). See [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) section 15.
+**Expected: 0 results.** Top-level mutable variables should become a registered service (`useInjected`) or global state (`_providers`). See [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) section 8.
 
 ### 3h. No global-state re-export in State classes
 
@@ -403,7 +502,56 @@ grep -n '^final Map\|^final List\|^final Set\|^DateTime?\|^int \|^bool ' <migrat
 
 **Expected: 0 results.**
 
-### 4e. Ownership-graph sanity (Complex screens only)
+### 4e. Target structure conformance (from Phase 1f)
+
+The Phase 1f target file map is the contract Phase 2 executes against. Verify every file in `target` exists and matches its described role. Backup exec checks (not a substitute for matching the target plan — if the plan itself is wrong, these won't catch it, but they catch the most common slippage):
+
+```bash
+# View file exists
+test -f lib/screens/<stem>/view/*_screen_view.dart || \
+  echo "FAIL: missing view/*_screen_view.dart — Screen is not split into Screen/State/View"
+
+# View is StatelessWidget, not HookWidget
+grep -l "extends HookWidget" lib/screens/<stem>/view/*.dart && \
+  echo "FAIL: View must extend StatelessWidget"
+
+# View must have zero hook calls
+grep -lE "useProvided|useInjected|useEffect|useState|useMemoized|useSubmitState|useAutoComputedState|useMemoizedStream" lib/screens/<stem>/view/*.dart && \
+  echo "FAIL: View contains hook calls — hoist to state hook"
+
+# Screen file size soft-warn (~100 lines redflag per utopia-hooks:references/screen-state-view.md)
+SCREEN_LINES=$(wc -l < lib/screens/<stem>/*_screen.dart)
+[ "$SCREEN_LINES" -gt 100 ] && \
+  echo "WARN: Screen file $SCREEN_LINES lines (~100 soft redflag) — check for Scaffold/Stack chrome that belongs in View, or business logic that belongs in state hook"
+
+# View file size (≤ ~300 lines per non-negotiable rule)
+VIEW_LINES=$(wc -l < lib/screens/<stem>/view/*_screen_view.dart)
+[ "$VIEW_LINES" -gt 300 ] && \
+  echo "WARN: View $VIEW_LINES lines (>300) — extract sub-widgets to widget/ folder"
+
+# Mis-classified Views still lurking in widgets/ (Phase 1f should have caught these, but belt-and-suspenders)
+for f in lib/screens/<stem>/widgets/*.dart; do
+  if grep -lE "extends HookWidget" "$f" >/dev/null && \
+     grep -lE "useProvided|useInjected" "$f" >/dev/null; then
+    echo "WARN: $f is HookWidget calling useProvided/useInjected — probable mis-classified View. See utopia-hooks:references/screen-state-view.md 'Mis-classified View living in widgets/'."
+  fi
+done
+
+# Multi-page shell: inner pages must each have their own page + state + view
+# (Only run this check if Phase 1f flagged [multi_page_shell])
+if [ -d lib/screens/<stem>/pages ]; then
+  for page_dir in lib/screens/<stem>/pages/*/; do
+    page_name=$(basename "$page_dir")
+    [ -f "$page_dir/${page_name}_page.dart" ] || echo "FAIL: missing $page_dir/${page_name}_page.dart"
+    [ -d "$page_dir/state" ] || echo "FAIL: missing $page_dir/state/ folder"
+    [ -d "$page_dir/view" ] || echo "FAIL: missing $page_dir/view/ folder"
+  done
+fi
+```
+
+Any `FAIL` blocks commit. Any `WARN` requires explicit acknowledgement in `self_report.warnings` with a justification — do not silently pass warnings.
+
+### 4f. Ownership-graph sanity (Complex screens only)
 
 Re-read the ownership graph drawn in Phase 1d. For each node:
 
@@ -415,7 +563,7 @@ Re-read the ownership graph drawn in Phase 1d. For each node:
 
 Zero-cost if the graph is up to date — it's a 30-second sanity check. Caught-here violations are usually a sub-hook that grew an `onSomething` callback parameter that reaches back into the parent's state, or a top-level `_helper()` in a state file that mutates shared state behind one hook's back.
 
-### 4f. Manual smoke-test handoff
+### 4g. Manual smoke-test handoff
 
 Static greps catch structural violations but not runtime behaviour. Before committing, open the migrated screen manually (runtime) and verify the golden path:
 
@@ -431,7 +579,7 @@ This is not an automated check — it's a handoff to yourself. Catches the class
 
 If automated, it belongs in your app's e2e / widget test suite. If you don't have those for the screen, the manual pass IS the test.
 
-### 4g. Commit
+### 4h. Commit
 
 All checks pass → commit this screen. Move to the next screen (back to Phase 1).
 
@@ -439,7 +587,8 @@ All checks pass → commit this screen. Move to the next screen (back to Phase 1
 
 ## Related
 
-- [bloc-to-hooks-mapping.md](./bloc-to-hooks-mapping.md) — pattern-by-pattern mapping (sections 1-15)
+- [bloc-to-hooks-state.md](./bloc-to-hooks-state.md) — state-layer pattern mapping (Cubit/Bloc, events, context.read, Status enums, persistence, global mutable state)
+- [bloc-to-hooks-widget.md](./bloc-to-hooks-widget.md) — widget-layer pattern mapping (BlocBuilder/Listener/Consumer, TextEditingController, stream.listen, StatefulWidget lifecycle, WidgetsBindingObserver)
 - [complex-cubit-patterns.md](./complex-cubit-patterns.md) — decomposition, stream accumulation, dynamic streams, global state (Complex screens)
 - [migration-steps.md](./migration-steps.md) — project-level migration orchestration
 - [global-state-migration.md](./global-state-migration.md) — provider tree migration
