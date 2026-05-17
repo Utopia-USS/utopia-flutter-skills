@@ -464,100 +464,42 @@ Run through every bullet. Each maps to a bootstrap mistake observed in practice 
 - [ ] All blueprint banners (`<!-- BLUEPRINT … -->`, `# BLUEPRINT …`) stripped from copied files
 - [ ] No file references an MCP server that isn't in `enabledMcpjsonServers` or installed user-globally
 
-## Common pitfalls during bootstrap
+## Bootstrap-specific pitfalls
 
-### Copying blueprint files verbatim
+(For runtime drift post-bootstrap — primitive skills firing wrongly, MCP not installed, basename guard regressions, etc. — see [evolution-and-drift.md](evolution-and-drift.md).)
 
-❌ `cp -r utopia-ai-arch:templates/claude-layer <repo>/.claude` and committing without substitution.
+### Skipping Phase 0
 
-The blueprint is the model. You must:
-- Strip banners
-- Substitute `<repo>` / `<REPO>` / `<project name>` / `<repo-folder-name>`
-- Adapt skill applicabilities and path nudges to **your** topology
-- Skip files explicitly marked "stays in blueprint" (`README.md`, `conventions/*`, `.claude/refs/README.md`)
+Flying blind. Skill split, agent roster, command set, and hook scope are all functions of facts gathered in Phase 0. Skipping it means retrofitting the architecture doc to whatever you typed first — the failure mode `claude-architecture.md` exists to prevent.
 
-### Mass-applying `sed` substitutions in places they shouldn't run
+### Drafting `claude-architecture.md` AFTER files exist
 
-❌ `find . -type f -exec sed -i 's/<repo>/foo/g' {} +` — runs inside `.git/`, mangles object files, breaks the repo.
+❌ Writing the agents and skills first, then "writing up" what you did. The decision log narrates instead of deciding; §"Rejected alternatives" in particular goes missing because you can't enumerate alternatives you didn't pause to consider. Phase 2 forces the decision before the substitution.
 
-Use a scoped invocation:
+### Treating the blueprint as a `cp -r` target
+
+The blueprint is a model, not a template. You must strip banners, substitute `<repo>` / `<REPO>` / `<project name>` / `<repo-folder-name>`, adapt skill applicabilities to *your* topology, and skip files explicitly marked "stays in blueprint" (`README.md`, `conventions/*`, `.claude/refs/README.md`). No `sed` can decide whether your Cloud Functions workspace warrants a primitive skill now or deferral.
+
+### Mass-applying `sed` in places it shouldn't run
+
+❌ `find . -type f -exec sed -i 's/<repo>/foo/g' {} +` runs inside `.git/`, mangles object files. Scope the invocation:
+
 ```bash
 find .claude/ CLAUDE.md AGENTS.md -type f \( -name '*.md' -o -name '*.sh' -o -name '*.json' \) \
   -exec sed -i '' 's/<repo>/foo/g' {} +
 ```
 
-Or run each substitution per-file deliberately.
-
-### Opening primitive sister skills preemptively
-
-❌ Creating `<prefix>-functions/`, `<prefix>-landing/`, `<prefix>-admin/` all on day 1 because the topology has those workspaces.
-
-Defer until each has either (a) real Claude work happening or (b) a `.claude/refs/<contract>.md` that needs a logical owner. Document the deferral in `claude-architecture.md` §"Rejected alternatives" with a reversal criterion. See [skill-design.md](skill-design.md) "Don't preempt with primitive skills".
-
-### Forgetting the basename guard in the hook
-
-❌ Removing or omitting the line:
-```bash
-[[ "$(basename "$repo_root")" == "<repo-folder-name>" ]] || exit 0
-```
-
-Without this guard, `<prefix>_quality_check.sh` fires whenever the user edits a Dart file in **any** repo that happens to be in the directory tree above — sister workspaces, vendored dependencies, anything that walks up to a `.git`. The basename guard proves "we're in THIS repo" before doing anything. Load-bearing.
-
 ### Hard-coding `fvm` vs bare-dart inconsistently across files
 
-❌ Agents say `fvm dart analyze`, commands say `dart analyze`, scripts say `fvm flutter test`. Bash resolves against `$PATH`; one form works on the dev's machine, the other fails on CI.
-
-Toolchain canon is a binary choice (Phase 0.7). Pick once, apply everywhere — agents, commands, scripts, `permissions.allow`. No alternation slashes.
-
-### Declaring MCP servers in permissions that aren't installed
-
-❌ Copying the blueprint's MCP permissions across without checking which MCP servers this repo actually uses.
-
-> "Don't reference an MCP server that isn't installed. Listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model." — utopia-ai-arch SKILL.md
-
-Phase 0.5 inventoried the MCPs. The settings.json reflects exactly that, no more.
-
-### Skipping the symlink verification
-
-❌ Trusting that `ln -s` worked without `ls -la`.
-
-If `AGENTS.md` ends up as a regular file (because the Phase 6 command ran in the wrong directory, or because of a Windows checkout), the two files drift silently. Verify with `ls -la AGENTS.md`.
-
-## Anti-patterns
-
-### Bootstrapping without Phase 0
-
-Flying blind. The skill split, agent roster, command set, and hook scope are all functions of facts gathered in Phase 0 (topology, stacks, integrations, codegen, toolchain, incidents). Skipping it means retrofitting the architecture doc to whatever you typed first — exactly the failure mode `claude-architecture.md` exists to prevent.
-
-### Drafting `claude-architecture.md` AFTER the files exist
-
-❌ Writing the agents and skills first, then "writing up" what you did.
-
-The decision log narrates, doesn't decide. The rejected alternatives section in particular goes missing — you can't enumerate alternatives you didn't consider because you didn't pause to consider. Phase 2 forces the decision before the substitution.
-
-### Skipping validation
-
-❌ "It compiles, the files are there, ship it."
-
-Every drift mode in [evolution-and-drift.md](evolution-and-drift.md) has a validation step that would have caught it at bootstrap time. The hook firing in unrelated workspaces, the symlink-that's-a-copy, MCP perms for absent servers, the primitive skill that fires wrongly because the description over-broadens — all silent until production, all catchable in Phase 7.
-
-### "We'll add the §Rejected alternatives later"
-
-The dominant `claude-architecture.md` failure mode. Future-you re-proposes per-area maintainers, the `<prefix>-shared/` skill, the push-guard hook because the deliberate omission isn't documented. Write them at Phase 2 or you'll re-litigate the same dead-ends.
-
-> "The Rejected alternatives section pays for itself. It's why future-you doesn't re-litigate decisions, and why someone new can tell a deliberate omission from an oversight." — blueprint `README.md:299-301`
+❌ Agents say `fvm dart analyze`, commands say `dart analyze`, scripts say `fvm flutter test`. Bash resolves against `$PATH`; one form works on the dev's machine, the other fails on CI. Toolchain canon is binary (Phase 0.7) — pick once, apply everywhere.
 
 ### Copying authoring conventions into `.claude/`
 
-❌ Copying `conventions/{module,pattern,cheatsheet}-style.md` from the blueprint into `<repo>/.claude/docs/`.
+❌ Copying `conventions/{module,pattern,cheatsheet}-style.md` into `<repo>/.claude/docs/`. They're foundation-level — how *any* project's reference docs are authored, not per-repo. Cross-link from `claude-architecture.md` §3 to the blueprint path instead.
 
-The conventions are foundation-level — how *any* project's reference docs are authored, not per-repo. Duplicating them invites drift. Cross-link from `claude-architecture.md` §3 to the blueprint path.
+### Skipping Phase 7 validation
 
-> "The conventions are foundation-level (how *any* project's reference docs are authored), not RepoC-specific. Duplicating them invites drift. Skills that need them link to the blueprint path explicitly." — `production-repo-C/.claude/docs/claude-architecture.md:136-137`
-
-### Treating the blueprint as a template
-
-The blueprint is a model. Templates produce a finished thing from a substitution map; models require you to make decisions the substitution can't make for you. Skill split is the most obvious case — no `sed` can decide whether your Cloud Functions workspace warrants a primitive skill now or deferral.
+❌ "It compiles, the files are there, ship it." Every drift mode in [evolution-and-drift.md](evolution-and-drift.md) has a validation step that would have caught it at bootstrap time. Hook firing in unrelated workspaces, symlink-that's-a-copy, MCP perms for absent servers — silent until production, catchable in Phase 7.
 
 ## See also
 

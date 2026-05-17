@@ -481,19 +481,7 @@ See [settings-json.md](settings-json.md) for the full settings shape.
 
 ## Anti-patterns
 
-### Hook firing in unrelated workspaces (missing basename guard)
-
-❌ Quality-check script skips the `basename "$repo_root" == "<repo-folder-name>"` guard. Now editing Dart files in any repo Claude has open triggers your repo's nudges.
-
-✅ Add the basename guard right after the `.git` walk. Without it the hook is global — by accident.
-
-> "Only fire inside the production-repo-B repo." — `production-repo-B/.claude/scripts/repoB_quality_check.sh:76`
-
-### Hook nudging at a skill with no references
-
-❌ Adding a path nudge that points at `<prefix>-api` (primitive — one paragraph in SKILL.md, zero references). Claude reads the nudge, loads the skill, finds nothing useful — and weights future nudges lower.
-
-✅ Wait until the skill has 2+ references before adding the path nudge. Until then, description matching alone is enough. See `production-repo-B/.claude/docs/claude-architecture.md:170-179` for the formal rejection.
+(For basename-guard regression, push-guard hook, primitive-skill nudges — those are catalogued in [evolution-and-drift.md](evolution-and-drift.md) symptoms §O, §S, and in §"Why NO `git push` guard hook" above.)
 
 ### Allowing generated-file edits in `block` mode by mistake
 
@@ -501,41 +489,25 @@ See [settings-json.md](settings-json.md) for the full settings shape.
 
 ✅ Generated-file check is **first**, **always exits 2**, regardless of mode. The mode env var only controls non-generated-file nudges.
 
-### PreToolUse push-guard duplicating branch protection
-
-❌ Adding `PreToolUse` Bash matcher with regex against `git push` strings, blocking pushes to protected branches.
-
-✅ Leave `git push` off `permissions.allow` (every push prompts the user). Configure GitHub branch protection on the protected refs. The guard hook duplicates both. See the rejection section above.
-
 ### Hook script that exits non-zero without writing to stderr
 
-❌ `exit 1` with no preceding `echo "..." >&2`. Claude sees a non-zero exit but no message — silent failure mode.
-
-✅ Always write a human-readable summary to stderr before a non-zero exit. The summary is what Claude reads to decide what to do next.
+❌ `exit 1` with no preceding `echo "..." >&2`. Claude sees a non-zero exit but no message — silent failure mode. Always write a human-readable summary to stderr before a non-zero exit.
 
 ### Hook script doing real work BEFORE its scope guards
 
-❌ Grepping the file for content, running `dart analyze`, or hitting an HTTP endpoint at the top of the script — then later checking `[[ -f "$file" ]]` or the basename match.
-
-✅ Guards first, always. The hook fires on every matching tool call; out-of-scope must cost ~10ms of guard logic, not the real work.
+❌ Grepping the file for content, running `dart analyze`, or hitting an HTTP endpoint at the top of the script — then later checking `[[ -f "$file" ]]` or the basename match. Guards first, always. Out-of-scope must cost ~10ms of guard logic, not the real work.
 
 ### One quality-check script doing both nudges and dead-link scanning
 
-❌ Cramming the markdown-link scan into `quality_check.sh`. Now `.dart` edits run dead-link logic; `.md` edits run import / nudge logic.
-
-✅ Two separate scripts wired under the same `PostToolUse` matcher. Each guards its own scope independently. This is what every production repo does.
+❌ Cramming the markdown-link scan into `quality_check.sh`. `.dart` edits run dead-link logic; `.md` edits run import / nudge logic. ✅ Two separate scripts wired under the same `PostToolUse` matcher — each guards its own scope independently.
 
 ### Treating `block` mode as the default
 
-❌ Setting `<PREFIX>_QUALITY_MODE=block` in shell rc by default. Now every nudge is blocking — agents learn to silence the hook.
-
-✅ Default is `warn`. Reserve `block` for CI-grade pipelines or specific high-confidence rules.
+❌ Setting `<PREFIX>_QUALITY_MODE=block` in shell rc by default. Every nudge becomes blocking — agents learn to silence the hook. Default is `warn`; reserve `block` for CI-grade pipelines or specific high-confidence rules.
 
 ### Adding a SessionStart hook on speculation
 
-❌ Adding a Dart MCP cleanup hook to a new repo "in case the team has the same problem as repoB".
-
-✅ Wait for the leak to be observed and measured. Until then it's premature optimization that runs every session-open.
+❌ Adding a Dart MCP cleanup hook "in case the team has the same problem as repoB". Wait for the leak to be observed and measured. Until then it's premature optimization that runs every session-open.
 
 ## See also
 

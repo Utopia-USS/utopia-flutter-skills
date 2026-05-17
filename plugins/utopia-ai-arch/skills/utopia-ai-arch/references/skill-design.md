@@ -284,14 +284,12 @@ These come from the master skill's maturity, not from bootstrap. A primitive sis
 
 ## Anti-patterns
 
+(Cross-layer symptoms — master swallowing cross-cutting refs, description firing on wrong files, `dart_fix` bulldoze in recommended commands — are in [evolution-and-drift.md](evolution-and-drift.md) §A, §L, §G. Below: skill-design-specific.)
+
 ### Description that says WHAT, not WHEN
 
 ❌ `description: "This skill teaches how to work with classroom activities."`
 ✅ `description: "Use when editing Flutter widgets / services / models in classroom/ or lessons/ for activity flow, assessments, or design system. Stays silent on Kotlin classroom-api and Next.js distributors."`
-
-### Master skill swallowing cross-cutting Dart content
-
-If `<prefix>/references/freezed.md` exists and applies to every Dart workspace in the monorepo, it's not master-skill content. Lift to `.claude/refs/freezed.md`, link from each consuming SKILL.md.
 
 ### Routing inventory inside a SKILL.md
 
@@ -300,18 +298,6 @@ If `<prefix>/references/freezed.md` exists and applies to every Dart workspace i
 ### Reference style mismatch
 
 A module file with no user flow is masquerading as a module — it's probably a pattern. A pattern file you can't summarise in two sentences is a module trying to be lean. A cheatsheet with paragraphs of prose is a pattern in disguise.
-
-### Cross-skill shared content stuck in one skill
-
-If two SKILLs link to `<prefix>/references/foo.md`, that file should be in `.claude/refs/`.
-
-### Skill description that fires on the wrong files
-
-If the agent keeps loading `<prefix>-supabase` while editing Dart code, the description is over-broad. Tighten the positive scope and add an explicit NEGATIVE.
-
-### Auto-fix bulldoze inside a skill's recommended commands
-
-A skill recommending `dart fix --apply` project-wide collides with WIP. Either scope it to changed files or remove the recommendation. See [evolution-and-drift.md](evolution-and-drift.md) for repoB's precedent.
 
 ## See also
 

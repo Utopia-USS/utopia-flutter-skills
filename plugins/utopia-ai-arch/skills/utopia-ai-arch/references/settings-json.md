@@ -348,9 +348,7 @@ Anything the **codebase** assumes belongs in `settings.json`. Anything the **con
 
 ### Declaring an MCP that's not installed
 
-❌ `"enabledMcpjsonServers": ["dart"]` when no `dart` server is configured in `mcp.json`. Now agent prompts reference `mcp__dart__*` tools that fail.
-
-✅ Either install the MCP (`mcp.json` entry + the server itself) or remove the declaration. RepoC's `claude-architecture.md:147-152` documents the explicit rejection — copy that pattern if you're considering the cargo-cult add.
+❌ `"enabledMcpjsonServers": ["dart"]` when no `dart` server is configured in `mcp.json`. Agent prompts reference tools that fail. Either install the MCP or remove the declaration. Full symptom + reversal: [evolution-and-drift.md](evolution-and-drift.md) §P.
 
 ### Hard-coding absolute paths in the hooks block
 
