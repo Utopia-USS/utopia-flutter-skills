@@ -55,13 +55,12 @@ Reference these guidelines when:
 | 2        | Agent roster (blueprint 4 + when to extend) | CRITICAL | [agent-roster.md][agent-roster] |
 | 3        | Skill design (applicability, splits, no-router) | CRITICAL | [skill-design.md][skill-design] |
 | 4        | Enforcement hooks (quality_check, skills_drift) | CRITICAL | [enforcement-hooks.md][enforcement-hooks] |
-| 5        | Maintaining & evolving the layer        | CRITICAL | [maintain-evolve.md][maintain-evolve] |
+| 5        | Evolution & drift (operations + failure modes) | CRITICAL | [evolution-and-drift.md][evolution-and-drift] |
 | 6        | Slash commands (3-base + when to extend) | HIGH    | [slash-commands.md][slash-commands] |
 | 7        | Architecture decision log               | HIGH     | [architecture-doc.md][architecture-doc] |
 | 8        | CLAUDE.md & AGENTS.md symlink           | HIGH     | [claude-md.md][claude-md] |
 | 9        | Bootstrap procedure (new repo)          | HIGH     | [bootstrap-procedure.md][bootstrap-procedure] |
-| 10       | Drift symptoms catalogue                | HIGH     | [drift-symptoms.md][drift-symptoms] |
-| 11       | settings.json shape                     | MEDIUM   | [settings-json.md][settings-json] |
+| 10       | settings.json shape                     | MEDIUM   | [settings-json.md][settings-json] |
 
 ## Quick Reference
 
@@ -83,9 +82,9 @@ Every skill needs a positive AND negative applicability scope. "Cross-cutting" o
 
 `<prefix>_quality_check.sh` is a PostToolUse hook on `Edit|Write|MultiEdit`. Contract: exit 0 silent, exit 1 warn, exit 2 block. Generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.pb*.dart`, `*.config.dart`) ALWAYS exit 2 regardless of mode. Guards prove scope (jq, .dart, pubspec, repo basename) before any nudging. Hooks from different layers coexist — don't ask Claude to remember a rule when a script can run.
 
-### Maintaining the layer → [maintain-evolve.md][maintain-evolve]
+### Evolution & drift → [evolution-and-drift.md][evolution-and-drift]
 
-The pillar this skill exists for. Triggers that should make you re-read `claude-architecture.md` before acting: new techstack, new MCP installed, new external integration (Linear / ClickUp / paper.design), a recent incident, or a roster proposal. Drift in production has been: per-area maintainers, eng-manager agents, refs documenting what tools enforce, skills with no applicability content, AI-comment cruft, reviewer leakage from maintainer self-report.
+The pillar this skill exists for. Operations on a live layer (graduate / split / collapse / delete a skill, add or remove a path nudge, add a domain auditor mid-project, record a rejected alternative) paired with the 22-symptom drift catalogue distilled from production. Triggers for re-reading `claude-architecture.md` before acting: new techstack, new MCP, new external integration, recent incident, roster proposal.
 
 ## Templates — `.claude/` Starting Shapes
 
@@ -120,12 +119,11 @@ Full documentation with verbatim file skeletons and quoted invariants in [refere
 | [agent-roster.md][agent-roster] | CRITICAL | 4-agent blueprint (architect / maintainer / reviewer / precommit-auditor), invariants per role, hand-off chain, frontmatter shape, output classifications, when (and when NOT) to add domain auditors or per-area maintainers, agent-prompt style (description as router) |
 | [skill-design.md][skill-design] | CRITICAL | Positive+negative applicability, no-router/no-shared rules, when to split a skill, primitive sister skills, `.claude/refs/` cross-link discipline, 3 reference styles (module / pattern / cheatsheet) with decision test, graduation gradient |
 | [enforcement-hooks.md][enforcement-hooks] | CRITICAL | `<prefix>_quality_check.sh` shape (contract / guards / generated-file block / path nudges / mode env var), `<prefix>_skills_drift.sh` shape, when to add a SessionStart hook (repoB precedent), why NO push-guard, when to add a path nudge (≥2-references rule) |
-| [maintain-evolve.md][maintain-evolve] | CRITICAL | Evolution playbook: graduate memory → module-ref → skill, split a skill, delete a stale skill, add a path nudge incrementally, record a rejected-alternative mid-project, triggers for re-reading the architecture doc, anti-patterns from real history |
+| [evolution-and-drift.md][evolution-and-drift] | CRITICAL | Operations on a live layer (graduate / split / collapse / delete a skill, add/remove path nudges, add a domain auditor mid-project, record a rejected alternative) paired with the 22-symptom drift catalogue from production (repo-A / repoB / repoC). Triggers for re-reading the architecture doc + audit grep one-liners |
 | [slash-commands.md][slash-commands] | HIGH | 3-base commands (/implement, /audit, /audit-skills), implement-loop shape with retry cap = 2, never-commit/never-push/reviewer-fresh-context rules, when to add `/plan` `/team` `/design` `/ship`, anti-pattern: slash wrapper around a single agent |
 | [architecture-doc.md][architecture-doc] | HIGH | `.claude/docs/claude-architecture.md` 9-section spine, rejected-alternative 4-field entry shape, toolchain canon, MCP-assumption rules, how to add a new entry without re-litigating settled choices |
 | [claude-md.md][claude-md] | HIGH | What belongs in `CLAUDE.md` (always-loaded inventory) vs deep content (references), table shapes (skills / agents / commands / when-to-invoke), `AGENTS.md` symlink convention and rationale |
 | [bootstrap-procedure.md][bootstrap-procedure] | HIGH | Step-by-step "create the Claude layer for a new repo" — what to gather first (domain risk, monorepo topology, tech stacks, ticketing tool, design tool), 7-step apply, validation checklist |
-| [drift-symptoms.md][drift-symptoms] | HIGH | Catalogue of failure modes the docs explicitly call out as having happened in production — each entry: symptom, evidence/quote, anti-pattern, fix. The "things to grep for" when auditing |
 | [settings-json.md][settings-json] | MEDIUM | Canonical settings.json shape: `extraKnownMarketplaces`, `enabledPlugins`, `permissions.allow` (why git push is OFF), `hooks.PostToolUse` matcher, MCP wiring, plugin scope choice |
 
 ## Searching References
@@ -169,19 +167,19 @@ grep -rl "module-style\|pattern-style\|cheatsheet-style" references/  # referenc
 | "Should we add a `/<prefix>-design` command?" | [slash-commands.md][slash-commands] |
 | "Should we have a `<prefix>-shared` skill?" | [skill-design.md][skill-design] (NO — read why) |
 | "Should we add a `git push` guard hook?" | [enforcement-hooks.md][enforcement-hooks] (NO — read why) |
-| Agent keeps inventing skills that don't exist | [agent-roster.md][agent-roster] + [drift-symptoms.md][drift-symptoms] |
-| Agent loses conventions when developing the project | [maintain-evolve.md][maintain-evolve] |
-| A skill no longer fires / fires on the wrong files | [skill-design.md][skill-design] + [maintain-evolve.md][maintain-evolve] |
-| `dart_fix` keeps bulldozing the user's WIP | [drift-symptoms.md][drift-symptoms] (anti-pattern with fix) |
+| Agent keeps inventing skills that don't exist | [agent-roster.md][agent-roster] + [evolution-and-drift.md][evolution-and-drift] |
+| Agent loses conventions when developing the project | [evolution-and-drift.md][evolution-and-drift] |
+| A skill no longer fires / fires on the wrong files | [skill-design.md][skill-design] + [evolution-and-drift.md][evolution-and-drift] |
+| `dart_fix` keeps bulldozing the user's WIP | [evolution-and-drift.md][evolution-and-drift] (symptom G) |
 | Generated-file edits keep slipping through | [enforcement-hooks.md][enforcement-hooks] (hard-block contract) |
 | Recording why we *didn't* pick approach X | [architecture-doc.md][architecture-doc] (rejected-alternative entry shape) |
 | New techstack joining the repo | [skill-design.md][skill-design] (primitive sister skill criteria) |
-| New external integration (Linear / paper.design) | [slash-commands.md][slash-commands] + [maintain-evolve.md][maintain-evolve] |
+| New external integration (Linear / paper.design) | [slash-commands.md][slash-commands] + [evolution-and-drift.md][evolution-and-drift] |
 | Reviewer accepting blocker findings that don't cite a rule | [agent-roster.md][agent-roster] (reviewer invariants) |
-| Memory entry that's outgrown user-level scope | [maintain-evolve.md][maintain-evolve] (graduation) |
-| Skill whose `references/` has accumulated cross-cutting content | [drift-symptoms.md][drift-symptoms] (the bp/references/ failure) |
-| MCP server referenced in agents but not installed | [drift-symptoms.md][drift-symptoms] + [settings-json.md][settings-json] |
-| Worktrees silently producing no-op Dart edits | [drift-symptoms.md][drift-symptoms] (worktree gotcha) |
+| Memory entry that's outgrown user-level scope | [evolution-and-drift.md][evolution-and-drift] (graduation) |
+| Skill whose `references/` has accumulated cross-cutting content | [evolution-and-drift.md][evolution-and-drift] (symptom A) |
+| MCP server referenced in agents but not installed | [evolution-and-drift.md][evolution-and-drift] (symptom P) + [settings-json.md][settings-json] |
+| Worktrees silently producing no-op Dart edits | [evolution-and-drift.md][evolution-and-drift] (symptom H) |
 | Stale `dart mcp-server` processes accumulating memory | [enforcement-hooks.md][enforcement-hooks] (SessionStart hook criteria) |
 
 [references]: references/
@@ -191,12 +189,11 @@ grep -rl "module-style\|pattern-style\|cheatsheet-style" references/  # referenc
 [agent-roster]: references/agent-roster.md
 [skill-design]: references/skill-design.md
 [enforcement-hooks]: references/enforcement-hooks.md
-[maintain-evolve]: references/maintain-evolve.md
+[evolution-and-drift]: references/evolution-and-drift.md
 [slash-commands]: references/slash-commands.md
 [architecture-doc]: references/architecture-doc.md
 [claude-md]: references/claude-md.md
 [bootstrap-procedure]: references/bootstrap-procedure.md
-[drift-symptoms]: references/drift-symptoms.md
 [settings-json]: references/settings-json.md
 
 ## Non-Negotiable Rules

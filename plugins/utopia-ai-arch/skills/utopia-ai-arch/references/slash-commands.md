@@ -410,7 +410,7 @@ Match `allowed-tools` to the command's actual needs. Tighter allowlist = tighter
 
 > "Re-run output hygiene (`mcp__<prefix>-dart__dart_format` on `files_touched` only — do NOT run `dart_fix`, it bulldozes unrelated files and conflicts with the user's WIP)." — `repoB-implement.md:207-209`
 
-Project-wide `dart fix --apply` collides with the user's WIP and produces noise in the diff the reviewer can't classify. Scope to `files_touched`. See [drift-symptoms.md](drift-symptoms.md) for the precedent.
+Project-wide `dart fix --apply` collides with the user's WIP and produces noise in the diff the reviewer can't classify. Scope to `files_touched`. See [evolution-and-drift.md](evolution-and-drift.md) for the precedent.
 
 ### Multiple parallel writers
 
@@ -424,9 +424,8 @@ The maintainer is the only writer in the roster on purpose. Ad-hoc subagents lac
 
 - [agent-roster.md](agent-roster.md) — the four agents the implement loop coordinates; reviewer-fresh-context as agent-side rule; why no per-area maintainers
 - [enforcement-hooks.md](enforcement-hooks.md) — `<prefix>_skills_drift.sh` script behind `/<prefix>-audit-skills`; the hook that complements the audit gate
-- [maintain-evolve.md](maintain-evolve.md) — adding a slash command mid-project; the triggers that justify `/<prefix>-team` or `/<prefix>-design`
+- [evolution-and-drift.md](evolution-and-drift.md) — adding a slash command mid-project; wrapper-around-single-agent symptom; `dart_fix` bulldoze; reviewer-leakage drift
 - [architecture-doc.md](architecture-doc.md) — §"Slash commands" entry shape; §"Rejected alternatives" entries for `/<prefix>-plan` in non-cross-cutting repos
-- [drift-symptoms.md](drift-symptoms.md) — wrapper-around-single-agent symptom; `dart_fix` bulldoze; reviewer-leakage drift
 - [claude-md.md](claude-md.md) — the commands table in `CLAUDE.md` (always-loaded inventory)
 - [bootstrap-procedure.md](bootstrap-procedure.md) — Phase 3 substitution for command files
 - Inline templates: [`../templates/claude-layer/commands/REPO-implement.md`](../templates/claude-layer/commands/REPO-implement.md), [`REPO-audit.md`](../templates/claude-layer/commands/REPO-audit.md), [`REPO-audit-skills.md`](../templates/claude-layer/commands/REPO-audit-skills.md)

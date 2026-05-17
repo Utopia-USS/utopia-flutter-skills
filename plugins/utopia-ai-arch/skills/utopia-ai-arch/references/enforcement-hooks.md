@@ -220,7 +220,7 @@ esac
 - **repoB**: 5 nudges covering activity proto+UI, the design system / classroom non-lesson, services, models, proto edits
 - **repoC**: 6 nudges covering game-flow RTDB paths, design-system, decks/trivia, services, models, IAP
 
-A bootstrap hook with one nudge per skill is fine for day one. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`maintain-evolve.md` §"Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
+A bootstrap hook with one nudge per skill is fine for day one. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`evolution-and-drift.md` §5.1 "Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
 
 Quoted in both production repos that explicitly considered extending their hook to a primitive sister skill:
 
@@ -549,8 +549,7 @@ See [settings-json.md](settings-json.md) for the full settings shape.
 - [skill-design.md](skill-design.md) — path nudges must match skill applicability exactly; primitive-skill rule
 - [settings-json.md](settings-json.md) — hooks-block wiring, why `git push` is off the allowlist
 - [bootstrap-procedure.md](bootstrap-procedure.md) — validation step ("trigger each hook rule with a throwaway edit")
-- [maintain-evolve.md](maintain-evolve.md) — adding a path nudge incrementally as a skill matures
-- [drift-symptoms.md](drift-symptoms.md) — `dart_fix` bulldoze, generated-file leakage, stale processes
+- [evolution-and-drift.md](evolution-and-drift.md) — adding a path nudge incrementally as a skill matures; `dart_fix` bulldoze, generated-file leakage, stale processes
 - [architecture-doc.md](architecture-doc.md) — recording hook-related rejected alternatives (push-guard, primitive nudges)
 - Foundation plugin hook: `utopia-hooks` (provides the universal Flutter / hooks idiom enforcement)
 - Inline templates: [`../templates/claude-layer/scripts/REPO_quality_check.sh`](../templates/claude-layer/scripts/REPO_quality_check.sh) and [`REPO_skills_drift.sh`](../templates/claude-layer/scripts/REPO_skills_drift.sh) — sed `<repo>` → project prefix, `<REPO>` → env-var prefix, fill in path-nudge case branches per skill, set basename guard to repo folder name
