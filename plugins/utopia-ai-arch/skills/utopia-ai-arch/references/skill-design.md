@@ -187,8 +187,8 @@ Some skills are about **driving a tool / surface** end-to-end: browser automatio
 
 | Category | Examples | How agent decides to open |
 |---|---|---|
-| **Auto-inspectable** | `browser-testing` (web build presence), `<repo>-deployment` (docker-compose presence), `<repo>-cms` (vendored submodule presence) | Agent inspects repo, applies three-test (frequency / decision burden / recurrence). See [initial-setup.md](initial-setup.md) §"Walkthrough C.1". |
-| **User-driven (workflow-template)** | `<repo>-design` (paper.design / Figma / handoff), `<repo>-ship` (Linear / ClickUp / Jira), `<repo>-plan`, `<repo>-team` | Agent CANNOT infer from repo state. Requires explicit Phase 0.5 user-prompt. See [initial-setup.md](initial-setup.md) §"Walkthrough C.2" and [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
+| **Auto-inspectable** | `browser-testing` (web build presence), `<repo>-deployment` (docker-compose presence), `<repo>-cms` (vendored submodule presence) | Agent inspects repo for the signal, applies three-test (frequency / decision burden / recurrence). |
+| **User-driven (workflow-template)** | `<repo>-design` (paper.design / Figma / handoff), `<repo>-ship` (Linear / ClickUp / Jira), `<repo>-plan`, `<repo>-team` | Agent CANNOT infer from repo state. Requires explicit user-prompt — see [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
 
 Both categories ship ready-to-copy bundles under [`../templates/workflow-templates/`](../templates/workflow-templates/). Bundles contain skill (where needed) + command (where needed) + a per-bundle README explaining when to open and what to substitute.
 

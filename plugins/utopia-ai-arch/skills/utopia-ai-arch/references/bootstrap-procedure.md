@@ -121,7 +121,7 @@ These domain-auditor candidates still require Phase 0.8 "recent incidents" befor
 
 #### Output of 0.4
 
-A small table per affirmative user-prompt answer mapping to a template bundle to copy in Phase 3. Per negative answer → §"Rejected alternative" entry to populate in Phase 2 with reversal criterion ("reopen when team adopts <tool>"). See [initial-setup.md](initial-setup.md) §"Walkthrough C.2" for the decision procedure.
+A small table per affirmative user-prompt answer mapping to a template bundle to copy in Phase 3. Per negative answer → §"Rejected alternative" entry to populate in Phase 2 with reversal criterion ("reopen when team adopts <tool>").
 
 ### 0.5 MCP servers
 
