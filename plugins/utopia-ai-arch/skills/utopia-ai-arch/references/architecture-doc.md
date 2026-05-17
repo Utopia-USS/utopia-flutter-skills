@@ -291,7 +291,7 @@ For Dart projects, the architecture doc documents which MCP server is **assumed 
 
 If the MCP assumption changes (a server lands or is removed), update §"Toolchain canon" AND the relevant §"Rejected alternatives" entry — don't delete it.
 
-Cross-link to [settings-json.md](settings-json.md) (the `enabledMcpjsonServers` / `permissions.allow` shape) and [drift-symptoms.md](drift-symptoms.md) (MCP-listed-but-not-installed as a known failure mode).
+Cross-link to [settings-json.md](settings-json.md) (the `enabledMcpjsonServers` / `permissions.allow` shape) and [evolution-and-drift.md](evolution-and-drift.md) (MCP-listed-but-not-installed as a known failure mode).
 
 ## Operational rules
 
@@ -387,7 +387,6 @@ The order is structural. §"Rejected alternatives" comes after §"Hook scope" be
 - [claude-md.md](claude-md.md) — the CLAUDE.md inventory that mirrors §2 / §4 / §6
 - [settings-json.md](settings-json.md) — `enabledMcpjsonServers` and `permissions.allow` referenced from the MCP-assumption note
 - [bootstrap-procedure.md](bootstrap-procedure.md) — Phase 1.5: write the architecture doc first
-- [maintain-evolve.md](maintain-evolve.md) — appending entries mid-project, recording reversals
-- [drift-symptoms.md](drift-symptoms.md) — MCP-listed-but-not-installed, ambiguous toolchain canon
+- [evolution-and-drift.md](evolution-and-drift.md) — appending entries mid-project, recording reversals; MCP-listed-but-not-installed, ambiguous toolchain canon
 - Inline template: [`../templates/claude-layer/docs/claude-architecture.md`](../templates/claude-layer/docs/claude-architecture.md) — canonical 9-section spine with placeholders
 - Inline templates for the 3 reference-style authoring guides linked from §3: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link from your repo's `claude-architecture.md` §3, never copy

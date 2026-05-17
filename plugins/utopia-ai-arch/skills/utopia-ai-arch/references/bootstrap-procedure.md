@@ -520,7 +520,7 @@ In `.claude/docs/claude-architecture.md` §"Rollout status", check each step don
 
 ## Validation checklist
 
-Run through every bullet. Each maps to a bootstrap mistake observed in practice or a drift mode catalogued in [drift-symptoms.md](drift-symptoms.md).
+Run through every bullet. Each maps to a bootstrap mistake observed in practice or a drift mode catalogued in [evolution-and-drift.md](evolution-and-drift.md).
 
 - [ ] `pubspec.yaml` declares `utopia_hooks` or `utopia_arch` — foundation hook fires for this project
 - [ ] `.claude/settings.json` `permissions.allow` **omits `git push`** — push prompts the user every time
@@ -621,7 +621,7 @@ The decision log narrates, doesn't decide. The rejected alternatives section in 
 
 ❌ "It compiles, the files are there, ship it."
 
-Every drift mode in [drift-symptoms.md](drift-symptoms.md) has a validation step that would have caught it at bootstrap time. The hook firing in unrelated workspaces, the symlink-that's-a-copy, MCP perms for absent servers, the primitive skill that fires wrongly because the description over-broadens — all silent until production, all catchable in Phase 7.
+Every drift mode in [evolution-and-drift.md](evolution-and-drift.md) has a validation step that would have caught it at bootstrap time. The hook firing in unrelated workspaces, the symlink-that's-a-copy, MCP perms for absent servers, the primitive skill that fires wrongly because the description over-broadens — all silent until production, all catchable in Phase 7.
 
 ### "We'll add the §Rejected alternatives later"
 
@@ -651,8 +651,7 @@ The blueprint is a model. Templates produce a finished thing from a substitution
 - [claude-md.md](claude-md.md) — `CLAUDE.md` inventory shape (Phase 5); AGENTS.md symlink (Phase 6)
 - [architecture-doc.md](architecture-doc.md) — 9-section spine for `claude-architecture.md` (Phase 2)
 - [slash-commands.md](slash-commands.md) — three base commands + criteria for project-specific extras (Phase 0.4)
-- [maintain-evolve.md](maintain-evolve.md) — once bootstrapped, the playbook for evolving the layer
-- [drift-symptoms.md](drift-symptoms.md) — the catalogue of bootstrap-time omissions that surface later; validation greps target these
+- [evolution-and-drift.md](evolution-and-drift.md) — once bootstrapped, the playbook for evolving the layer; catalogue of bootstrap-time omissions that surface later (validation greps target these)
 - Inline templates: [`../templates/`](../templates/) + [`../templates/TEMPLATES.md`](../templates/TEMPLATES.md) (target-path + substitution map)
 - Production precedents:
   - qbt: `qbt-black-phone/.claude/` (with `bp-security-auditor`, `/bp-plan`, `/bp-team`)

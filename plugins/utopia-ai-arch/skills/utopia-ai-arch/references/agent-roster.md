@@ -126,7 +126,7 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 - Package-import violations
 - Skill-specific naming (e.g. activity codes, `*Ref` suffixes)
 - Scaffolding comments (`// placeholder`, `// TODO ai`)
-- AI-cruft comments (see [drift-symptoms.md](drift-symptoms.md))
+- AI-cruft comments (see [evolution-and-drift.md](evolution-and-drift.md))
 - Formatter regressions
 - `CLAUDE.md` / `.claude/docs/` drift — skill table internally consistent
 
@@ -258,5 +258,4 @@ Hard-coding `model: opus-4` means the user can't downgrade to sonnet for cost. T
 - [slash-commands.md](slash-commands.md) — `/<prefix>-implement` retry cap and fresh-context discipline
 - [skill-design.md](skill-design.md) — applicability scopes referenced by `skills:` frontmatter preload
 - [architecture-doc.md](architecture-doc.md) — §"Agent roster" entry shape; §"Rejected alternatives" entries for per-area maintainers and eng-manager
-- [drift-symptoms.md](drift-symptoms.md) — AI-cruft comments, `dart_fix` bulldoze, reviewer-leakage drift modes
-- [maintain-evolve.md](maintain-evolve.md) — when to graduate a domain auditor in mid-project; how to record the addition
+- [evolution-and-drift.md](evolution-and-drift.md) — AI-cruft comments, `dart_fix` bulldoze, reviewer-leakage drift modes; when to graduate a domain auditor mid-project

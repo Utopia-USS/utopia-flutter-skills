@@ -421,7 +421,7 @@ These are the things to scan for during a CLAUDE.md audit. Each has been observe
 - **Toolchain canon ambiguity** — `Common Commands` table mixing `dart` and `fvm dart`. Fix: apply the canon recorded in the architecture doc uniformly.
 - **Skill table rows with no NEGATIVE scope.** Without the NOT-clause the agent can't tell a misfire from a fit. Fix: copy the SKILL.md frontmatter's negative scope into the table cell.
 
-Cross-link to [drift-symptoms.md](drift-symptoms.md) for the catalogue covering the whole layer.
+Cross-link to [evolution-and-drift.md](evolution-and-drift.md) for the catalogue covering the whole layer.
 
 ## Anti-patterns
 
@@ -479,8 +479,7 @@ The architecture doc is the decision log. CLAUDE.md isn't the place to re-explai
 - [architecture-doc.md](architecture-doc.md) — the decision log; CLAUDE.md mirrors its §2 / §4 / §6 inventories
 - [settings-json.md](settings-json.md) — the file CLAUDE.md cross-links from §"Hooks & Enforcement"
 - [bootstrap-procedure.md](bootstrap-procedure.md) — Phase 5 (CLAUDE.md trim) + Phase 6 (AGENTS.md symlink)
-- [maintain-evolve.md](maintain-evolve.md) — updating inventory tables incrementally as the layer evolves
-- [drift-symptoms.md](drift-symptoms.md) — AGENTS-as-copy, long CLAUDE.md, stale routing rows
+- [evolution-and-drift.md](evolution-and-drift.md) — updating inventory tables as the layer evolves; AGENTS-as-copy, long CLAUDE.md, stale routing rows
 - Inline template: [`../templates/CLAUDE.md`](../templates/CLAUDE.md) — canonical shape to copy and substitute
 - Inline template: [`../templates/AGENTS.md`](../templates/AGENTS.md) — real symlink → `CLAUDE.md`, preserve as symlink when copying
 - Inline template map: [`../templates/TEMPLATES.md`](../templates/TEMPLATES.md) — target paths + substitutions

@@ -206,7 +206,7 @@ own skill (with explicit positive + negative scope)
 collapses back into <feature>-module.md inside the consuming skill
 ```
 
-See [maintain-evolve.md](maintain-evolve.md) for the trigger criteria and the mechanics of each step.
+See [evolution-and-drift.md](evolution-and-drift.md) for the trigger criteria and the mechanics of each step.
 
 ## SKILL.md canonical shape
 
@@ -311,15 +311,14 @@ If the agent keeps loading `<prefix>-supabase` while editing Dart code, the desc
 
 ### Auto-fix bulldoze inside a skill's recommended commands
 
-A skill recommending `dart fix --apply` project-wide collides with WIP. Either scope it to changed files or remove the recommendation. See [drift-symptoms.md](drift-symptoms.md) for jolly's precedent.
+A skill recommending `dart fix --apply` project-wide collides with WIP. Either scope it to changed files or remove the recommendation. See [evolution-and-drift.md](evolution-and-drift.md) for jolly's precedent.
 
 ## See also
 
 - [layer-model.md](layer-model.md) — foundation-vs-project boundary; `.claude/refs/` vs `.claude/docs/`
 - [agent-roster.md](agent-roster.md) — `skills:` frontmatter preloading uses applicability scopes
 - [enforcement-hooks.md](enforcement-hooks.md) — path nudges must match the skill's applicability exactly
-- [maintain-evolve.md](maintain-evolve.md) — graduation triggers, splitting / collapsing a skill, deletion criteria
+- [evolution-and-drift.md](evolution-and-drift.md) — graduation triggers, splitting / collapsing a skill, deletion criteria; refs documenting tool output, primitive skills firing wrongly
 - [architecture-doc.md](architecture-doc.md) — §"Skill split" table shape
-- [drift-symptoms.md](drift-symptoms.md) — refs documenting tool output, primitive skills firing wrongly
 - Inline reference-style authoring guides: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link these from your repo's `claude-architecture.md` §3; never copy them
 - Inline SKILL.md template: [`../templates/claude-layer/skills/REPO-AREA/SKILL.md`](../templates/claude-layer/skills/REPO-AREA/SKILL.md)
