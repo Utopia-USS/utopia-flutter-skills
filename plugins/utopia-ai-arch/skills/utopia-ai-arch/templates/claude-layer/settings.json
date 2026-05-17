@@ -1,0 +1,44 @@
+{
+  "_comment": "BLUEPRINT — adapt per-repo. Replace <repo> placeholders in script paths. Foundation hooks (utopia-hooks plugin) coexist with these. Strip this _comment after substitution.",
+  "extraKnownMarketplaces": {
+    "utopia-claude-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Utopia-USS/utopia-flutter-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "utopia-hooks@utopia-claude-skills": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git stash:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/scripts/<repo>_quality_check.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

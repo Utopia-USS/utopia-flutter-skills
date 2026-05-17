@@ -33,7 +33,7 @@ Examples of good fits:
 
 ### `# <Catalogue name>`
 
-Noun phrase naming what's catalogued (e.g. *Crazy UI Component Map*,
+Noun phrase naming what's catalogued (e.g. *the project component catalogue Component Map*,
 *App Tokens*, *Activity Catalogue*).
 
 ### `## How to use this`

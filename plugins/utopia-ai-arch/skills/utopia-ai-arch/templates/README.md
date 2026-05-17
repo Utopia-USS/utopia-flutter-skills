@@ -289,7 +289,7 @@ Every repo using this blueprint has one. It documents:
    short-circuit that. No "case for / against": it's a recorded fact,
    one short paragraph.
 6. **MCP assumption** — for Dart projects, an MCP dart server (e.g.
-   `dart-mcp`, `jolly-dart`) is **assumed present** and is the
+   `dart-mcp`, `acme-dart`) is **assumed present** and is the
    preferred surface for routine ops (`dart_format`, `pub`,
    `run_tests`). Bash via the toolchain canon (item 5 above) is the
    fallback, and is authoritative for `analyze` (MCP `analyze_files`
@@ -327,7 +327,7 @@ area collapses back into a `*-module.md` reference there.
 Different agentic tools look for their context file under different
 names (`CLAUDE.md` for Claude Code, `AGENTS.md` for Codex / OpenAI's
 convention, others may follow). Maintaining duplicate files invites
-drift — exactly the situation jolly currently has, where `AGENTS.md`
+drift — exactly the situation acme currently has, where `AGENTS.md`
 went stale relative to `CLAUDE.md` because they were independent
 copies.
 
@@ -340,7 +340,7 @@ and the agent that reads `AGENTS.md` sees the same update.
 Why symlink rather than hard link: **git preserves symlinks**
 natively (as a special blob type). After clone, the symlink
 re-creates itself pointing at the target. Hard links — which is
-what jolly uses for `proto/classroom/classroom_data.proto` ↔
+what acme uses for `proto/classroom/classroom_data.proto` ↔
 `core/proto/classroom_data.proto` — are not preserved by git;
 they require a setup script and post-checkout hook to re-create
 locally, and a clone gets two independent files that drift.
@@ -417,7 +417,7 @@ short architectural exercise plus mechanical copying of file shapes.
    (see §11).
 
 5. **Replace placeholders.** Sed `<repo>` → your repo's prefix
-   (`bp`, `jolly`, etc.), `<project name>` → human name. Strip the
+   (`acme`, `acme`, etc.), `<project name>` → human name. Strip the
    blueprint banner comments at the top of each file once filled in.
 
 6. **Stays in the blueprint, never copied:**
@@ -644,15 +644,17 @@ What's **not** in the repo (stays in the blueprint):
 ## 14. Blueprint directory layout
 
 ```
-blueprint/project-claude-layer/
+templates/
 ├── README.md                       this file — the model (NOT copied to repos)
+├── TEMPLATES.md                    template → target path + substitution map
 ├── CLAUDE.md                       blueprint shape for repo-root agent context
 ├── AGENTS.md                       symlink → CLAUDE.md
 ├── conventions/                    NOT copied — referenced from each repo's claude-architecture.md
 │   ├── module-style.md
 │   ├── pattern-style.md
 │   └── cheatsheet-style.md
-└── .claude/                        AI architecture — entirely under .claude/
+├── workflow-templates/             optional bundles (design / plan / team / ship / browser-testing)
+└── claude-layer/                   copy this subtree, sed `<repo>` placeholders
     ├── settings.json               blueprint shape for hook wiring
     ├── docs/                       meta about the layer
     │   └── claude-architecture.md  blueprint shape for per-repo decision log
