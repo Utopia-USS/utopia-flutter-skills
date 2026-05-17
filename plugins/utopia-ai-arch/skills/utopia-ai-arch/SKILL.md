@@ -47,18 +47,6 @@ Reference these guidelines when:
 - Auditing the layer for drift (`/<prefix>-audit-skills` style scans)
 - Diagnosing why the agent keeps losing a convention while developing the project
 
-## First task — start here
-
-Concrete **scenario walkthroughs** for the decisions you make during bootstrap and early evolution live in [initial-setup.md][initial-setup]. Five walkthroughs — each with a concrete trigger, ordered reference sequence, per-step extraction, decision point, and deliverable:
-
-- **A. Add a sister skill** — when a new techstack joins
-- **B. Decide the skill split** — multi-stack monorepo classification (master / sister / primitive / `.claude/refs/`-only / deferred)
-- **C. Workflow-style skills** — when to open `browser-testing`, `<repo>-design`, `<repo>-deployment`, `<repo>-cms`
-- **D. `.claude/refs/` vs in a skill** — placement test for cross-cutting content
-- **E. Wire path nudges** — populating `<prefix>_quality_check.sh` case branches as references accumulate
-
-Each walkthrough is grounded in a specific failure mode caught by smoke-test audits of real production repos (repo-A, repoB, repoC). If [bootstrap-procedure.md][bootstrap-procedure] feels abstract, read [initial-setup.md][initial-setup] first — it puts concrete shape on the decisions Phase 0–3 expects you to make.
-
 ## Priority-Ordered Guidelines
 
 | Priority | Category                                | Impact   | Reference |
@@ -72,9 +60,8 @@ Each walkthrough is grounded in a specific failure mode caught by smoke-test aud
 | 7        | Architecture decision log               | HIGH     | [architecture-doc.md][architecture-doc] |
 | 8        | CLAUDE.md & AGENTS.md symlink           | HIGH     | [claude-md.md][claude-md] |
 | 9        | Bootstrap procedure (new repo)          | HIGH     | [bootstrap-procedure.md][bootstrap-procedure] |
-| 10       | Initial-setup walkthroughs              | HIGH     | [initial-setup.md][initial-setup] |
-| 11       | Drift symptoms catalogue                | HIGH     | [drift-symptoms.md][drift-symptoms] |
-| 12       | settings.json shape                     | MEDIUM   | [settings-json.md][settings-json] |
+| 10       | Drift symptoms catalogue                | HIGH     | [drift-symptoms.md][drift-symptoms] |
+| 11       | settings.json shape                     | MEDIUM   | [settings-json.md][settings-json] |
 
 ## Quick Reference
 
@@ -138,7 +125,6 @@ Full documentation with verbatim file skeletons and quoted invariants in [refere
 | [architecture-doc.md][architecture-doc] | HIGH | `.claude/docs/claude-architecture.md` 9-section spine, rejected-alternative 4-field entry shape, toolchain canon, MCP-assumption rules, how to add a new entry without re-litigating settled choices |
 | [claude-md.md][claude-md] | HIGH | What belongs in `CLAUDE.md` (always-loaded inventory) vs deep content (references), table shapes (skills / agents / commands / when-to-invoke), `AGENTS.md` symlink convention and rationale |
 | [bootstrap-procedure.md][bootstrap-procedure] | HIGH | Step-by-step "create the Claude layer for a new repo" — what to gather first (domain risk, monorepo topology, tech stacks, ticketing tool, design tool), 7-step apply, validation checklist |
-| [initial-setup.md][initial-setup] | HIGH | Five scenario walkthroughs (A: add sister skill / B: decide skill split / C: workflow-style skills / D: `.claude/refs/` vs in-skill / E: wire path nudges) — concrete trigger → ordered ref sequence → decision point → deliverable. Each grounded in a smoke-test failure mode |
 | [drift-symptoms.md][drift-symptoms] | HIGH | Catalogue of failure modes the docs explicitly call out as having happened in production — each entry: symptom, evidence/quote, anti-pattern, fix. The "things to grep for" when auditing |
 | [settings-json.md][settings-json] | MEDIUM | Canonical settings.json shape: `extraKnownMarketplaces`, `enabledPlugins`, `permissions.allow` (why git push is OFF), `hooks.PostToolUse` matcher, MCP wiring, plugin scope choice |
 
@@ -163,15 +149,14 @@ grep -rl "module-style\|pattern-style\|cheatsheet-style" references/  # referenc
 
 | Problem | Start With |
 |---------|------------|
-| Bootstrapping `.claude/` in a new repo | [bootstrap-procedure.md][bootstrap-procedure] + [initial-setup.md][initial-setup] walkthroughs B + C |
-| Where to start when learning this skill | [initial-setup.md][initial-setup] (worked walkthroughs grounded in real failure modes) |
+| Bootstrapping `.claude/` in a new repo | [bootstrap-procedure.md][bootstrap-procedure] |
 | What does `.claude/` even contain? | [layer-model.md][layer-model] |
 | Adding a new agent | [agent-roster.md][agent-roster] |
-| Adding a new skill | [skill-design.md][skill-design] + [initial-setup.md][initial-setup] walkthrough A |
-| Designing the skill split for a multi-stack monorepo | [initial-setup.md][initial-setup] walkthrough B |
-| Should we have a browser-testing / design / deployment skill? | [initial-setup.md][initial-setup] walkthrough C |
-| Should this content live in `.claude/refs/` or in a skill? | [initial-setup.md][initial-setup] walkthrough D |
-| Wiring path nudges in `<prefix>_quality_check.sh` | [initial-setup.md][initial-setup] walkthrough E + [enforcement-hooks.md][enforcement-hooks] |
+| Adding a new skill | [skill-design.md][skill-design] |
+| Designing the skill split for a multi-stack monorepo | [skill-design.md][skill-design] + [bootstrap-procedure.md][bootstrap-procedure] Phase 1 |
+| Should we have a browser-testing / design / deployment skill? | [skill-design.md][skill-design] §"Workflow-style skills" + [bootstrap-procedure.md][bootstrap-procedure] §0.4 |
+| Should this content live in `.claude/refs/` or in a skill? | [skill-design.md][skill-design] + [layer-model.md][layer-model] |
+| Wiring path nudges in `<prefix>_quality_check.sh` | [enforcement-hooks.md][enforcement-hooks] |
 | Adding a new slash command | [slash-commands.md][slash-commands] |
 | Adding a new hook script or path nudge | [enforcement-hooks.md][enforcement-hooks] |
 | Adding a new `.claude/refs/` shared markdown | [skill-design.md][skill-design] (cross-link discipline) |
@@ -211,7 +196,6 @@ grep -rl "module-style\|pattern-style\|cheatsheet-style" references/  # referenc
 [architecture-doc]: references/architecture-doc.md
 [claude-md]: references/claude-md.md
 [bootstrap-procedure]: references/bootstrap-procedure.md
-[initial-setup]: references/initial-setup.md
 [drift-symptoms]: references/drift-symptoms.md
 [settings-json]: references/settings-json.md
 

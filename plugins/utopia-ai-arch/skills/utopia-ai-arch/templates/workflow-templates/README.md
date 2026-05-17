@@ -1,9 +1,8 @@
 # workflow-templates/
 
 Workflow-style add-ons. **Opt-in only.** Each bundle here is copied + adapted
-into a repo's `.claude/` *only* when Phase 0.5 of the bootstrap procedure
-(see `initial-setup.md` Walkthrough C.2) confirms the team actually uses the
-underlying tool or routine.
+into a repo's `.claude/` *only* when `bootstrap-procedure.md` §"0.4 External
+integrations" confirms the team actually uses the underlying tool or routine.
 
 The auto-inspectable subset of templates (the core skill, the master command,
 the always-fires agents) lives one level up under `templates/` and is covered
@@ -65,11 +64,9 @@ The banner in each skill calls this out explicitly. See `skill-design.md`
 
 ## See also
 
-- `../initial-setup.md` Walkthrough C.2 — how to surface these bundles during
-  bootstrap and what to ask the team.
 - `../skill-design.md` — foundation-skill format; explains why workflow skills
   are an exception.
 - `../slash-commands.md` — command anatomy that the command-bearing bundles
   follow.
-- `../bootstrap-procedure.md` §0.5 — the user-prompt template Phase 0.5 uses
-  to gate each bundle.
+- `../bootstrap-procedure.md` §"0.4 External integrations" — the user-prompts
+  that gate each bundle.

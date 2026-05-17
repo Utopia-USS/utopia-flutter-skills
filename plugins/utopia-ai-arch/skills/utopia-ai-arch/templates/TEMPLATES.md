@@ -80,6 +80,6 @@ Five bundles, each in its own subdirectory:
 | [`workflow-templates/plan/`](workflow-templates/plan/) | command-only | Routine cross-package PRs (user-prompt) | Repo-A |
 | [`workflow-templates/team/`](workflow-templates/team/) | command-only | PRs split into ≥2 disjoint parallel chunks routinely (user-prompt) | Repo-A |
 
-Each bundle has its own `README.md` explaining when to open it and what to substitute. The decision procedure lives in [`../references/initial-setup.md`](../references/initial-setup.md) §"Walkthrough C.1" (auto-inspectable) and §"Walkthrough C.2" (user-driven). The Phase 0.5 user-prompts that gate the user-driven bundles live in [`../references/bootstrap-procedure.md`](../references/bootstrap-procedure.md) §"0.4 External integrations".
+Each bundle has its own `README.md` explaining when to open it and what to substitute. The user-prompts that gate the user-driven bundles live in [`../references/bootstrap-procedure.md`](../references/bootstrap-procedure.md) §"0.4 External integrations".
 
 **Bundles you don't copy** → §"Rejected alternative" entry in `claude-architecture.md` with reversal criterion ("reopen when team adopts <tool>"). The template stays available in the upstream skill — when reversal criterion is met later, copy then.
