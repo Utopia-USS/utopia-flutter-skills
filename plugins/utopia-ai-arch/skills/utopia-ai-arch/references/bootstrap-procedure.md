@@ -240,20 +240,9 @@ Plus two paragraphs threaded into the spine (not separate numbered sections — 
 - **Toolchain canon** — one paragraph: FVM yes/no decision, applied everywhere. Record as fact, not a chosen design.
 - **MCP assumption** — for Dart projects: which MCP server (if any) is assumed installed; fallback command; `analyze` authoritative source called out (MCP `analyze_files` may miss errors). For repos with no MCP, this is a one-sentence explicit non-assumption.
 
-> "The Rejected alternatives section pays for itself. It's why future-you doesn't re-litigate decisions, and why someone new can tell a deliberate omission from an oversight." — blueprint `README.md:299-301`
+> "The Rejected alternatives section pays for itself." — blueprint `README.md:299-301`
 
-Example pre-populated `§8` entry:
-
-```markdown
-### Domain auditor (Firestore rules, IAP)
-
-- **Alternative.** Add `<prefix>-rules-auditor` or `<prefix>-paywall-auditor` to the roster.
-- **Case for.** Both surfaces are silent in regular review and can leak data / revenue.
-- **Case against here.** No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today.
-- **Reversal criterion.** A regression in either surface that the standard reviewer didn't catch.
-```
-
-— `madrosc-tlumu/.claude/docs/claude-architecture.md:127-131`
+The 4-field entry shape (`Alternative` / `Case for` / `Case against here` / `Reversal criterion`) with worked examples lives in [architecture-doc.md](architecture-doc.md) §"Rejected alternatives — 4-field shape". Pre-populate at least the perennials listed above; you can sharpen later.
 
 ## Phase 3 — Copy and substitute
 
@@ -389,65 +378,7 @@ For projects with MCP servers from Phase 0.5, add `enabledMcpjsonServers` and an
 
 Open the copied `CLAUDE.md` (blueprint shape) and fill in the per-repo content. Keep tight — this is the always-loaded inventory, not deep content.
 
-Required sections:
-
-```markdown
-# <project name>
-
-<one-line tagline of what the repo is>
-
-> This file is also accessible as `AGENTS.md` (symlink) for tools that
-> follow the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink
-> keeps both views in sync. See blueprint README §11.
-
-## Monorepo / topology
-
-<tree from Phase 0.2>
-
-## Foundation
-
-<one paragraph: layered on utopia-hooks, declared at project scope>
-
-## Skills inventory
-
-| Skill | Applicability | When it fires |
-|---|---|---|
-| `<prefix>-<area-1>` | <POSITIVE> — NOT <NEGATIVE> | <typical edits> |
-| ... | ... | ... |
-
-## Agents
-
-| Agent | Role |
-|---|---|
-| `<prefix>-architect` | Plans, splits work, identifies affected skills |
-| `<prefix>-maintainer` | Implements plans (write) — used by `/<prefix>-implement` |
-| `<prefix>-reviewer` | Post-implementation classified review |
-| `<prefix>-precommit-auditor` | Staged-diff commit-readiness audit |
-| <add domain auditor if Phase 0.1 said yes> | <role> |
-
-## Slash commands
-
-| Command | Purpose |
-|---|---|
-| `/<prefix>-implement` | Orchestrate code↔review loop |
-| `/<prefix>-audit` | Precommit audit |
-| `/<prefix>-audit-skills` | Drift scan over `.claude/**/*.md` |
-| <add extras from Phase 0.4 if any> | <purpose> |
-
-## Shared references
-
-`.claude/refs/` ... `.claude/docs/` ...
-
-## Common commands
-
-<repo-wide build / test / format commands — keep tight; use toolchain canon from Phase 0.7>
-
-## Architecture decisions
-
-See `.claude/docs/claude-architecture.md` for the decision log.
-```
-
-See [claude-md.md](claude-md.md) for what belongs in `CLAUDE.md` vs deep content (which goes in references).
+The canonical full skeleton (sections, agent table, slash-command table, hooks block) lives in [claude-md.md](claude-md.md) §"Full CLAUDE.md skeleton" — read it once and fill per Phase 0.1–0.8 results. Substitutions from Phase 3 still apply (`<repo>`, `<REPO>`, `<project name>`, `<repo-folder-name>`).
 
 ## Phase 6 — Symlink `AGENTS.md → CLAUDE.md` and commit
 
@@ -458,29 +389,16 @@ git add CLAUDE.md AGENTS.md .claude/
 git commit -m "Set up .claude/ layer (project AI architecture)"
 ```
 
-**Why symlink, not copy:**
-
-> "Symlink rather than hard link: **git preserves symlinks** natively (as a special blob type). After clone, the symlink re-creates itself pointing at the target. Hard links — which is what jolly uses for `proto/classroom/classroom_data.proto` ↔ `core/proto/classroom_data.proto` — are not preserved by git; they require a setup script and post-checkout hook to re-create locally, and a clone gets two independent files that drift." — blueprint `README.md:340-348`
-
-**Verify the symlink** (catches the bootstrap mistake where it ends up as a copy):
+**Verify it's a symlink, not a copy:**
 
 ```bash
 ls -la AGENTS.md
 # Expected: lrwxr-xr-x ... AGENTS.md -> CLAUDE.md
 ```
 
-If `AGENTS.md` shows as a regular file `(-rw-r--r--)`, you have a copy, not a symlink. Delete and re-create:
+If `AGENTS.md` shows as a regular file `(-rw-r--r--)`, re-create: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
 
-```bash
-rm AGENTS.md
-ln -s CLAUDE.md AGENTS.md
-```
-
-### Windows contributors
-
-> "Symlinks on Windows require Developer Mode enabled (or admin privileges) for `git checkout` to materialise them. If a contributor ends up with a plain text file containing the path string instead of a working symlink, they need to enable Developer Mode and re-run `git checkout HEAD -- AGENTS.md`." — blueprint `README.md:354-358`
-
-For mixed-OS teams where this is friction, ship a `.claude/scripts/setup-agent-files.sh` + post-checkout hook. Default blueprint ships the symlink only.
+Why symlink (not copy, not hard link), Windows-contributor gotcha, and the verified-in-production `ls -la` output across `jolly-phonics-apps`, `madrosc-tlumu`, and `qbt-black-phone` (where the symlink rotted into a copy): see [claude-md.md](claude-md.md) §"The AGENTS.md symlink".
 
 ## Phase 7 — Validate
 
