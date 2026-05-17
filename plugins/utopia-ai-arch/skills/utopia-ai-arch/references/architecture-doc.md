@@ -209,60 +209,27 @@ Four fields, mandatory in this order:
 
 The four fields are non-negotiable. Skipping `Case for` produces straw-man reasoning ("we considered X but it's obviously wrong"). Skipping `Reversal criterion` makes the decision irreversible-by-default — the criterion is what lets a future person honestly say "the world changed, this entry now flips."
 
-### Example: per-area maintainers (qbt — tried and reverted)
+### Canonical worked example: per-area maintainers (qbt — tried and reverted)
 
 > "### Per-area write-capable maintainer agents
 >
-> - **Alternative.** Persistent agents (e.g. `bp-phone-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories, preloading the relevant skills. Used in `feature/claude-code-config` with four such agents …
+> - **Alternative.** Persistent agents (e.g. `bp-phone-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories. Used in `feature/claude-code-config` with four such agents …
 > - **Case for.** Architect's task split can fan out concurrent `Agent` calls → wall-clock parallelism. Each maintainer keeps its file reads out of the main context. …
-> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks, while the cost — noisier description-matching across a larger roster, heavier `/bp-team` protocol, higher onboarding surface, more to audit for drift — is paid on every turn. …
+> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (noisier description-matching, heavier `/bp-team` protocol, higher onboarding surface, more drift to audit) is paid every turn. …
 > - **Reversal criteria.** Sustained pattern of branches spanning ≥3 disjoint areas in a single PR, or a team size where agent-per-engineer-area ownership would aid coordination."
 
-— `qbt-black-phone/.claude/docs/claude-architecture.md:219-224`. This is the canonical entry: it was **actually tried**, reverted, and the reversal criterion is a quantitative signal (≥3 disjoint areas, routine, not occasional).
+— `qbt-black-phone/.claude/docs/claude-architecture.md:219-224`. **Actually tried, reverted, the reversal criterion is a quantitative signal** — that's why this is the canonical shape.
 
-### Example: monolithic skill (jolly — never tried, but considered)
+### Reversal-criterion variety (other production entries)
 
-> "### One monolithic `jolly` skill covering Flutter + Kotlin + Next.js
->
-> - **Alternative.** Keep a single skill with 'everything Jolly', let it cover classroom-api and distributors via bullet points in references.
-> - **Case for.** Fewer files; one description match catches all repo work.
-> - **Case against here.** Three different techstacks (Dart/Flutter, Kotlin/Ktor, TS/Next.js) have no real shared conventions to enforce. The applicability scope becomes 'everywhere relevant' — template §3 calls this a router-in-disguise. Description matching loads a skill the agent then can't act on for the specific techstack.
-> - **Reversal criterion.** If `jolly-api` and any future `jolly-distributors` skill never accumulate references beyond pointers to `.claude/refs/`, the separation pays no rent. Re-consolidate by collapsing them back into `jolly` references and deleting the standalone `SKILL.md`s."
+The reversal criterion shape varies by what flips the call. Browse these for inspiration on framing your own:
 
-— `jolly-phonics-apps/.claude/docs/claude-architecture.md:117-130`. Note the reversal criterion is the opposite direction — it flips back to the alternative if the chosen design fails to earn rent.
-
-### Example: domain auditor deferral (tlumu — considered, not added)
-
-> "### Domain auditor (Firestore rules, IAP)
->
-> - **Alternative.** Add `tlumu-rules-auditor` or `tlumu-paywall-auditor` to the roster.
-> - **Case for.** Both surfaces are silent in regular review and can leak data / revenue.
-> - **Case against here.** No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today.
-> - **Reversal criterion.** A regression in either surface that the standard reviewer didn't catch."
-
-— `madrosc-tlumu/.claude/docs/claude-architecture.md:126-131`. The reversal criterion is an event ("a regression … the standard reviewer didn't catch") — the auditor exists in the threat model, just not in the roster yet.
-
-### Example: path-nudge deferral (tlumu — primitive skill)
-
-> "### Path-nudge the hook for TypeScript / functions
->
-> - **Alternative.** Extend `tlumu_quality_check.sh` to fire on `.ts` files under `functions/` with skill-specific nudges.
-> - **Case for.** Deterministic surfacing instead of relying on description matching.
-> - **Case against here.** `tlumu-functions` is primitive — no reference worth nudging the agent to read. Adding a nudge that points at 'no content yet' wastes a hook firing.
-> - **Reversal criterion.** `tlumu-functions` accumulates 2+ references — wire path nudges then."
-
-— `madrosc-tlumu/.claude/docs/claude-architecture.md:140-145`. Quantitative criterion (≥2 references) — see [enforcement-hooks.md](enforcement-hooks.md) for why the threshold is 2.
-
-### Example: MCP assumption (tlumu — explicit non-assumption)
-
-> "### Assume an MCP Dart server
->
-> - **Alternative.** Mirror jolly's `mcp__jolly-dart__*` permissions and agent fallback tables.
-> - **Case for.** Faster iteration, structured diagnostics.
-> - **Case against here.** No MCP Dart server is configured for this repo. Listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model.
-> - **Reversal criterion.** A `mcp.json` with a Dart MCP entry lands → wire MCP-preferred / bash-fallback throughout."
-
-— `madrosc-tlumu/.claude/docs/claude-architecture.md:147-152`. Note this is **the rejected alternative AND the MCP-assumption record** — they are the same paragraph in this repo. See "MCP assumption note" below.
+| Entry | Reversal criterion shape | File:line |
+|---|---|---|
+| Monolithic `jolly` skill (Flutter + Kotlin + TS) | Opposite-direction collapse: if separated skills never accumulate refs, re-consolidate | `jolly-phonics-apps/.claude/docs/claude-architecture.md:117-130` |
+| Domain auditor (Firestore rules, IAP) — tlumu | Event-triggered: regression the standard reviewer didn't catch | `madrosc-tlumu/.claude/docs/claude-architecture.md:126-131` |
+| Path-nudge `tlumu-functions` | Accumulation-triggered: ≥2 references | `madrosc-tlumu/.claude/docs/claude-architecture.md:140-145` |
+| Assume an MCP Dart server (tlumu) | Install-triggered: `mcp.json` entry lands | `madrosc-tlumu/.claude/docs/claude-architecture.md:147-152` |
 
 ## Toolchain canon — recorded fact, not a chosen design
 
