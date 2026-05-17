@@ -141,7 +141,7 @@ repo_rel="${file#$repo_root/}"
 | `.git` walk | Locates the repo root for the basename match and relative-path computation. |
 | **Basename match against `<repo-folder-name>`** | **The hook fires across every project Claude has open at once.** Without this guard, editing a Dart file in `~/IdeaProjects/some-other-repo/lib/main.dart` would trigger `<prefix>_quality_check.sh` (it's the same script under `~/IdeaProjects/production-repo-A/.claude/scripts/`, but Claude points the hook at `${CLAUDE_PROJECT_DIR}`). The basename guard is the cheapest reliable scope check. |
 
-> "Only fire inside the production-repo-B repo: `[[ \"$(basename \"$repo_root\")\" == \"production-repo-B\" ]] || exit 0`" — `production-repo-B/.claude/scripts/jolly_quality_check.sh:76-77`
+> "Only fire inside the production-repo-B repo: `[[ \"$(basename \"$repo_root\")\" == \"production-repo-B\" ]] || exit 0`" — `production-repo-B/.claude/scripts/<prefix>_quality_check.sh:76-77`
 
 ## Generated-file hard block — the extensions list
 
@@ -218,7 +218,7 @@ esac
 
 - **repo-A**: 5+ nudges covering UI paths, state files, security-sensitive crypto/FFI paths, <crypto-service>, RLS-protected backend paths
 - **repo-B**: 5 nudges covering activity proto+UI, <design-system> / classroom non-lesson, services, models, proto edits
-- **repo-C**: 6 nudges covering game-flow RTDB paths, design-system, decks/trivia, services, models, IAP
+- **repo-C**: 6 nudges covering real-time-DB game-state paths, design-system, content packs, services, models, IAP
 
 A bootstrap hook with one nudge per skill is fine for day one. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`evolution-and-drift.md` §5.1 "Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
 

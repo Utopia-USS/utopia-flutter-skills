@@ -314,7 +314,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:148-152`; `production-repo-C/.claude/docs/claude-architecture.md:75` — "no recent incident has cost enough to warrant a dedicated read-only pass."
 
-**Fix.** Defer until incident or documented threat-surface change. Record candidate in §"Rejected alternatives" with reversal criterion. repo-A's `<prefix>-security-auditor` is the precedent for justified (native FFI bindings, post-quantum KEM, Supabase RLS, push-payload confidentiality — real adversarial surface).
+**Fix.** Defer until incident or documented threat-surface change. Record candidate in §"Rejected alternatives" with reversal criterion. repo-A's `<prefix>-security-auditor` is the precedent for justified (native crypto FFI, key-exchange primitives, row-level security, push-payload confidentiality — real adversarial surface).
 
 ---
 

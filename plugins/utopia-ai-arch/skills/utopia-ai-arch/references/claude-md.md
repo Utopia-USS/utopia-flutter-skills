@@ -312,8 +312,8 @@ alternatives, reversal criteria, toolchain canon.
 `AGENTS.md` is a real symlink to `CLAUDE.md`. Same content, different path. Verified in production:
 
 ```
-lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 14:50  production-repo-B/AGENTS.md -> CLAUDE.md
-lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 00:45  production-repo-C/AGENTS.md -> CLAUDE.md
+lrwxr-xr-x@ 1 user             staff  9  Apr 29 14:50  production-repo-B/AGENTS.md -> CLAUDE.md
+lrwxr-xr-x@ 1 user             staff  9  Apr 29 00:45  production-repo-C/AGENTS.md -> CLAUDE.md
 ```
 
 (`ls -la` output — note the `l` filetype and the `-> CLAUDE.md` target).
@@ -348,7 +348,7 @@ Copies drift. Two files, two truths. Every edit to `CLAUDE.md` is a follow-up ed
 **Concrete evidence — repo-A currently has this drift.** As of the last check:
 
 ```
--rw-r--r--@ 1 jakobkirchner  staff  16574  May 11 22:59  production-repo-A/AGENTS.md
+-rw-r--r--@ 1 user             staff  16574  May 11 22:59  production-repo-A/AGENTS.md
 ```
 
 It's a regular file, not a symlink. `wc -l` shows `CLAUDE.md` at 248 lines, `AGENTS.md` at 246 — already two lines apart. The blueprint explicitly anticipated this drift mode:

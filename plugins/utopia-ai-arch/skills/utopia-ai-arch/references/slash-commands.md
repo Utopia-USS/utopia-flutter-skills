@@ -244,7 +244,7 @@ Default is **three**. Add a fourth only when a recurring workflow has genuine mu
 
 **Precedent (added):** repo-A's `/<prefix>-plan` — cross-package planning involving E2E crypto + Supabase RLS + app UI + native FFI bindings is frequent enough that a dedicated "plan and stop" command pays for itself. Brings in `<prefix>-security-auditor` for threat-model passes routinely.
 
-> "Delegate to `<prefix>-architect` for planning. … Bring in `<prefix>-security-auditor` for a threat-model pass if the change touches auth, crypto, key management, native FFI bindings, post-quantum KEM, or Supabase RLS." — `<prefix>-plan.md:10-18`
+> "Delegate to `<prefix>-architect` for planning. … Bring in `<prefix>-security-auditor` for a threat-model pass if the change touches auth, crypto, key management, native crypto FFI, key-exchange primitives, or row-level security." — `<prefix>-plan.md:10-18`
 
 **Rejected (not added):** repo-B and repo-C — single-area plan-then-implement is the dominant shape; `/<prefix>-implement --plan-first` covers it. The blueprint explicitly avoids `/plan` aliases (blueprint `README.md:234-237`).
 

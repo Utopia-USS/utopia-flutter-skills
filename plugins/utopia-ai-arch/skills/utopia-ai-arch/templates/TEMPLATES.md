@@ -40,7 +40,7 @@ Every file below gets adapted into the target repo:
 | Placeholder | Meaning | Example |
 |-------------|---------|---------|
 | `<repo>` (lowercase) | Project prefix (matches repo folder name) | `<prefix>`, `<prefix>`, `<prefix>` |
-| `<REPO>` (uppercase) | Env-var prefix — only in `<REPO>_QUALITY_MODE` | `BP`, `JOLLY`, `TLUMU` |
+| `<REPO>` (uppercase) | Env-var prefix — only in `<REPO>_QUALITY_MODE` | e.g. `AAP` (for repo `acme-app-platform`) |
 | `<repo>-<area>` | A skill's slug | `acme-flutter`, `acme-api`, `acme-functions` |
 | `<repo>-<domain>-auditor` | Optional domain-auditor agent | `acme-domain-auditor` |
 | `<project name>` | Human-readable repo name | "Example Project", "Example Monorepo" |

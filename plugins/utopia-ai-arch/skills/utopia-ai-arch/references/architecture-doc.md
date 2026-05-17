@@ -47,7 +47,7 @@ Production shape (repo-C):
                          ▲ referenced, never duplicated
 +---------------------------------------------------------------+
 |  Project — this repo's .claude/                               |
-|    Game flow (room/lobby/game/summary), decks, daily packs,   |
+|    Domain-specific workflows + business logic,   |
 |    ...                                                        |
 +---------------------------------------------------------------+
 ```
@@ -185,9 +185,9 @@ Each line one checkbox or short phrase. Repo-C's is exemplary:
 2. Skeleton — done (CLAUDE.md, `.claude/skills/<prefix>/`, `.claude/skills/<prefix>-functions/`, `refs/`, `docs/`).
 3. Enforcement — done (quality-check hook with hard block on generated + warn nudges).
 4. Agents — done (architect, maintainer, reviewer, precommit-auditor).
-5. Skills — `<prefix>` has `game-flow-module.md` (CRITICAL) + ...
+5. Skills — `<prefix>` has `<feature>-module.md` (CRITICAL) + ...
 6. CLAUDE.md trim — done.
-7. Validation — `bash .claude/scripts/tlumu_skills_drift.sh --all` passes after each material edit.
+7. Validation — `bash .claude/scripts/<prefix>_skills_drift.sh --all` passes after each material edit.
 ```
 
 — `production-repo-C/.claude/docs/claude-architecture.md:156-162`
