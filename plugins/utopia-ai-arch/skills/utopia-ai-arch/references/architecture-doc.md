@@ -209,60 +209,27 @@ Four fields, mandatory in this order:
 
 The four fields are non-negotiable. Skipping `Case for` produces straw-man reasoning ("we considered X but it's obviously wrong"). Skipping `Reversal criterion` makes the decision irreversible-by-default — the criterion is what lets a future person honestly say "the world changed, this entry now flips."
 
-### Example: per-area maintainers (repo-A — tried and reverted)
+### Canonical worked example: per-area maintainers (repo-A — tried and reverted)
 
 > "### Per-area write-capable maintainer agents
 >
-> - **Alternative.** Persistent agents (e.g. `bp-phone-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories, preloading the relevant skills. Used in `feature/claude-code-config` with four such agents …
+> - **Alternative.** Persistent agents (e.g. `bp-phone-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories. Used in `feature/claude-code-config` with four such agents …
 > - **Case for.** Architect's task split can fan out concurrent `Agent` calls → wall-clock parallelism. Each maintainer keeps its file reads out of the main context. …
-> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks, while the cost — noisier description-matching across a larger roster, heavier `/bp-team` protocol, higher onboarding surface, more to audit for drift — is paid on every turn. …
+> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (noisier description-matching, heavier `/bp-team` protocol, higher onboarding surface, more drift to audit) is paid every turn. …
 > - **Reversal criteria.** Sustained pattern of branches spanning ≥3 disjoint areas in a single PR, or a team size where agent-per-engineer-area ownership would aid coordination."
 
-— `production-repo-A/.claude/docs/claude-architecture.md:219-224`. This is the canonical entry: it was **actually tried**, reverted, and the reversal criterion is a quantitative signal (≥3 disjoint areas, routine, not occasional).
+— `production-repo-A/.claude/docs/claude-architecture.md:219-224`. **Actually tried, reverted, the reversal criterion is a quantitative signal** — that's why this is the canonical shape.
 
-### Example: monolithic skill (repoB — never tried, but considered)
+### Reversal-criterion variety (other production entries)
 
-> "### One monolithic `repoB` skill covering Flutter + Kotlin + Next.js
->
-> - **Alternative.** Keep a single skill with 'everything RepoB', let it cover classroom-api and distributors via bullet points in references.
-> - **Case for.** Fewer files; one description match catches all repo work.
-> - **Case against here.** Three different techstacks (Dart/Flutter, Kotlin/Ktor, TS/Next.js) have no real shared conventions to enforce. The applicability scope becomes 'everywhere relevant' — template §3 calls this a router-in-disguise. Description matching loads a skill the agent then can't act on for the specific techstack.
-> - **Reversal criterion.** If `repoB-api` and any future `repoB-distributors` skill never accumulate references beyond pointers to `.claude/refs/`, the separation pays no rent. Re-consolidate by collapsing them back into `repoB` references and deleting the standalone `SKILL.md`s."
+The reversal criterion shape varies by what flips the call. Browse these for inspiration on framing your own:
 
-— `production-repo-B/.claude/docs/claude-architecture.md:117-130`. Note the reversal criterion is the opposite direction — it flips back to the alternative if the chosen design fails to earn rent.
-
-### Example: domain auditor deferral (repoC — considered, not added)
-
-> "### Domain auditor (Firestore rules, IAP)
->
-> - **Alternative.** Add `repoC-rules-auditor` or `repoC-paywall-auditor` to the roster.
-> - **Case for.** Both surfaces are silent in regular review and can leak data / revenue.
-> - **Case against here.** No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today.
-> - **Reversal criterion.** A regression in either surface that the standard reviewer didn't catch."
-
-— `production-repo-C/.claude/docs/claude-architecture.md:126-131`. The reversal criterion is an event ("a regression … the standard reviewer didn't catch") — the auditor exists in the threat model, just not in the roster yet.
-
-### Example: path-nudge deferral (repoC — primitive skill)
-
-> "### Path-nudge the hook for TypeScript / functions
->
-> - **Alternative.** Extend `repoC_quality_check.sh` to fire on `.ts` files under `functions/` with skill-specific nudges.
-> - **Case for.** Deterministic surfacing instead of relying on description matching.
-> - **Case against here.** `repoC-functions` is primitive — no reference worth nudging the agent to read. Adding a nudge that points at 'no content yet' wastes a hook firing.
-> - **Reversal criterion.** `repoC-functions` accumulates 2+ references — wire path nudges then."
-
-— `production-repo-C/.claude/docs/claude-architecture.md:140-145`. Quantitative criterion (≥2 references) — see [enforcement-hooks.md](enforcement-hooks.md) for why the threshold is 2.
-
-### Example: MCP assumption (repoC — explicit non-assumption)
-
-> "### Assume an MCP Dart server
->
-> - **Alternative.** Mirror repoB's `mcp__repoB-dart__*` permissions and agent fallback tables.
-> - **Case for.** Faster iteration, structured diagnostics.
-> - **Case against here.** No MCP Dart server is configured for this repo. Listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model.
-> - **Reversal criterion.** A `mcp.json` with a Dart MCP entry lands → wire MCP-preferred / bash-fallback throughout."
-
-— `production-repo-C/.claude/docs/claude-architecture.md:147-152`. Note this is **the rejected alternative AND the MCP-assumption record** — they are the same paragraph in this repo. See "MCP assumption note" below.
+| Entry | Reversal criterion shape | File:line |
+|---|---|---|
+| Monolithic `repoB` skill (Flutter + Kotlin + TS) | Opposite-direction collapse: if separated skills never accumulate refs, re-consolidate | `production-repo-B/.claude/docs/claude-architecture.md:117-130` |
+| Domain auditor (Firestore rules, IAP) — repoC | Event-triggered: regression the standard reviewer didn't catch | `production-repo-C/.claude/docs/claude-architecture.md:126-131` |
+| Path-nudge `repoC-functions` | Accumulation-triggered: ≥2 references | `production-repo-C/.claude/docs/claude-architecture.md:140-145` |
+| Assume an MCP Dart server (repoC) | Install-triggered: `mcp.json` entry lands | `production-repo-C/.claude/docs/claude-architecture.md:147-152` |
 
 ## Toolchain canon — recorded fact, not a chosen design
 
