@@ -58,7 +58,7 @@ invokes carry the domain knowledge.
 - Sister-command references — `/<prefix>-implement`, `/<prefix>-audit`
   must exist in the repo, or remove the cross-links.
 - Domain-specific gate criteria — the production version triggers
-  security-auditor on "auth, crypto, key management, native FFI bindings, post-quantum KEM,
+  security-auditor on "auth, crypto, key management, native crypto FFI, key-exchange primitives,
   Supabase RLS". Replace with the repo's actual security-sensitive surface
   (or perf-sensitive, or migration-touching, depending on what the domain
   auditor covers).

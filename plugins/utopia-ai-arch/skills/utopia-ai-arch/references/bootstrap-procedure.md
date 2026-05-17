@@ -29,13 +29,13 @@ Architectural decisions later (skill split, agent roster, hook scope, slash comm
 Does this repo handle any of:
 
 - End-to-end crypto / message confidentiality
-- Native FFI (native crypto FFI, post-quantum KEM, platform-keystore bindings)
+- Native FFI (native crypto FFI, key-exchange primitives, platform-keystore bindings)
 - Row-level security / multi-tenant data isolation (Supabase RLS, Postgres RLS, Firestore rules)
 - Auth tokens, refresh-token flows, OAuth callbacks
 - Payments / IAP / revenue (RevenueCat, App Store / Play billing, paywall)
 - Push-payload contents (notification payloads that may leak data)
 
-**If yes → plan a domain auditor** (`<prefix>-<domain>-auditor`, read-only fifth agent). See [agent-roster.md](agent-roster.md) "Add a domain auditor" decision criteria. Precedent: repo-A's `<prefix>-security-auditor` for E2E messaging.
+**If yes → plan a domain auditor** (`<prefix>-<domain>-auditor`, read-only fifth agent). See [agent-roster.md](agent-roster.md) "Add a domain auditor" decision criteria. Precedent: repo-A's `<prefix>-security-auditor` for crypto-sensitive surfaces.
 
 If no → the standard four agents cover it.
 
@@ -434,7 +434,7 @@ Ask Claude in a fresh session: "review this code change in `<area-1>`". The corr
 
 In `.claude/docs/claude-architecture.md` §"Rollout status", check each step done. Example (repo-C):
 
-> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `<prefix>` has `game-flow-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/repoC_skills_drift.sh --all` passes." — `production-repo-C/.claude/docs/claude-architecture.md:156-163`
+> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `<prefix>` has `<feature>-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/<prefix>_skills_drift.sh --all` passes." — `production-repo-C/.claude/docs/claude-architecture.md:156-163`
 
 ## Validation checklist
 

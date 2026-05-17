@@ -173,7 +173,7 @@ The default is **four**. Adding a fifth agent requires a written justification i
 - The project's primary risk surface is **crypto, native FFI, RLS / multi-tenant data isolation, push-payload confidentiality, or auth**
 - AND there's a recent incident OR a documented threat-surface rationale that says "the standard reviewer doesn't catch this"
 
-**Precedent (DO add):** repo-A's `<prefix>-security-auditor` for E2E messaging — native FFI bindings, post-quantum KEM, Supabase RLS bypass risk. All four other agents route to it for security-sensitive paths. (`production-repo-A/.claude/docs/claude-architecture.md:121`)
+**Precedent (DO add):** repo-A's `<prefix>-security-auditor` for security-sensitive code — native crypto FFI, key-exchange primitives, row-level-security bypass risk. The four standard agents all route to it for security-sensitive paths (it's the 5th, added on top of the standard roster). (`production-repo-A/.claude/docs/claude-architecture.md:121`)
 
 **Precedent (DO NOT add):** repo-B and repo-C both considered domain auditors and rejected them. "No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today." (`production-repo-B/.claude/docs/claude-architecture.md:148-152`)
 
