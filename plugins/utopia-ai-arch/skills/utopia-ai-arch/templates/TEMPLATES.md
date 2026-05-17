@@ -12,7 +12,7 @@ Three things are reference material — readers consult them but they do NOT get
 | [`conventions/module-style.md`](conventions/module-style.md) | How to write a `<feature>-module.md` reference (user-flow + business intent). |
 | [`conventions/pattern-style.md`](conventions/pattern-style.md) | How to write a `<topic>-pattern.md` reference (rules with reasoning, why-first). |
 | [`conventions/cheatsheet-style.md`](conventions/cheatsheet-style.md) | How to write a `<topic>-cheatsheet.md` reference (inventory tables, no flows). |
-| [`.claude/refs/README.md`](.claude/refs/README.md) | Cross-skill `.claude/refs/` discipline — also reference-only. |
+| [`.claude/refs/README.md`](claude-layer/refs/README.md) | Cross-skill `.claude/refs/` discipline — also reference-only. |
 
 ## What gets copied (with placeholder substitution)
 
@@ -22,18 +22,18 @@ Every file below gets adapted into the target repo:
 |---------------|----------|--------------------|
 | [`CLAUDE.md`](CLAUDE.md) | `<repo-root>/CLAUDE.md` | `<repo>`, `<project name>`, skill / agent / command tables |
 | [`AGENTS.md`](AGENTS.md) | `<repo-root>/AGENTS.md` | Re-create as symlink: `ln -s CLAUDE.md AGENTS.md` (the template IS a symlink; `cp` may resolve it — verify with `ls -la`) |
-| [`.claude/settings.json`](.claude/settings.json) | `<repo-root>/.claude/settings.json` | `<repo>` in script path; permissions list; MCP servers |
-| [`.claude/docs/claude-architecture.md`](.claude/docs/claude-architecture.md) | `<repo-root>/.claude/docs/claude-architecture.md` | All 9 sections — **write this FIRST**, before any other artefact |
-| [`.claude/agents/REPO-architect.md`](.claude/agents/REPO-architect.md) | `<repo-root>/.claude/agents/<repo>-architect.md` | `<repo>` in name, skill list, body |
-| [`.claude/agents/REPO-maintainer.md`](.claude/agents/REPO-maintainer.md) | `<repo-root>/.claude/agents/<repo>-maintainer.md` | Same |
-| [`.claude/agents/REPO-reviewer.md`](.claude/agents/REPO-reviewer.md) | `<repo-root>/.claude/agents/<repo>-reviewer.md` | Same |
-| [`.claude/agents/REPO-precommit-auditor.md`](.claude/agents/REPO-precommit-auditor.md) | `<repo-root>/.claude/agents/<repo>-precommit-auditor.md` | Same |
-| [`.claude/commands/REPO-implement.md`](.claude/commands/REPO-implement.md) | `<repo-root>/.claude/commands/<repo>-implement.md` | `<repo>` in agent calls |
-| [`.claude/commands/REPO-audit.md`](.claude/commands/REPO-audit.md) | `<repo-root>/.claude/commands/<repo>-audit.md` | Same |
-| [`.claude/commands/REPO-audit-skills.md`](.claude/commands/REPO-audit-skills.md) | `<repo-root>/.claude/commands/<repo>-audit-skills.md` | Same |
-| [`.claude/scripts/REPO_quality_check.sh`](.claude/scripts/REPO_quality_check.sh) | `<repo-root>/.claude/scripts/<repo>_quality_check.sh` | `<repo>` everywhere; `<REPO>` env var; `<repo-folder-name>` basename guard; `<repo-specific build_runner / codegen command>`; path → skill case branches |
-| [`.claude/scripts/REPO_skills_drift.sh`](.claude/scripts/REPO_skills_drift.sh) | `<repo-root>/.claude/scripts/<repo>_skills_drift.sh` | `<repo>` only |
-| [`.claude/skills/REPO-AREA/SKILL.md`](.claude/skills/REPO-AREA/SKILL.md) | `<repo-root>/.claude/skills/<repo>-<area>/SKILL.md` | `<repo>-<area>`, applicability scopes, references table |
+| [`.claude/settings.json`](claude-layer/settings.json) | `<repo-root>/.claude/settings.json` | `<repo>` in script path; permissions list; MCP servers |
+| [`.claude/docs/claude-architecture.md`](claude-layer/docs/claude-architecture.md) | `<repo-root>/.claude/docs/claude-architecture.md` | All 9 sections — **write this FIRST**, before any other artefact |
+| [`.claude/agents/REPO-architect.md`](claude-layer/agents/REPO-architect.md) | `<repo-root>/.claude/agents/<repo>-architect.md` | `<repo>` in name, skill list, body |
+| [`.claude/agents/REPO-maintainer.md`](claude-layer/agents/REPO-maintainer.md) | `<repo-root>/.claude/agents/<repo>-maintainer.md` | Same |
+| [`.claude/agents/REPO-reviewer.md`](claude-layer/agents/REPO-reviewer.md) | `<repo-root>/.claude/agents/<repo>-reviewer.md` | Same |
+| [`.claude/agents/REPO-precommit-auditor.md`](claude-layer/agents/REPO-precommit-auditor.md) | `<repo-root>/.claude/agents/<repo>-precommit-auditor.md` | Same |
+| [`.claude/commands/REPO-implement.md`](claude-layer/commands/REPO-implement.md) | `<repo-root>/.claude/commands/<repo>-implement.md` | `<repo>` in agent calls |
+| [`.claude/commands/REPO-audit.md`](claude-layer/commands/REPO-audit.md) | `<repo-root>/.claude/commands/<repo>-audit.md` | Same |
+| [`.claude/commands/REPO-audit-skills.md`](claude-layer/commands/REPO-audit-skills.md) | `<repo-root>/.claude/commands/<repo>-audit-skills.md` | Same |
+| [`.claude/scripts/REPO_quality_check.sh`](claude-layer/scripts/REPO_quality_check.sh) | `<repo-root>/.claude/scripts/<repo>_quality_check.sh` | `<repo>` everywhere; `<REPO>` env var; `<repo-folder-name>` basename guard; `<repo-specific build_runner / codegen command>`; path → skill case branches |
+| [`.claude/scripts/REPO_skills_drift.sh`](claude-layer/scripts/REPO_skills_drift.sh) | `<repo-root>/.claude/scripts/<repo>_skills_drift.sh` | `<repo>` only |
+| [`.claude/skills/REPO-AREA/SKILL.md`](claude-layer/skills/REPO-AREA/SKILL.md) | `<repo-root>/.claude/skills/<repo>-<area>/SKILL.md` | `<repo>-<area>`, applicability scopes, references table |
 
 ## Placeholder vocabulary
 
