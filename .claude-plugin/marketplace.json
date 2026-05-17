@@ -6,13 +6,13 @@
     "url": "https://utopiasoft.io"
   },
   "metadata": {
-    "description": "Flutter skills for Claude Code by UtopiaSoftware — hooks-based state management, project architecture scaffolding, and BLoC migration.",
+    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware — hooks-based state management, project architecture scaffolding, and BLoC migration.",
     "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "utopia-hooks",
-      "description": "Flutter state management with utopia_hooks. Screen/State/View pattern, hook catalog, global state, and enforcement of conventions via PostToolUse checks.",
+      "description": "👾 Flutter state management with utopia_hooks. Screen/State/View pattern, hook catalog, global state, and enforcement of conventions via PostToolUse checks.",
       "version": "0.2.5",
       "source": "./plugins/utopia-hooks",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
@@ -24,7 +24,7 @@
     },
     {
       "name": "utopia-ai-arch",
-      "description": "Create and maintain the Claude Code .claude/ layer (agents, skills, slash commands, hooks, refs, architecture log) for Utopia Flutter projects. Encodes the project-claude-layer blueprint plus invariants distilled from production implementations.",
+      "description": "👾 Create and maintain the Claude Code .claude/ layer (agents, skills, slash commands, hooks, refs, architecture log) for Utopia Flutter projects. Encodes the project-claude-layer blueprint plus invariants distilled from production implementations.",
       "version": "0.1.0",
       "source": "./plugins/utopia-ai-arch",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
@@ -36,7 +36,7 @@
     },
     {
       "name": "utopia-hooks-migrate-bloc",
-      "description": "Migrate Flutter BLoC/Cubit codebases to utopia_hooks. Two-phase migration (global states first, then screens) with per-commit granularity, dart analyze baseline, screen-local vs global Cubit classification, and universal pattern-family handling. Includes /utopia-hooks-migrate-bloc:migrate orchestrator coordinating inventory, foundation, global-state, screen, and review sub-agents.",
+      "description": "👾 Migrate Flutter BLoC/Cubit codebases to utopia_hooks. Two-phase migration (global states first, then screens) with per-commit granularity, dart analyze baseline, screen-local vs global Cubit classification, and universal pattern-family handling. Includes /utopia-hooks-migrate-bloc:migrate orchestrator coordinating inventory, foundation, global-state, screen, and review sub-agents.",
       "version": "0.2.5",
       "source": "./plugins/utopia-hooks-migrate-bloc",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
