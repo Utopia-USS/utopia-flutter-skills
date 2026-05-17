@@ -8,7 +8,7 @@ tags: migration, refactor, post-migration, consolidation, sub-hooks, aggregator,
 
 **When to use:** After the first-pass migration of a Complex screen is committed and the exit gate passes. This checklist catches **the class of bloat that exit-gate greps don't see** — semantic misplacement of state across the sub-hook boundary, not syntactic BLoC leftovers.
 
-**What it is:** A set of 12 named anti-patterns derived from an empirical refactor sweep on a real migrated codebase (§A–§D: 11 from sub-hook/aggregator level; §E: 1 from Screen file level). Each anti-pattern has:
+**What it is:** A set of 14 named anti-patterns derived from an empirical refactor sweep on a real migrated codebase (§A–§D: 13 from sub-hook/aggregator level; §E: 1 from Screen file level). Each anti-pattern has:
 
 1. A **grep-shape** for mechanical detection,
 2. A **fix pattern** with before/after,
@@ -23,7 +23,7 @@ A single refactor pass applying all 12 on a 3 500-LoC screen subtree removed ~50
 ## How to run the pass
 
 1. Open the migrated screen's `state/` directory.
-2. For each `*_state.dart` that is a **sub-hook** (not the aggregator), walk the 11 anti-patterns below. Each one is checked independently.
+2. For each `*_state.dart` that is a **sub-hook** (not the aggregator), walk the 13 anti-patterns below. Each one is checked independently.
 3. For each hit: apply the fix pattern. **Commit per anti-pattern**, not per screen — granularity is the safety net (see "Why per-anti-pattern commits" below).
 4. After all sub-hooks are clean, run the "Aggregator hygiene" section (§D).
 5. Re-run the exit gate from [screen-migration-flow.md Phase 4](./screen-migration-flow.md#phase-4-per-screen-exit-gate).
@@ -378,6 +378,60 @@ grep -nE '\b(refresh|reload|trigger|bump|tick|version)\w*\.value\s*\+\+' <state_
 **Fix:** see [async-patterns.md — Anti-pattern: counter-as-trigger](../../../../utopia-hooks/skills/utopia-hooks/references/async-patterns.md#anti-pattern-counter-as-trigger). Imperative refresh → `.refresh()`; reactive refresh → key on a real domain value.
 
 **Reference sweep delta:** −10 to −20 LoC per occurrence; the real value is architectural — removing the counter is the signal that the migrator reframed "Cubit emit" into "hook reactive computation".
+
+---
+
+### C5. `useEffect` re-running a side-effect that `useAutoComputedState.keys` already handles
+
+**Grep-shape:**
+```bash
+# useAutoComputedState with empty keys + nearby useEffect that calls the same body
+grep -nE 'useAutoComputedState' -A 20 <state_file> | \
+  grep -nE 'keys:\s*<[^>]*>\[\s*\]|keys:\s*const\s*\[\s*\]'
+grep -nE 'useEffect\(\(\)\s*\{[^}]*(initialize|load|fetch|refresh|_init)\(' <state_file>
+```
+
+Visual cue: a `useAutoComputedState(() => init(...), keys: [], shouldCompute: readyFlag)` followed by a separate `useEffect(() { if (initState.isInitialized) init(); return null; }, [input])` — two hooks, one side-effect, same function.
+
+**Why it's wrong:** `useAutoComputedState`'s `keys` parameter IS the "re-run when X changes" mechanism. A separate `useEffect` re-calling the same initializer is a mechanical port of a Cubit that had both an `init()` lifecycle and an `onInputChanged()` handler. In hooks, both collapse to one reactive key.
+
+**Fix:**
+```dart
+// ❌ Before — two hooks, duplicate init()
+final initState = useAutoComputedState(
+  () => initialize(startup: true),
+  keys: <Object?>[],
+  shouldCompute: preferenceState.isInitialized,
+);
+useEffect(() {
+  if (initState.isInitialized) unawaited(initialize());
+  return null;
+}, <Object?>[preferenceState.dataSource]);
+
+// ✅ After — single reactive key
+final initState = useAutoComputedState(
+  () => initialize(),
+  keys: <Object?>[preferenceState.dataSource],
+  shouldCompute: preferenceState.isInitialized,
+);
+```
+
+If the `startup: true` flag genuinely matters on first run only, derive it from the hook's own state rather than splitting into two effects:
+```dart
+final hasRun = useRef(false);
+final initState = useAutoComputedState(
+  () async {
+    await initialize(startup: !hasRun.value);
+    hasRun.value = true;
+  },
+  keys: <Object?>[preferenceState.dataSource],
+  shouldCompute: preferenceState.isInitialized,
+);
+```
+
+But first question whether `startup` is load-bearing — it usually isn't, and the `Cubit.init()` vs `Cubit.onChanged()` split was only there because `emit()` had no reactive primitive.
+
+**Reference sweep delta:** −6 to −12 LoC per occurrence; eliminates the "which side-effect ran first?" race between the gated initial and the keyed re-run.
 
 ---
 

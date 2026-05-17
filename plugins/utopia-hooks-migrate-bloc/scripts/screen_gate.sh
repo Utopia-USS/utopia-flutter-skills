@@ -120,6 +120,12 @@ if [[ $in_state -eq 1 ]]; then
     add "state file has top-level mutable state — move to useInjected service or _providers"
   fi
 
+  # 3h: mutable collections in State class body / hook body (indented)
+  # flutter-conventions §2 — always use IList / IMap / ISet, not List / Map / Set
+  if grep -qE '^[[:space:]]+final[[:space:]]+(Map|List|Set)<' "$file"; then
+    add "state file declares mutable List/Map/Set field — use IList/IMap/ISet from fast_immutable_collections (flutter-conventions §2)"
+  fi
+
   # emit() wrapper
   if grep -qE 'void[[:space:]]+emit\(' "$file"; then
     add "defines an emit() wrapper — mutate useState fields directly"
