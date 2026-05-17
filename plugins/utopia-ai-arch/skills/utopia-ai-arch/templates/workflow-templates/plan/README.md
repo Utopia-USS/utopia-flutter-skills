@@ -43,7 +43,7 @@ a separate body of knowledge.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`acme`, `acme`, `acme`, …).
+- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
   Appears in:
   - command name (`/<prefix>-plan`)
   - architect agent reference (`<prefix>-architect`)

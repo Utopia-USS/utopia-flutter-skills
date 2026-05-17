@@ -37,9 +37,9 @@ One paragraph: what the repo is. Then a workspace table:
 ```markdown
 | Workspace | Purpose |
 |-----------|---------|
-| `phone/` | Mobile app (iOS / Android) |
+| `<area1>/` | Mobile app (iOS / Android) |
 | `admin/` | Admin web portal (Flutter web) |
-| `tower/` | Distribution Tower app |
+| `<area2>/` | Distribution Tower app |
 | ...      | ... |
 ```
 
@@ -76,24 +76,24 @@ Cross-link to the repo `README.md` for the full setup if the repo has one.
 
 ### Claude Skills inventory
 
-Table with three columns: `Skill | Kind | Fires on` (repo-A) or `Skill | Applicability | Fires on` (repoB, repoC).
+Table with three columns: `Skill | Kind | Fires on` (repo-A) or `Skill | Applicability | Fires on` (repo-B, repo-C).
 
 **Descriptions live in each `SKILL.md` frontmatter, not here.** This is an inventory — agent goes to the named skill for content.
 
 ```markdown
 | Skill            | Applicability                                                  | Fires on                              |
 |------------------|---------------------------------------------------------------|---------------------------------------|
-| `repoB`          | Flutter apps (classroom, lessons), the design system, activities, ... — NOT classroom-api Kotlin, NOT distributors Next.js | Flutter widget / service / model edits |
-| `repoB-api`      | classroom-api (Ktor gRPC, Kotlin) — NOT Flutter, NOT distributors | Kotlin edits under `classroom-api/` |
+| `<prefix>`          | Flutter apps (classroom, lessons), <design-system>, activities, ... — NOT classroom-api Kotlin, NOT distributors Next.js | Flutter widget / service / model edits |
+| `<prefix>-api`      | classroom-api (Ktor gRPC, Kotlin) — NOT Flutter, NOT distributors | Kotlin edits under `<area-backend>/` |
 | `browser-testing`| Chrome MCP automation against the classroom web build         | When driving the browser via Chrome MCP |
-| `repoB-design`   | Design→code from paper.design (MCP) or claude.design ...      | Paper MCP usage, handoff bundle       |
+| `<prefix>-design`   | Design→code from <design-tool> (MCP) or claude.design ...      | Paper MCP usage, handoff bundle       |
 ```
 
 — `production-repo-B/CLAUDE.md:41-48`. **The "Applicability" column includes the NEGATIVE scope** — it mirrors the SKILL.md frontmatter's "Applicability — NEGATIVE: NOT …" line. This is what stops the agent loading the wrong skill.
 
 ### Claude Agents
 
-Table — `Agent | Role | Tools | When` (repo-A's exhaustive form) or `Agent | Role` (repoB's minimal form):
+Table — `Agent | Role | Tools | When` (repo-A's exhaustive form) or `Agent | Role` (repo-B's minimal form):
 
 ```markdown
 | Agent                     | Role                                                |
@@ -104,7 +104,7 @@ Table — `Agent | Role | Tools | When` (repo-A's exhaustive form) or `Agent | R
 | `<prefix>-precommit-auditor` | Staged-diff commit-readiness audit               |
 ```
 
-If the repo adds a domain auditor (repo-A's `bp-security-auditor`), it gets a row plus a one-line "When" describing its trigger surface. Full invariants live in `agents/<name>.md` — the CLAUDE.md row is just the routing signal.
+If the repo adds a domain auditor (repo-A's `<prefix>-security-auditor`), it gets a row plus a one-line "When" describing its trigger surface. Full invariants live in `agents/<name>.md` — the CLAUDE.md row is just the routing signal.
 
 ### Slash Commands
 
@@ -126,11 +126,11 @@ Short paragraph + bullet list of what each script blocks / warns / surfaces. Cro
 
 > "Configured in `.claude/settings.json`:
 >
-> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `bp_quality_check.sh`
+> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `<prefix>_quality_check.sh`
 >   - **Blocks** edits to generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.config.dart`, `*.pb*.dart`)
 >   - **Warns** on relative Dart imports in `lib/`
 >   - **Surfaces** references by path: …
-> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `bp_skills_drift.sh`
+> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `<prefix>_skills_drift.sh`
 >   - **Warns** on dead markdown `[text](path)` links …"
 
 — `production-repo-A/CLAUDE.md:176-191`
@@ -142,11 +142,11 @@ Short paragraph + bullet list of what each script blocks / warns / surfaces. Cro
 ```markdown
 | Situation | Skill / references that fire | Agents to involve |
 |-----------|-------------------------------|-------------------|
-| Any Dart / Flutter edit in `phone/` / `admin/` / `tower/` / `core_ui/` | **`utopia-hooks`** (always) + `bp` master skill | — |
-| Add a new screen in `phone/` / `admin/` / `tower/` | **`utopia-hooks`**, `bp` (→ `components.md`, `tokens.md`) | — |
-| Edit `core_messaging/`, `packages/kex/`, `packages/pqkem_native/` | `bp` (FFI binding style → `ffi-conventions.md`) + sister `bp-security` (E2E audit → `e2e-encryption.md`) | `bp-security-auditor` |
-| Plan any cross-package feature | — | `bp-architect` via [/bp-plan](.claude/commands/bp-plan.md) |
-| Pre-commit gate on staged diff | — | `bp-precommit-auditor` via [/bp-audit](.claude/commands/bp-audit.md) |
+| Any Dart / Flutter edit in `<area1>/` / `admin/` / `<area2>/` / `<area3>/` | **`utopia-hooks`** (always) + `<prefix>` master skill | — |
+| Add a new screen in `<area1>/` / `admin/` / `<area2>/` | **`utopia-hooks`**, `<prefix>` (→ `components.md`, `tokens.md`) | — |
+| Edit `<crypto-package>/`, `packages/<crypto-pkg>/`, `packages/<kem-pkg>/` | `<prefix>` (FFI binding style → `ffi-conventions.md`) + sister `<prefix>-security` (E2E audit → `e2e-encryption.md`) | `<prefix>-security-auditor` |
+| Plan any cross-package feature | — | `<prefix>-architect` via [/<prefix>-plan](.claude/commands/<prefix>-plan.md) |
+| Pre-commit gate on staged diff | — | `<prefix>-precommit-auditor` via [/<prefix>-audit](.claude/commands/<prefix>-audit.md) |
 | ... | ... | ... |
 ```
 
@@ -156,7 +156,7 @@ Short paragraph + bullet list of what each script blocks / warns / surfaces. Cro
 
 ### Common Commands
 
-Table — `Task | Command` — scoped to the repo's actual workflow. Bootstrap, codegen, analyze, test, build, format. RepoC's minimal shape:
+Table — `Task | Command` — scoped to the repo's actual workflow. Bootstrap, codegen, analyze, test, build, format. Repo-C's minimal shape:
 
 ```markdown
 | Task                              | Command                                              |
@@ -353,9 +353,9 @@ Copies drift. Two files, two truths. Every edit to `CLAUDE.md` is a follow-up ed
 
 It's a regular file, not a symlink. `wc -l` shows `CLAUDE.md` at 248 lines, `AGENTS.md` at 246 — already two lines apart. The blueprint explicitly anticipated this drift mode:
 
-> "Maintaining duplicate files invites drift — exactly the situation repoB currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint `README.md:329-332`
+> "Maintaining duplicate files invites drift — exactly the situation repo-B currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint `README.md:329-332`
 
-RepoB was fixed by re-creating the symlink. Repo-A has not been (yet). Either case is a known anti-pattern, and the diagnosis is one `ls -la` away.
+Repo-B fixed it by re-creating the symlink; repo-A is still in this drift state. Either case is a known anti-pattern, and the diagnosis is one `ls -la` away.
 
 ### Why symlink, not hard link
 
@@ -414,7 +414,7 @@ These are the things to scan for during a CLAUDE.md audit. Each has been observe
 - **Skill table lists a skill that no longer exists at `.claude/skills/<name>/`.** Fix: delete the row, or restore the skill if it was deleted by mistake.
 - **Agent table lists an agent that no longer exists at `.claude/agents/<name>.md`.** Fix: delete the row.
 - **"When to Invoke" routes to skills no longer present.** Fix: delete the row, or rewrite to route to the replacement skill.
-- **`AGENTS.md` is a copy, not a symlink** — drift is inevitable. The repo-A and pre-fix-repoB precedents are both real. Fix: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
+- **`AGENTS.md` is a copy, not a symlink** — drift is inevitable. The repo-A and pre-fix-repo-B precedents are both real. Fix: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
 - **Paragraphs of HOW-TO content** — pattern or module material in `CLAUDE.md`. Fix: move to the appropriate skill reference; replace with a "When to Invoke" row that routes there.
 - **Restated foundation conventions** — `CLAUDE.md` teaching Screen/State/View or `IList` rules. Fix: collapse to "see `utopia-hooks`" with the foundation pointer.
 - **Long CLAUDE.md (>~300 lines)** — content leaked from references. Fix: scan for the longest sections; move the deepest content out.

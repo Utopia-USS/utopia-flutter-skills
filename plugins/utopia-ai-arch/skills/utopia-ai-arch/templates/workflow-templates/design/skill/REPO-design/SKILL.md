@@ -2,7 +2,7 @@
 ---
 name: <prefix>-design
 description: >
-  Design-to-code workflow. Fires when using paper.design MCP tools
+  Design-to-code workflow. Fires when using <design-tool> MCP tools
   (get_jsx, get_tree_summary, get_screenshot, etc.), processing a
   claude.design handoff bundle (.claude-handoff/ directory, PROMPT.md), or
   when asked to "translate a design", "implement this mockup", or
@@ -40,7 +40,7 @@ For repo topology, environments, and the skills inventory see the always-on
 
 Two supported sources:
 
-- **paper.design** — live MCP connection. Tools:
+- **<design-tool>** — live MCP connection. Tools:
   `mcp__paper__get_basic_info`, `get_tree_summary`, `get_screenshot`,
   `get_jsx`, `get_selection`, `get_computed_styles`, `get_fill_image`,
   `get_font_family_info`.
@@ -54,7 +54,7 @@ the principles are the same — read tokens, read components, compile a brief.
 
 ## When this skill fires
 
-- paper.design MCP tools are in use (`get_jsx`, `get_tree_summary`, etc.).
+- <design-tool> MCP tools are in use (`get_jsx`, `get_tree_summary`, etc.).
 - A handoff bundle is present (`.claude-handoff/` directory, `PROMPT.md`
   from claude.design).
 - User asks to "translate design", "implement this mockup", "build from
@@ -74,7 +74,7 @@ Infer from the design scope; the user can always override.
 ## Translation workflow
 
 1. **Acquire** — read the design using the appropriate source workflow
-   (paper.design tools, or `ls` + `Read` over the handoff bundle).
+   (<design-tool> tools, or `ls` + `Read` over the handoff bundle).
 2. **Visual reference** — always get a screenshot or visual first for
    context. Without it, naming and layout intent are guesses.
 3. **Identify structure** — page type? Sections? Cards? Tables? Navigation?
@@ -91,7 +91,7 @@ Infer from the design scope; the user can always override.
 7. **Generate code** — at the correct depth, following master-skill +
    `utopia-hooks` conventions.
 
-## paper.design acquisition
+## <design-tool> acquisition
 
 Standard sequence:
 
@@ -104,7 +104,7 @@ Standard sequence:
 6. Compile into design brief
 ```
 
-If the user has selected specific nodes in paper.design, use `get_selection`
+If the user has selected specific nodes in <design-tool>, use `get_selection`
 first instead of `get_tree_summary`.
 
 For typography work, call `get_font_family_info` before any styling so the
@@ -134,7 +134,7 @@ passed into the architect and maintainer prompts in the
 
 ```
 ## Design Brief
-Source: paper.design / claude.design
+Source: <design-tool> / claude.design
 Artboard(s): <name, dimensions>
 
 ### Structure

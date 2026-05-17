@@ -72,11 +72,11 @@ These belong to `utopia-hooks`, NEVER to a project skill:
 
 A concern is project-level when it requires knowing your repo's specifics:
 
-- Monorepo topology (which workspace owns what — `phone/`, `admin/`, `core_messaging/`, `packages/kex/`)
+- Monorepo topology (which workspace owns what — `<area1>/`, `admin/`, `<crypto-package>/`, `packages/<crypto-pkg>/`)
 - Domain logic (E2E crypto pipeline, party-game rooms, classroom lessons, daily packs)
 - Design system tokens / components specific to this product
 - Backend contracts (Supabase RLS, gRPC proto, Firestore rules, Cloud Functions)
-- External integrations (Linear, ClickUp, paper.design, RevenueCat)
+- External integrations (Linear, <ticketing-tool>, <design-tool>, RevenueCat)
 - Build-runner / codegen specifics (proto, freezed, retrofit, route, localization)
 - Toolchain canon (FVM yes/no — a binary repo-level choice)
 

@@ -48,13 +48,13 @@ Across all copied files:
 
 | Find | Replace with | Example |
 |---|---|---|
-| `<repo>` | your project's lowercase prefix | `bp`, `repoB`, `repoC` |
-| `<REPO>` | the prefix uppercased (env-var prefix) | `BP_QUALITY_MODE`, `REPOB_QUALITY_MODE` |
-| `<project name>` | the human-readable project name | "production-repo-A", "production-repo-B Apps" |
-| `REPO-AREA` (in skill directory names) | concrete area name | `bp-flutter`, `repoB`, `repoC` |
-| `<repo-folder-name>` (in hook basename guard) | on-disk repo directory name | `production-repo-A` |
+| `<repo>` | your project's lowercase prefix (short slug) | e.g. `aap` for the "acme-app-platform" repo |
+| `<REPO>` | the prefix uppercased (env-var prefix) | `<PREFIX>_QUALITY_MODE` (substitute `<PREFIX>` with your repo's uppercase prefix) |
+| `<project name>` | the human-readable project name | e.g. "Acme App Platform" |
+| `REPO-AREA` (in skill directory names) | concrete area name | e.g. `aap-flutter`, `aap-backend` |
+| `<repo-folder-name>` (in hook basename guard) | on-disk repo directory name | e.g. `acme-app-platform` |
 
-**Prefix ≠ repo-folder-name.** They are independent and frequently differ — repo-A's repo folder is `production-repo-A` but its prefix is `bp`. The hook's `basename "$repo_root"` match MUST use the folder name. If you substitute the prefix by mistake, the hook silently never fires. See [`../references/enforcement-hooks.md`](../references/enforcement-hooks.md) §"Basename guard".
+**Prefix ≠ repo-folder-name.** They are independent and frequently differ — a repo whose folder is `acme-app-platform` may use the prefix `aap`. The hook's `basename "$repo_root"` match MUST use the folder name, not the prefix. If you substitute the prefix by mistake, the hook silently never fires. See [`../references/enforcement-hooks.md`](../references/enforcement-hooks.md) §"Basename guard".
 
 ## How to apply
 

@@ -39,13 +39,13 @@ Every file below gets adapted into the target repo:
 
 | Placeholder | Meaning | Example |
 |-------------|---------|---------|
-| `<repo>` (lowercase) | Project prefix (matches repo folder name) | `acme`, `acme`, `acme` |
+| `<repo>` (lowercase) | Project prefix (matches repo folder name) | `<prefix>`, `<prefix>`, `<prefix>` |
 | `<REPO>` (uppercase) | Env-var prefix — only in `<REPO>_QUALITY_MODE` | `BP`, `REPOB`, `REPOC` |
 | `<repo>-<area>` | A skill's slug | `acme-flutter`, `acme-api`, `acme-functions` |
 | `<repo>-<domain>-auditor` | Optional domain-auditor agent | `acme-domain-auditor` |
 | `<project name>` | Human-readable repo name | "Example Project", "Example Monorepo" |
 | `<repo-folder-name>` | On-disk directory name (used by hook basename guard) | `example-monorepo`, `example-monorepo` |
-| `<area-N-paths>` | Path patterns inside hook `case "$repo_rel" in ... esac` | `phone/lib/*`, `packages/app/lib/*` |
+| `<area-N-paths>` | Path patterns inside hook `case "$repo_rel" in ... esac` | `<area1>/lib/*`, `packages/app/lib/*` |
 | `<feature>`, `<topic>`, `<other-area>`, `<shared-doc>` | Reference filenames inside SKILL.md | |
 | `<repo-specific build_runner / codegen command>` | Hook's hint when blocking generated-file edits | `dart run build_runner build --delete-conflicting-outputs --workspace` |
 
@@ -75,10 +75,10 @@ Five bundles, each in its own subdirectory:
 | Bundle | Shape | Open when | Production precedent |
 |---|---|---|---|
 | [`workflow-templates/browser-testing/`](workflow-templates/browser-testing/) | skill-only | Repo serves any web build (auto-inspectable) | All 3 repos |
-| [`workflow-templates/design/`](workflow-templates/design/) | **skill + command pair** | Team uses paper.design / Figma / handoff bundle (user-prompt) | RepoB |
-| [`workflow-templates/ship/`](workflow-templates/ship/) | command-only | Team uses Linear / ClickUp / Jira (user-prompt) | RepoB |
-| [`workflow-templates/plan/`](workflow-templates/plan/) | command-only | Routine cross-package PRs (user-prompt) | Repo-A |
-| [`workflow-templates/team/`](workflow-templates/team/) | command-only | PRs split into ≥2 disjoint parallel chunks routinely (user-prompt) | Repo-A |
+| [`workflow-templates/design/`](workflow-templates/design/) | **skill + command pair** | Team uses <design-tool> / Figma / handoff bundle (user-prompt) | repo-B |
+| [`workflow-templates/ship/`](workflow-templates/ship/) | command-only | Team uses Linear / <ticketing-tool> / Jira (user-prompt) | repo-B |
+| [`workflow-templates/plan/`](workflow-templates/plan/) | command-only | Routine cross-package PRs (user-prompt) | repo-A |
+| [`workflow-templates/team/`](workflow-templates/team/) | command-only | PRs split into ≥2 disjoint parallel chunks routinely (user-prompt) | repo-A |
 
 Each bundle has its own `README.md` explaining when to open it and what to substitute. The user-prompts that gate the user-driven bundles live in [`../references/bootstrap-procedure.md`](../references/bootstrap-procedure.md) §"0.4 External integrations".
 

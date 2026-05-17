@@ -13,7 +13,7 @@ The hook script layer of `.claude/`. **Two scripts are standard**:
 1. **`<prefix>_quality_check.sh`** — `PostToolUse` on `Edit|Write|MultiEdit`. Hard-blocks generated-file edits, surfaces path → skill nudges, surfaces relative-import violations.
 2. **`<prefix>_skills_drift.sh`** — `PostToolUse` on the same matcher (hook mode) plus a `--all` full-scan mode. Reports dead markdown links inside `.claude/**/*.md` + repo-root `CLAUDE.md`.
 
-A third script (`<prefix>_session_setup.sh` / `dart_mcp_setup.sh`) is **optional** — `SessionStart` only, only when a measurable local-resource leak has been observed. RepoB's precedent below.
+A third script (`<prefix>_session_setup.sh` / `dart_mcp_setup.sh`) is **optional** — `SessionStart` only, only when a measurable local-resource leak has been observed. Repo-B's precedent below.
 
 The project hooks coexist with the foundation hook (provided by the `utopia-hooks` plugin — universal idioms / Screen-State-View / IList enforcement). Each layer's hook proves it's in scope before doing anything; out-of-scope is a silent `exit 0`. They are **disjoint by path/file-type**, not by mutual exclusion.
 
@@ -43,7 +43,7 @@ The project hooks coexist with the foundation hook (provided by the `utopia-hook
 | exit 1 | warn — user sees stderr, Claude continues |
 | exit 2 | block — Claude sees stderr and must address before continuing |
 
-> "stdin: JSON with `{.tool_input.file_path}`. env BP_QUALITY_MODE: 'warn' (default, exit 1) or 'block' (exit 2). Note: edits to *.g.dart / *.freezed.dart ALWAYS exit 2 regardless of mode. exit 0: silent success (or out of scope). exit 1: warn — user sees stderr, Claude continues. exit 2: block — Claude sees stderr and must address." — `production-repo-A/.claude/scripts/bp_quality_check.sh:8-15`
+> "stdin: JSON with `{.tool_input.file_path}`. env <PREFIX>_QUALITY_MODE: 'warn' (default, exit 1) or 'block' (exit 2). Note: edits to *.g.dart / *.freezed.dart ALWAYS exit 2 regardless of mode. exit 0: silent success (or out of scope). exit 1: warn — user sees stderr, Claude continues. exit 2: block — Claude sees stderr and must address." — `production-repo-A/.claude/scripts/<prefix>_quality_check.sh:8-15`
 
 ### The mode env var
 
@@ -53,7 +53,7 @@ The project hooks coexist with the foundation hook (provided by the `utopia-hook
 - Treating advisory output as blocking trains agents to silence the hook (`# noqa`-style workarounds), defeating the purpose.
 - `block` mode exists for CI-grade pipelines where any drift should fail the session, not interactive use.
 
-> "All other rules are `warn` (exit 1). Mode switch via env var (`BP_QUALITY_MODE=block`) for CI-grade use later." — `production-repo-A/.claude/docs/claude-architecture.md:122`
+> "All other rules are `warn` (exit 1). Mode switch via env var (`<PREFIX>_QUALITY_MODE=block`) for CI-grade use later." — `production-repo-A/.claude/docs/claude-architecture.md:122`
 
 ### Generated-file edits are blocked regardless of mode
 
@@ -139,7 +139,7 @@ repo_rel="${file#$repo_root/}"
 | `[[ "$file" == *.dart ]]` | Project hook's scope is Dart. Adjust per repo (`.kt`, `.ts`, etc.) only when there are real nudges to add. |
 | pubspec walk | Confirms the file lives inside a Dart workspace package — not in `docs/`, `assets/`, generated-output-only dirs, or unrelated subtrees. |
 | `.git` walk | Locates the repo root for the basename match and relative-path computation. |
-| **Basename match against `<repo-folder-name>`** | **The hook fires across every project Claude has open at once.** Without this guard, editing a Dart file in `~/IdeaProjects/some-other-repo/lib/main.dart` would trigger `bp_quality_check.sh` (it's the same script under `~/IdeaProjects/production-repo-A/.claude/scripts/`, but Claude points the hook at `${CLAUDE_PROJECT_DIR}`). The basename guard is the cheapest reliable scope check. |
+| **Basename match against `<repo-folder-name>`** | **The hook fires across every project Claude has open at once.** Without this guard, editing a Dart file in `~/IdeaProjects/some-other-repo/lib/main.dart` would trigger `<prefix>_quality_check.sh` (it's the same script under `~/IdeaProjects/production-repo-A/.claude/scripts/`, but Claude points the hook at `${CLAUDE_PROJECT_DIR}`). The basename guard is the cheapest reliable scope check. |
 
 > "Only fire inside the production-repo-B repo: `[[ \"$(basename \"$repo_root\")\" == \"production-repo-B\" ]] || exit 0`" — `production-repo-B/.claude/scripts/repoB_quality_check.sh:76-77`
 
@@ -171,7 +171,7 @@ case "$(basename "$file")" in
 esac
 ```
 
-**Per-project divergence on remediation command** — repo-A uses bare `dart run build_runner ... --workspace`, repoB uses `melos run build_runner:build`, repoC uses `fvm dart run ...`. The toolchain canon (FVM yes/no, melos yes/no, workspace flag) is recorded once in `claude-architecture.md` and propagated everywhere. See [architecture-doc.md](architecture-doc.md) for the canon discipline.
+**Per-project divergence on remediation command** — repo-A uses bare `dart run build_runner ... --workspace`, repo-B uses `melos run build_runner:build`, repo-C uses `fvm dart run ...`. The toolchain canon (FVM yes/no, melos yes/no, workspace flag) is recorded once in `claude-architecture.md` and propagated everywhere. See [architecture-doc.md](architecture-doc.md) for the canon discipline.
 
 ## Universal Dart finding — relative imports in `lib/`
 
@@ -189,7 +189,7 @@ if [[ "$repo_rel" == */lib/* ]]; then
 fi
 ```
 
-> "uses relative Dart import — repo convention requires 'package:...' imports (always_use_package_imports)" — `production-repo-A/.claude/scripts/bp_quality_check.sh:98`
+> "uses relative Dart import — repo convention requires 'package:...' imports (always_use_package_imports)" — `production-repo-A/.claude/scripts/<prefix>_quality_check.sh:98`
 
 ## Path → skill nudges
 
@@ -216,9 +216,9 @@ esac
 
 **Expected granularity in a mature repo.** A bootstrap hook may start with 0-1 nudges (one for the master skill). As `references/` files accumulate, the hook should grow to **typically 4-8 nudges** — one per distinct surface that has earned ≥2 references. Production examples:
 
-- **repo-A**: 5+ nudges covering UI paths, state files, security-sensitive crypto/FFI paths, message_service, supabase paths
-- **repoB**: 5 nudges covering activity proto+UI, the design system / classroom non-lesson, services, models, proto edits
-- **repoC**: 6 nudges covering game-flow RTDB paths, design-system, decks/trivia, services, models, IAP
+- **repo-A**: 5+ nudges covering UI paths, state files, security-sensitive crypto/FFI paths, <crypto-service>, RLS-protected backend paths
+- **repo-B**: 5 nudges covering activity proto+UI, <design-system> / classroom non-lesson, services, models, proto edits
+- **repo-C**: 6 nudges covering game-flow RTDB paths, design-system, decks/trivia, services, models, IAP
 
 A bootstrap hook with one nudge per skill is fine for day one. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`evolution-and-drift.md` §5.1 "Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
 
@@ -228,7 +228,7 @@ Quoted in both production repos that explicitly considered extending their hook 
 
 **Why.** A nudge has a budget — a single stderr line Claude reads while processing the edit. Spending that budget on "go consult a skill with one paragraph of placeholder content" trains Claude to weight nudges lower, which hurts the *other* nudges that point at real material.
 
-**Reversal criterion.** When the primitive sister skill (e.g. `repoB-api`, `repoC-functions`) accumulates 2+ reference docs, extend the hook with its path nudges.
+**Reversal criterion.** When the primitive sister skill (e.g. `<prefix>-api`, `<prefix>-functions`) accumulates 2+ reference docs, extend the hook with its path nudges.
 
 ### A nudge must match the skill's applicability exactly
 
@@ -238,18 +238,18 @@ If `<prefix>-design-system` has `applicability: paths under packages/core/lib/wi
 
 ```bash
 case "$repo_rel" in
-  packages/kex/lib/src/ffi/*|\
-  packages/kex/lib/src/executor/*|\
-  core_messaging/lib/service/crypto*|\
-  core_messaging/lib/service/contact/key/*|\
+  packages/<crypto-pkg>/lib/src/ffi/*|\
+  packages/<crypto-pkg>/lib/src/executor/*|\
+  <crypto-package>/lib/service/crypto*|\
+  <crypto-package>/lib/service/contact/key/*|\
   core/lib/service/crypto/*|\
   core/lib/model/crypto/*)
-    add "security-sensitive path — consult sister skill bp-security (references/{e2e-encryption,supabase-rls,platform-storage}.md) and bp (FFI binding style → references/ffi-conventions.md) before merging"
+    add "security-sensitive path — consult sister skill <prefix>-security (references/{e2e-encryption,supabase-rls,platform-storage}.md) and <prefix> (FFI binding style → references/ffi-conventions.md) before merging"
     ;;
 esac
 ```
 
-> Source: `production-repo-A/.claude/scripts/bp_quality_check.sh:108-118`
+> Source: `production-repo-A/.claude/scripts/<prefix>_quality_check.sh:108-118`
 
 Surface guard, then nudge — the case body never does more than `add "..."`. Heavy work belongs elsewhere.
 
@@ -297,7 +297,7 @@ bash "${CLAUDE_PROJECT_DIR}/.claude/scripts/<prefix>_skills_drift.sh" --all
 bash "${CLAUDE_PROJECT_DIR}/.claude/scripts/<prefix>_skills_drift.sh"
 ```
 
-> "`bp_skills_drift.sh --all` — Full scan across .claude/ + CLAUDE.md. Emits findings to stderr; exit 1 if any dead link, 0 if clean. `bp_skills_drift.sh` — PostToolUse hook mode — reads JSON from stdin, scans the edited file only." — `production-repo-A/.claude/scripts/bp_skills_drift.sh:8-15`
+> "`<prefix>_skills_drift.sh --all` — Full scan across .claude/ + CLAUDE.md. Emits findings to stderr; exit 1 if any dead link, 0 if clean. `<prefix>_skills_drift.sh` — PostToolUse hook mode — reads JSON from stdin, scans the edited file only." — `production-repo-A/.claude/scripts/<prefix>_skills_drift.sh:8-15`
 
 ### What it scans
 
@@ -321,7 +321,7 @@ For each in-scope file, every `](target)` link is extracted; non-existent target
 | Inside triple-backtick fenced code blocks | Documentation examples often show illustrative paths that don't exist |
 | Files whose basename starts with `_` | Template files; their links are illustrative |
 
-> "Out of scope for v1 (by design, to keep signal high): bare path references in prose / code fences, command examples, orphan skills (exist but unreferenced), frontmatter lint. Add incrementally after tuning signal/noise." — `production-repo-A/.claude/scripts/bp_skills_drift.sh:20-25`
+> "Out of scope for v1 (by design, to keep signal high): bare path references in prose / code fences, command examples, orphan skills (exist but unreferenced), frontmatter lint. Add incrementally after tuning signal/noise." — `production-repo-A/.claude/scripts/<prefix>_skills_drift.sh:20-25`
 
 ### Exit codes
 
@@ -366,7 +366,7 @@ Adding any of these expands the false-positive surface. Tune signal/noise on the
 
 Add a SessionStart hook **only when a measurable local-resource leak is observed** that can't be remediated by user action at reasonable cadence.
 
-### The repoB precedent
+### The repo-B precedent
 
 `production-repo-B/.claude/scripts/dart_mcp_setup.sh` is the only SessionStart hook across the three production repos. It exists because:
 
@@ -374,11 +374,11 @@ Add a SessionStart hook **only when a measurable local-resource leak is observed
 
 The trigger was **team-reported ~40GB memory at end of workday**. Not theoretical leak; observed cost on real machines.
 
-### What the repoB hook does
+### What the repo-B hook does
 
 ```
 SessionStart →
-  1. Kill Claude top-level processes older than $REPOB_MCP_STALE_HOURS (default 4h),
+  1. Kill Claude top-level processes older than $<PREFIX>_MCP_STALE_HOURS (default 4h),
      other than the session running this hook. Their dart mcp-server +
      language-server cascade away with them. Transcripts stay on disk —
      recover with `claude --resume <uuid>`.
@@ -394,12 +394,12 @@ SessionStart →
 | **Always exit 0** | A transient failure here must never block a session start. The hook is a janitor, not a gate. |
 | **Never kill own session** | Walks up from `$$` collecting Claude PIDs; the kill loop skips those. The hook running inside a session must not kill the session. |
 | **Recovery hint in the kill log** | Killed sessions list their `--resume <uuid>` so the user can recover transcripts. |
-| **Dry-run env var** | `REPOB_MCP_DRY_RUN=1` lets the user see what would be killed without killing — useful for first-run vetting in a new repo. |
-| **Stale threshold tunable** | `REPOB_MCP_STALE_HOURS=4` default; team-local override via shell rc. |
+| **Dry-run env var** | `<PREFIX>_MCP_DRY_RUN=1` lets the user see what would be killed without killing — useful for first-run vetting in a new repo. |
+| **Stale threshold tunable** | `<PREFIX>_MCP_STALE_HOURS=4` default; team-local override via shell rc. |
 
 ### Why other repos don't have this hook
 
-repo-A and repoC observed the same Dart analyzer cost but **haven't reported the cumulative leak**. The hook is repo-local because:
+repo-A and repo-C observed the same Dart analyzer cost but **haven't reported the cumulative leak**. The hook is repo-local because:
 
 - It's only worth its run-time when the leak is real
 - Team workflows differ — a team that always `/exit` cleanly never triggers the orphan path
@@ -426,10 +426,10 @@ Precedent: explicitly rejected in `production-repo-A/.claude/docs/claude-archite
 
 The foundation hook (shipped by the `utopia-hooks` plugin) and the project hook (`<prefix>_quality_check.sh`) both fire on `Edit|Write|MultiEdit`. They don't conflict because:
 
-- **Disjoint scope.** Foundation matches on `*_state.dart`, `*_screen.dart`, `*_view.dart` for hook / Screen-State-View idioms. Project matches on repo-specific paths (`packages/kex/lib/src/ffi/`, `core_messaging/lib/service/crypto*`, `classroom/lib/ui/lesson/activity/*`, etc.). A file that triggers both → both fire, surfacing disjoint nudges.
+- **Disjoint scope.** Foundation matches on `*_state.dart`, `*_screen.dart`, `*_view.dart` for hook / Screen-State-View idioms. Project matches on repo-specific paths (`packages/<crypto-pkg>/lib/src/ffi/`, `<crypto-package>/lib/service/crypto*`, `<area-flutter>/lib/ui/lesson/activity/*`, etc.). A file that triggers both → both fire, surfacing disjoint nudges.
 - **Silent on out-of-scope.** Foundation's guard checks `utopia_arch` declaration in the pubspec — silent exit 0 on Kotlin / TypeScript / non-Flutter Dart. Project's basename guard means it stays silent outside this repo's folder.
 
-> "**Layers enforce disjoint patterns.** Foundation hooks match on `*_state.dart`, `*_screen.dart`, `*_view.dart`. Project hooks match on `*.g.dart`, `packages/kex/lib/src/ffi/`, `core_messaging/lib/service/crypto*`. If a file triggers both, both fire — that's fine." — `production-repo-A/.claude/docs/claude-architecture.md:91-94`
+> "**Layers enforce disjoint patterns.** Foundation hooks match on `*_state.dart`, `*_screen.dart`, `*_view.dart`. Project hooks match on `*.g.dart`, `packages/<crypto-pkg>/lib/src/ffi/`, `<crypto-package>/lib/service/crypto*`. If a file triggers both, both fire — that's fine." — `production-repo-A/.claude/docs/claude-architecture.md:91-94`
 
 Refer the reader to the foundation plugin without restating its content — see the `utopia-hooks` plugin description for what the foundation hook enforces.
 
@@ -459,7 +459,7 @@ The hooks block in `.claude/settings.json`:
 
 Two entries under one matcher block means **both scripts fire on every `Edit|Write|MultiEdit`** — quality_check on the edited file, skills_drift in hook-mode on the same file (silent unless the file is markdown under `.claude/` or `CLAUDE.md`).
 
-A SessionStart hook (when justified — see repoB precedent above) wires under a separate top-level key:
+A SessionStart hook (when justified — see repo-B precedent above) wires under a separate top-level key:
 
 ```json
 "hooks": {
@@ -507,7 +507,7 @@ See [settings-json.md](settings-json.md) for the full settings shape.
 
 ### Adding a SessionStart hook on speculation
 
-❌ Adding a Dart MCP cleanup hook "in case the team has the same problem as repoB". Wait for the leak to be observed and measured. Until then it's premature optimization that runs every session-open.
+❌ Adding a Dart MCP cleanup hook "in case the team has the same problem as repo-B". Wait for the leak to be observed and measured. Until then it's premature optimization that runs every session-open.
 
 ## See also
 

@@ -35,14 +35,14 @@ Every architecture doc has these sections in this exact order. Reordering them s
 
 Brief restatement of the foundation-vs-project model. Use an ASCII box diagram identical in shape to the blueprint's. Cross-link to [layer-model.md](layer-model.md) for the full model — do not restate.
 
-Production shape (repoC):
+Production shape (repo-C):
 
 ```
 +---------------------------------------------------------------+
 |  Foundation — utopia-hooks plugin (marketplace, ambient)      |
 |    Screen/State/View, hook catalog, async patterns, DI,       |
 |    IList/IMap/ISet, strict analyzer, lambda style.            |
-|    Repo-agnostic — knows nothing about RepoC.                 |
+|    Repo-agnostic — knows nothing about this project.                 |
 +---------------------------------------------------------------+
                          ▲ referenced, never duplicated
 +---------------------------------------------------------------+
@@ -84,36 +84,36 @@ Table — **which reference styles each skill employs**:
 | Skill | Modules (`*-module.md`) | Patterns (`*-pattern.md` / `*-system.md` / `*-services.md` / `*-models.md`) | Cheat-sheets (`*-cheatsheet.md`) |
 |---|---|---|---|
 
-The columns mirror the three reference styles taxonomy. A skill with no entries in a column declares it doesn't use that style yet. Primitive skills show `(none yet — primitive)` — visible, deliberate (repoB precedent, `production-repo-B/.claude/docs/claude-architecture.md:53`).
+The columns mirror the three reference styles taxonomy. A skill with no entries in a column declares it doesn't use that style yet. Primitive skills show `(none yet — primitive)` — visible, deliberate (repo-B precedent, `production-repo-B/.claude/docs/claude-architecture.md:53`).
 
-Authoring conventions for each style are bundled inline with this skill at [`../templates/conventions/{module,pattern,cheatsheet}-style.md`](../templates/conventions/). **Link them from §3, never copy into the repo.** See §8 rejected-alternative "Move authoring conventions into `.claude/`" (repoB, repoC both rejected this for the same reason).
+Authoring conventions for each style are bundled inline with this skill at [`../templates/conventions/{module,pattern,cheatsheet}-style.md`](../templates/conventions/). **Link them from §3, never copy into the repo.** See §8 rejected-alternative "Move authoring conventions into `.claude/`" (repo-B, repo-C both rejected this for the same reason).
 
 ### §4 Agent roster
 
 The standard four (`<prefix>-architect`, `<prefix>-maintainer`, `<prefix>-reviewer`, `<prefix>-precommit-auditor`) are always present. The section's job is to document **only what differs**.
 
-**If the roster is exactly the standard four**, the section collapses to a single paragraph plus a 4-row table — like repoC:
+**If the roster is exactly the standard four**, the section collapses to a single paragraph plus a 4-row table — like repo-C:
 
 ```
 Standard four, no domain auditor:
 
 | Agent                     | Role                                              |
 |---------------------------|---------------------------------------------------|
-| `repoC-architect`         | Plans, splits work, identifies affected skills    |
-| `repoC-maintainer`        | Implements plans across skills (write)            |
-| `repoC-reviewer`          | Post-implementation classified review             |
-| `repoC-precommit-auditor` | Staged-diff commit-readiness audit                |
+| `<prefix>-architect`         | Plans, splits work, identifies affected skills    |
+| `<prefix>-maintainer`        | Implements plans across skills (write)            |
+| `<prefix>-reviewer`          | Post-implementation classified review             |
+| `<prefix>-precommit-auditor` | Staged-diff commit-readiness audit                |
 
 Domain auditor candidates (deferred): Firestore/RTDB rules auditor (rules
 edits are silent and can leak data), IAP/paywall auditor. Open until a
 real incident motivates dedicated review.
 ```
 
-— `production-repo-C/.claude/docs/claude-architecture.md:62-75`. The "candidates (deferred)" paragraph is load-bearing — it names the surfaces that *would* justify an auditor if an incident landed. Without it, the next person to propose `repoC-rules-auditor` has to rediscover the threat model.
+— `production-repo-C/.claude/docs/claude-architecture.md:62-75`. The "candidates (deferred)" paragraph is load-bearing — it names the surfaces that *would* justify an auditor if an incident landed. Without it, the next person to propose `<prefix>-rules-auditor` has to rediscover the threat model.
 
 **For each added auditor**, document: role, tools, when invoked, hand-offs, AND the incident or threat-surface rationale. Quote from repo-A (the precedent for adding one):
 
-> "Plus one BP-specific domain auditor: `bp-security-auditor` (read-only) for the crypto / FFI / RLS surface — this is a per-repo addition the blueprint anticipates." — `production-repo-A/.claude/docs/claude-architecture.md:121`
+> "Plus one master-skill-specific domain auditor: `<prefix>-security-auditor` (read-only) for the crypto / FFI / RLS surface — this is a per-repo addition the blueprint anticipates." — `production-repo-A/.claude/docs/claude-architecture.md:121`
 
 Cross-link to [agent-roster.md](agent-roster.md) for the standard four's invariants and the criteria for adding a fifth.
 
@@ -127,7 +127,7 @@ Three bullets, no prose:
 - `block` (exit 2) is switchable via `<PREFIX>_QUALITY_MODE=block`.
 ```
 
-The generated-extensions list is **per-repo**. RepoC has `.freezed.dart`, `.g.dart`, `.config.dart`. RepoB adds `.pb.dart`, `.pbenum.dart`, `.pbjson.dart`, `.pbserver.dart`, `.gr.dart` (protobuf, auto_route — `production-repo-B/.claude/docs/claude-architecture.md:83-85`). Repo-A blocks `.g.dart`, `.freezed.dart`. List **exactly what the repo generates** — listing extensions the repo doesn't produce is dead text, listing missing ones leaks edits past the hook.
+The generated-extensions list is **per-repo**. Repo-C has `.freezed.dart`, `.g.dart`, `.config.dart`. Repo-B adds `.pb.dart`, `.pbenum.dart`, `.pbjson.dart`, `.pbserver.dart`, `.gr.dart` (protobuf, auto_route — `production-repo-B/.claude/docs/claude-architecture.md:83-85`). Repo-A blocks `.g.dart`, `.freezed.dart`. List **exactly what the repo generates** — listing extensions the repo doesn't produce is dead text, listing missing ones leaks edits past the hook.
 
 Cross-link to [enforcement-hooks.md](enforcement-hooks.md) for the contract / guards / mode env-var pattern.
 
@@ -135,13 +135,13 @@ Cross-link to [enforcement-hooks.md](enforcement-hooks.md) for the contract / gu
 
 Note ONLY additions or omissions relative to the standard 3-base (`/<prefix>-implement`, `/<prefix>-audit`, `/<prefix>-audit-skills`).
 
-**If exactly the 3-base**, one paragraph — like repoC:
+**If exactly the 3-base**, one paragraph — like repo-C:
 
-> "The standard three (`/repoC-implement`, `/repoC-audit`, `/repoC-audit-skills`) — no project-specific additions or omissions." — `production-repo-C/.claude/docs/claude-architecture.md:91-92`
+> "The standard three (`/<prefix>-implement`, `/<prefix>-audit`, `/<prefix>-audit-skills`) — no project-specific additions or omissions." — `production-repo-C/.claude/docs/claude-architecture.md:91-92`
 
-**If additions**, document each with its rationale. RepoB added `/repoB-design`:
+**If additions**, document each with its rationale. Repo-B added `/<prefix>-design`:
 
-> "Four commands: `/repoB-implement`, `/repoB-design`, `/repoB-audit`, `/repoB-audit-skills`. `/repoB-design` extends the `/repoB-implement` pipeline with a design acquisition step (paper.design MCP or claude.design handoff bundle) — same agents, same review loop, richer input." — `production-repo-B/.claude/docs/claude-architecture.md:90-94`
+> "Four commands: `/<prefix>-implement`, `/<prefix>-design`, `/<prefix>-audit`, `/<prefix>-audit-skills`. `/<prefix>-design` extends the `/<prefix>-implement` pipeline with a design acquisition step (<design-tool> MCP or claude.design handoff bundle) — same agents, same review loop, richer input." — `production-repo-B/.claude/docs/claude-architecture.md:90-94`
 
 Cross-link to [slash-commands.md](slash-commands.md).
 
@@ -178,14 +178,14 @@ A 7-step checkbox list mirroring the apply-the-blueprint procedure (see [bootstr
 7. Validation — <status>
 ```
 
-Each line one checkbox or short phrase. RepoC's is exemplary:
+Each line one checkbox or short phrase. Repo-C's is exemplary:
 
 ```
 1. Foundation wiring — done (`utopia-hooks@utopia-claude-skills` enabled in `.claude/settings.json`).
-2. Skeleton — done (CLAUDE.md, `.claude/skills/repoC/`, `.claude/skills/repoC-functions/`, `refs/`, `docs/`).
+2. Skeleton — done (CLAUDE.md, `.claude/skills/<prefix>/`, `.claude/skills/<prefix>-functions/`, `refs/`, `docs/`).
 3. Enforcement — done (quality-check hook with hard block on generated + warn nudges).
 4. Agents — done (architect, maintainer, reviewer, precommit-auditor).
-5. Skills — `repoC` has `game-flow-module.md` (CRITICAL) + ...
+5. Skills — `<prefix>` has `game-flow-module.md` (CRITICAL) + ...
 6. CLAUDE.md trim — done.
 7. Validation — `bash .claude/scripts/repoC_skills_drift.sh --all` passes after each material edit.
 ```
@@ -213,9 +213,9 @@ The four fields are non-negotiable. Skipping `Case for` produces straw-man reaso
 
 > "### Per-area write-capable maintainer agents
 >
-> - **Alternative.** Persistent agents (e.g. `bp-phone-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories. Used in `feature/claude-code-config` with four such agents …
+> - **Alternative.** Persistent agents (e.g. `<prefix>-area1-maintainer`, `<prefix>-area3-maintainer`, `<prefix>-area4-maintainer`) with `Write`/`Edit` tools, scoped to disjoint directories. Used in `feature/claude-code-config` with four such agents …
 > - **Case for.** Architect's task split can fan out concurrent `Agent` calls → wall-clock parallelism. Each maintainer keeps its file reads out of the main context. …
-> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (noisier description-matching, heavier `/bp-team` protocol, higher onboarding surface, more drift to audit) is paid every turn. …
+> - **Case against here.** Typical work is ticket-scoped and single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (noisier description-matching, heavier `/<prefix>-team` protocol, higher onboarding surface, more drift to audit) is paid every turn. …
 > - **Reversal criteria.** Sustained pattern of branches spanning ≥3 disjoint areas in a single PR, or a team size where agent-per-engineer-area ownership would aid coordination."
 
 — `production-repo-A/.claude/docs/claude-architecture.md:219-224`. **Actually tried, reverted, the reversal criterion is a quantitative signal** — that's why this is the canonical shape.
@@ -226,10 +226,10 @@ The reversal criterion shape varies by what flips the call. Browse these for ins
 
 | Entry | Reversal criterion shape | File:line |
 |---|---|---|
-| Monolithic `repoB` skill (Flutter + Kotlin + TS) | Opposite-direction collapse: if separated skills never accumulate refs, re-consolidate | `production-repo-B/.claude/docs/claude-architecture.md:117-130` |
-| Domain auditor (Firestore rules, IAP) — repoC | Event-triggered: regression the standard reviewer didn't catch | `production-repo-C/.claude/docs/claude-architecture.md:126-131` |
-| Path-nudge `repoC-functions` | Accumulation-triggered: ≥2 references | `production-repo-C/.claude/docs/claude-architecture.md:140-145` |
-| Assume an MCP Dart server (repoC) | Install-triggered: `mcp.json` entry lands | `production-repo-C/.claude/docs/claude-architecture.md:147-152` |
+| Monolithic `<prefix>` skill (Flutter + Kotlin + TS) | Opposite-direction collapse: if separated skills never accumulate refs, re-consolidate | `production-repo-B/.claude/docs/claude-architecture.md:117-130` |
+| Domain auditor (Firestore rules, IAP) — repo-C | Event-triggered: regression the standard reviewer didn't catch | `production-repo-C/.claude/docs/claude-architecture.md:126-131` |
+| Path-nudge `<prefix>-functions` | Accumulation-triggered: ≥2 references | `production-repo-C/.claude/docs/claude-architecture.md:140-145` |
+| Assume an MCP Dart server (repo-C) | Install-triggered: `mcp.json` entry lands | `production-repo-C/.claude/docs/claude-architecture.md:147-152` |
 
 ## Toolchain canon — recorded fact, not a chosen design
 
@@ -239,7 +239,7 @@ The Toolchain canon is a paragraph in §4 (or wherever the doc anchors it). It i
 
 Production shapes — both use FVM:
 
-> "**Toolchain canon (fact, not decision).** Repo uses FVM (`.fvmrc` pins 3.41.7), so bash is `fvm dart` / `fvm flutter` everywhere — no bare aliases. Routine ops go through the `repoB-dart` MCP (already on the FVM-pinned SDK); `mcp__repoB-dart__analyze_files` is authoritative for analysis — bash `fvm dart analyze` is the deprecated fallback." — `production-repo-B/.claude/docs/claude-architecture.md:75-79`
+> "**Toolchain canon (fact, not decision).** Repo uses FVM (`.fvmrc` pins 3.41.7), so bash is `fvm dart` / `fvm flutter` everywhere — no bare aliases. Routine ops go through the `<prefix>-dart` MCP (already on the FVM-pinned SDK); `mcp__<prefix>-dart__analyze_files` is authoritative for analysis — bash `fvm dart analyze` is the deprecated fallback." — `production-repo-B/.claude/docs/claude-architecture.md:75-79`
 
 > "**Toolchain canon (fact, not decision).** Repo uses FVM (`.fvmrc` pins 3.41.4), so bash is `fvm dart` / `fvm flutter` everywhere — no bare aliases. `fvm dart analyze` is authoritative. No Dart MCP is configured here, so permissions and agent prompts go bare-fvm with no MCP fallback table." — `production-repo-C/.claude/docs/claude-architecture.md:77-80`
 
@@ -249,12 +249,12 @@ Notice the second sentence in each: it explicitly couples the toolchain canon to
 
 For Dart projects, the architecture doc documents which MCP server is **assumed installed** in this repo. The blueprint defaults to "an MCP Dart server is preferred for routine ops; bash via toolchain canon is the fallback, and is authoritative for `analyze`."
 
-> "For Dart projects, an MCP dart server (e.g. `dart-mcp`, `repoB-dart`) is **assumed present** and is the preferred surface for routine ops (`dart_format`, `pub`, `run_tests`). Bash via the toolchain canon (item 5 above) is the fallback, and is authoritative for `analyze` (MCP `analyze_files` is known to miss errors)." — blueprint `README.md:291-297`
+> "For Dart projects, an MCP dart server (e.g. `dart-mcp`, `<prefix>-dart`) is **assumed present** and is the preferred surface for routine ops (`dart_format`, `pub`, `run_tests`). Bash via the toolchain canon (item 5 above) is the fallback, and is authoritative for `analyze` (MCP `analyze_files` is known to miss errors)." — blueprint `README.md:291-297`
 
 **Rule: don't reference an MCP server that isn't installed.** Listing it in `enabledMcpjsonServers` or `permissions.allow` (without the server being there) pollutes the allowlist; quoting `mcp__<name>__<tool>` in agent prompts confuses the model.
 
-- **RepoB assumes** `repoB-dart` MCP (authoritative for `analyze_files`, see repoB architecture-doc).
-- **RepoC explicitly does not** — see the §8 rejected-alternative "Assume an MCP Dart server" above. The exact reason is to keep the allowlist and agent prompts honest.
+- **Repo-B assumes** `<prefix>-dart` MCP (authoritative for `analyze_files`, see repo-B architecture-doc).
+- **Repo-C explicitly does not** — see the §8 rejected-alternative "Assume an MCP Dart server" above. The exact reason is to keep the allowlist and agent prompts honest.
 
 If the MCP assumption changes (a server lands or is removed), update §"Toolchain canon" AND the relevant §"Rejected alternatives" entry — don't delete it.
 
@@ -286,7 +286,7 @@ These are **living tables**, not bootstrap-only. Every new skill / command / nud
 
 The architecture doc refers to **blueprint conventions** and **sibling references** — it doesn't restate them. Authoring conventions for module / pattern / cheatsheet style live in the blueprint, linked. The full no-router-skill rule lives in [skill-design.md](skill-design.md), linked. The hook contract lives in [enforcement-hooks.md](enforcement-hooks.md), linked.
 
-The architecture doc's job is to be **short** and **decision-dense**. RepoC's is 163 lines; repoB's is 194. If yours is growing past ~300 lines, narrative is leaking in — move it to `docs/architecture.md` at the repo root (repo-A's precedent: system topology, sequence diagrams, formal spec are repo-root docs, not Claude-layer docs).
+The architecture doc's job is to be **short** and **decision-dense**. Repo-C's is 163 lines; repo-B's is 194. If yours is growing past ~300 lines, narrative is leaking in — move it to `docs/architecture.md` at the repo root (repo-A's precedent: system topology, sequence diagrams, formal spec are repo-root docs, not Claude-layer docs).
 
 ## Anti-patterns
 
