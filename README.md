@@ -1,4 +1,4 @@
-# utopia-flutter-skills
+# 👾 utopia-flutter-skills
 
 **Production-grade Flutter skills for Claude Code** — by [UtopiaSoftware](https://utopiasoft.io).
 
