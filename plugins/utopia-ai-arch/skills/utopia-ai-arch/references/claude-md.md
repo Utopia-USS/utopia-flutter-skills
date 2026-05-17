@@ -12,7 +12,7 @@ tags: claude-md, agents-md, symlink, inventory, routing, when-to-invoke
 
 `AGENTS.md` at the repo root is a **symlink to `CLAUDE.md`**. Same file, different filename — so non-Anthropic tools that follow the OpenAI / Codex convention (Codex, Cursor's agent surface where it asks, etc.) read the same content without a second copy to maintain.
 
-> "This file is also accessible as `AGENTS.md` (symlink) for tools that follow the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink keeps both views in sync. See the `utopia-ai-arch` skill (`templates/README.md` §11) for the rationale." — `jolly-phonics-apps/CLAUDE.md:7-9`
+> "This file is also accessible as `AGENTS.md` (symlink) for tools that follow the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink keeps both views in sync. See the `utopia-ai-arch` skill (`templates/README.md` §11) for the rationale." — `production-repo-B/CLAUDE.md:7-9`
 
 `CLAUDE.md` is **an inventory and a routing map**, not a knowledge base. Deep content belongs in skill references. If you find yourself writing a paragraph in `CLAUDE.md` that explains HOW to do something, the paragraph belongs in a skill reference and the `CLAUDE.md` row belongs in the "When to Invoke" table that routes to it.
 
@@ -37,32 +37,32 @@ One paragraph: what the repo is. Then a workspace table:
 ```markdown
 | Workspace | Purpose |
 |-----------|---------|
-| `phone/` | Mobile app (iOS / Android) |
+| `<area1>/` | Mobile app (iOS / Android) |
 | `admin/` | Admin web portal (Flutter web) |
-| `tower/` | Distribution Tower app |
+| `<area2>/` | Distribution Tower app |
 | ...      | ... |
 ```
 
-— pattern from `qbt-black-phone/CLAUDE.md:52-63`. One line per workspace. **Long descriptions belong in a skill module-ref** that owns that workspace.
+— pattern from `production-repo-A/CLAUDE.md:52-63`. One line per workspace. **Long descriptions belong in a skill module-ref** that owns that workspace.
 
 ### Foundation
 
 One paragraph reminding the agent that the project layers on top of `utopia-hooks`, with the install command as a fallback for setups where the marketplace auto-prompt was bypassed:
 
-> "This repo's Claude layer is layered on top of the **utopia-hooks** plugin (marketplace, enabled in `.claude/settings.json`). Project skills assume it's installed — they do not restate hook idioms, Screen/State/View, async patterns, DI, IList/IMap/ISet, or strict-analyzer style. See [.claude/docs/claude-architecture.md](.claude/docs/claude-architecture.md) for the layer model." — `madrosc-tlumu/CLAUDE.md:33-38`
+> "This repo's Claude layer is layered on top of the **utopia-hooks** plugin (marketplace, enabled in `.claude/settings.json`). Project skills assume it's installed — they do not restate hook idioms, Screen/State/View, async patterns, DI, IList/IMap/ISet, or strict-analyzer style. See [.claude/docs/claude-architecture.md](.claude/docs/claude-architecture.md) for the layer model." — `production-repo-C/CLAUDE.md:33-38`
 
-Optional install-command block if the auto-prompt fails (qbt's pattern):
+Optional install-command block if the auto-prompt fails (repo-A's pattern):
 
 ```
 /plugin marketplace add https://github.com/Utopia-USS/utopia-flutter-skills
 /plugin install utopia-hooks@utopia-flutter-skills
 ```
 
-— `qbt-black-phone/CLAUDE.md:30-33`. **Do not restate what utopia-hooks teaches** — one line describing the foundation's scope is enough; the foundation owns the content.
+— `production-repo-A/CLAUDE.md:30-33`. **Do not restate what utopia-hooks teaches** — one line describing the foundation's scope is enough; the foundation owns the content.
 
 ### Required Setup
 
-Bootstrap commands — melos, FVM, submodules — one short paragraph plus one code block. Pattern (`qbt-black-phone/CLAUDE.md:22-44`):
+Bootstrap commands — melos, FVM, submodules — one short paragraph plus one code block. Pattern (`production-repo-A/CLAUDE.md:22-44`):
 
 ```markdown
 Standard Flutter setup (FVM, submodules, melos) per [README.md](README.md).
@@ -76,24 +76,24 @@ Cross-link to the repo `README.md` for the full setup if the repo has one.
 
 ### Claude Skills inventory
 
-Table with three columns: `Skill | Kind | Fires on` (qbt) or `Skill | Applicability | Fires on` (jolly, tlumu).
+Table with three columns: `Skill | Kind | Fires on` (repo-A) or `Skill | Applicability | Fires on` (repo-B, repo-C).
 
 **Descriptions live in each `SKILL.md` frontmatter, not here.** This is an inventory — agent goes to the named skill for content.
 
 ```markdown
 | Skill            | Applicability                                                  | Fires on                              |
 |------------------|---------------------------------------------------------------|---------------------------------------|
-| `jolly`          | Flutter apps (classroom, lessons), Crazy UI, activities, ... — NOT classroom-api Kotlin, NOT distributors Next.js | Flutter widget / service / model edits |
-| `jolly-api`      | classroom-api (Ktor gRPC, Kotlin) — NOT Flutter, NOT distributors | Kotlin edits under `classroom-api/` |
+| `<prefix>`          | Flutter apps (classroom, lessons), <design-system>, activities, ... — NOT classroom-api Kotlin, NOT distributors Next.js | Flutter widget / service / model edits |
+| `<prefix>-api`      | classroom-api (Ktor gRPC, Kotlin) — NOT Flutter, NOT distributors | Kotlin edits under `<area-backend>/` |
 | `browser-testing`| Chrome MCP automation against the classroom web build         | When driving the browser via Chrome MCP |
-| `jolly-design`   | Design→code from paper.design (MCP) or claude.design ...      | Paper MCP usage, handoff bundle       |
+| `<prefix>-design`   | Design→code from <design-tool> (MCP) or claude.design ...      | Paper MCP usage, handoff bundle       |
 ```
 
-— `jolly-phonics-apps/CLAUDE.md:41-48`. **The "Applicability" column includes the NEGATIVE scope** — it mirrors the SKILL.md frontmatter's "Applicability — NEGATIVE: NOT …" line. This is what stops the agent loading the wrong skill.
+— `production-repo-B/CLAUDE.md:41-48`. **The "Applicability" column includes the NEGATIVE scope** — it mirrors the SKILL.md frontmatter's "Applicability — NEGATIVE: NOT …" line. This is what stops the agent loading the wrong skill.
 
 ### Claude Agents
 
-Table — `Agent | Role | Tools | When` (qbt's exhaustive form) or `Agent | Role` (jolly's minimal form):
+Table — `Agent | Role | Tools | When` (repo-A's exhaustive form) or `Agent | Role` (repo-B's minimal form):
 
 ```markdown
 | Agent                     | Role                                                |
@@ -104,7 +104,7 @@ Table — `Agent | Role | Tools | When` (qbt's exhaustive form) or `Agent | Role
 | `<prefix>-precommit-auditor` | Staged-diff commit-readiness audit               |
 ```
 
-If the repo adds a domain auditor (qbt's `bp-security-auditor`), it gets a row plus a one-line "When" describing its trigger surface. Full invariants live in `agents/<name>.md` — the CLAUDE.md row is just the routing signal.
+If the repo adds a domain auditor (repo-A's `<prefix>-security-auditor`), it gets a row plus a one-line "When" describing its trigger surface. Full invariants live in `agents/<name>.md` — the CLAUDE.md row is just the routing signal.
 
 ### Slash Commands
 
@@ -118,22 +118,22 @@ Table — `Command | Purpose`:
 | `/<prefix>-audit-skills`| Drift scan over `.claude/**/*.md` + `CLAUDE.md`     |
 ```
 
-— `madrosc-tlumu/CLAUDE.md:65-69`. Same shape across repos; only the prefix changes (and any additions per [slash-commands.md](slash-commands.md)).
+— `production-repo-C/CLAUDE.md:65-69`. Same shape across repos; only the prefix changes (and any additions per [slash-commands.md](slash-commands.md)).
 
 ### Hooks & Enforcement
 
-Short paragraph + bullet list of what each script blocks / warns / surfaces. Cross-link to `.claude/settings.json`. Qbt's is exemplary:
+Short paragraph + bullet list of what each script blocks / warns / surfaces. Cross-link to `.claude/settings.json`. Repo-A's is exemplary:
 
 > "Configured in `.claude/settings.json`:
 >
-> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `bp_quality_check.sh`
+> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `<prefix>_quality_check.sh`
 >   - **Blocks** edits to generated files (`*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `*.config.dart`, `*.pb*.dart`)
 >   - **Warns** on relative Dart imports in `lib/`
 >   - **Surfaces** references by path: …
-> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `bp_skills_drift.sh`
+> - **`PostToolUse`** on `Edit | Write | MultiEdit` → `<prefix>_skills_drift.sh`
 >   - **Warns** on dead markdown `[text](path)` links …"
 
-— `qbt-black-phone/CLAUDE.md:176-191`
+— `production-repo-A/CLAUDE.md:176-191`
 
 ### When to Invoke
 
@@ -142,21 +142,21 @@ Short paragraph + bullet list of what each script blocks / warns / surfaces. Cro
 ```markdown
 | Situation | Skill / references that fire | Agents to involve |
 |-----------|-------------------------------|-------------------|
-| Any Dart / Flutter edit in `phone/` / `admin/` / `tower/` / `core_ui/` | **`utopia-hooks`** (always) + `bp` master skill | — |
-| Add a new screen in `phone/` / `admin/` / `tower/` | **`utopia-hooks`**, `bp` (→ `components.md`, `tokens.md`) | — |
-| Edit `core_messaging/`, `packages/dske/`, `packages/mlkem_native/` | `bp` (FFI binding style → `ffi-conventions.md`) + sister `bp-security` (E2E audit → `e2e-encryption.md`) | `bp-security-auditor` |
-| Plan any cross-package feature | — | `bp-architect` via [/bp-plan](.claude/commands/bp-plan.md) |
-| Pre-commit gate on staged diff | — | `bp-precommit-auditor` via [/bp-audit](.claude/commands/bp-audit.md) |
+| Any Dart / Flutter edit in `<area1>/` / `admin/` / `<area2>/` / `<area3>/` | **`utopia-hooks`** (always) + `<prefix>` master skill | — |
+| Add a new screen in `<area1>/` / `admin/` / `<area2>/` | **`utopia-hooks`**, `<prefix>` (→ `components.md`, `tokens.md`) | — |
+| Edit `<crypto-package>/`, `packages/<crypto-pkg>/`, `packages/<kem-pkg>/` | `<prefix>` (FFI binding style → `ffi-conventions.md`) + sister `<prefix>-security` (E2E audit → `e2e-encryption.md`) | `<prefix>-security-auditor` |
+| Plan any cross-package feature | — | `<prefix>-architect` via [/<prefix>-plan](.claude/commands/<prefix>-plan.md) |
+| Pre-commit gate on staged diff | — | `<prefix>-precommit-auditor` via [/<prefix>-audit](.claude/commands/<prefix>-audit.md) |
 | ... | ... | ... |
 ```
 
-— `qbt-black-phone/CLAUDE.md:131-157`. Each row is a typical task pattern the agent should know how to route. The middle column lists which skills (and which specific reference files within them) the agent should consult; the right column names which agent (if any) to delegate to.
+— `production-repo-A/CLAUDE.md:131-157`. Each row is a typical task pattern the agent should know how to route. The middle column lists which skills (and which specific reference files within them) the agent should consult; the right column names which agent (if any) to delegate to.
 
 **The table grows with the team.** Every time a typical task gets mis-routed, the fix is a new row.
 
 ### Common Commands
 
-Table — `Task | Command` — scoped to the repo's actual workflow. Bootstrap, codegen, analyze, test, build, format. Tlumu's minimal shape:
+Table — `Task | Command` — scoped to the repo's actual workflow. Bootstrap, codegen, analyze, test, build, format. Repo-C's minimal shape:
 
 ```markdown
 | Task                              | Command                                              |
@@ -169,7 +169,7 @@ Table — `Task | Command` — scoped to the repo's actual workflow. Bootstrap, 
 | Functions build (TS)              | `cd functions && npm run build`                      |
 ```
 
-— `madrosc-tlumu/CLAUDE.md:73-80`. **Apply the toolchain canon here** (FVM yes/no — see [architecture-doc.md](architecture-doc.md) §"Toolchain canon"). If `bash dart analyze` is in this table when the toolchain canon says `fvm dart analyze`, the commands fail silently against the system Dart and the doc is lying.
+— `production-repo-C/CLAUDE.md:73-80`. **Apply the toolchain canon here** (FVM yes/no — see [architecture-doc.md](architecture-doc.md) §"Toolchain canon"). If `bash dart analyze` is in this table when the toolchain canon says `fvm dart analyze`, the commands fail silently against the system Dart and the doc is lying.
 
 ### Documentation
 
@@ -181,7 +181,7 @@ Cross-links to repo-root docs that aren't part of the Claude layer:
 - [docs/data_exchange.md](docs/data_exchange.md) — Message semantics (at-least-once, dedup, delete-after-process)
 ```
 
-— `qbt-black-phone/CLAUDE.md:233-236`. Distinguish: `.claude/docs/` is decision-log; repo-root `docs/` is system design.
+— `production-repo-A/CLAUDE.md:233-236`. Distinguish: `.claude/docs/` is decision-log; repo-root `docs/` is system design.
 
 ## What does NOT belong in CLAUDE.md
 
@@ -191,11 +191,11 @@ Cross-links to repo-root docs that aren't part of the Claude layer:
 - **Code samples beyond brief command lines.** A `bash` codeblock for `melos bootstrap` is fine. A 20-line Dart example illustrating a pattern is not — that's a pattern reference.
 - **Per-skill non-negotiable rules.** Those live in each `SKILL.md`. Putting them in `CLAUDE.md` makes the rule global when it isn't.
 
-> "Inventory only — descriptions live in each `SKILL.md` frontmatter." — `madrosc-tlumu/CLAUDE.md:48`, `jolly-phonics-apps/CLAUDE.md:48`
+> "Inventory only — descriptions live in each `SKILL.md` frontmatter." — `production-repo-C/CLAUDE.md:48`, `production-repo-B/CLAUDE.md:48`
 
 ## Canonical shape skeleton
 
-The order MUST be the order shown. Production samples deviate marginally (qbt opens with "Design Invariants" before the Repository Overview); the core spine is identical.
+The order MUST be the order shown. Production samples deviate marginally (repo-A opens with "Design Invariants" before the Repository Overview); the core spine is identical.
 
 ```markdown
 # <Repo Name>
@@ -312,8 +312,8 @@ alternatives, reversal criteria, toolchain canon.
 `AGENTS.md` is a real symlink to `CLAUDE.md`. Same content, different path. Verified in production:
 
 ```
-lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 14:50  jolly-phonics-apps/AGENTS.md -> CLAUDE.md
-lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 00:45  madrosc-tlumu/AGENTS.md -> CLAUDE.md
+lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 14:50  production-repo-B/AGENTS.md -> CLAUDE.md
+lrwxr-xr-x@ 1 jakobkirchner  staff  9  Apr 29 00:45  production-repo-C/AGENTS.md -> CLAUDE.md
 ```
 
 (`ls -la` output — note the `l` filetype and the `-> CLAUDE.md` target).
@@ -345,17 +345,17 @@ ln -s CLAUDE.md AGENTS.md
 
 Copies drift. Two files, two truths. Every edit to `CLAUDE.md` is a follow-up edit to `AGENTS.md` that nobody remembers; tools reading one see fresh content while tools reading the other see stale. The drift is silent — neither tool flags it.
 
-**Concrete evidence — qbt currently has this drift.** As of the last check:
+**Concrete evidence — repo-A currently has this drift.** As of the last check:
 
 ```
--rw-r--r--@ 1 jakobkirchner  staff  16574  May 11 22:59  qbt-black-phone/AGENTS.md
+-rw-r--r--@ 1 jakobkirchner  staff  16574  May 11 22:59  production-repo-A/AGENTS.md
 ```
 
 It's a regular file, not a symlink. `wc -l` shows `CLAUDE.md` at 248 lines, `AGENTS.md` at 246 — already two lines apart. The blueprint explicitly anticipated this drift mode:
 
-> "Maintaining duplicate files invites drift — exactly the situation jolly currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint `README.md:329-332`
+> "Maintaining duplicate files invites drift — exactly the situation repo-B currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint `README.md:329-332`
 
-Jolly was fixed by re-creating the symlink. Qbt has not been (yet). Either case is a known anti-pattern, and the diagnosis is one `ls -la` away.
+Repo-B fixed it by re-creating the symlink; repo-A is still in this drift state. Either case is a known anti-pattern, and the diagnosis is one `ls -la` away.
 
 ### Why symlink, not hard link
 
@@ -393,7 +393,7 @@ Spend time there. It routes the agent for every task it sees. Add a row every ti
 
 One paragraph + one install command, in the `## Foundation` section. The agent shouldn't see the foundation's content restated; the foundation owns it. Restating it makes the foundation feel optional when it isn't.
 
-> "A Claude config for this repo that does not integrate `utopia-hooks` is missing the foundation the codebase is written on — treat its absence as a defect, not as a simpler, self-contained alternative." — `qbt-black-phone/CLAUDE.md:13`
+> "A Claude config for this repo that does not integrate `utopia-hooks` is missing the foundation the codebase is written on — treat its absence as a defect, not as a simpler, self-contained alternative." — `production-repo-A/CLAUDE.md:13`
 
 ### 5. Keep CLAUDE.md short.
 
@@ -401,9 +401,9 @@ Production sample line counts:
 
 | Repo | CLAUDE.md lines |
 |---|---|
-| madrosc-tlumu | 89 |
-| jolly-phonics-apps | 145 |
-| qbt-black-phone | 248 |
+| production-repo-C | 89 |
+| production-repo-B | 145 |
+| production-repo-A | 248 |
 
 Past ~250 lines, content has typically leaked from references. Past ~300 lines, it's almost certainly leaking. Scan for paragraphs that explain mechanisms (those move to references) and tables that mirror references (those collapse into single-row pointers).
 
@@ -414,7 +414,7 @@ These are the things to scan for during a CLAUDE.md audit. Each has been observe
 - **Skill table lists a skill that no longer exists at `.claude/skills/<name>/`.** Fix: delete the row, or restore the skill if it was deleted by mistake.
 - **Agent table lists an agent that no longer exists at `.claude/agents/<name>.md`.** Fix: delete the row.
 - **"When to Invoke" routes to skills no longer present.** Fix: delete the row, or rewrite to route to the replacement skill.
-- **`AGENTS.md` is a copy, not a symlink** — drift is inevitable. The qbt and pre-fix-jolly precedents are both real. Fix: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
+- **`AGENTS.md` is a copy, not a symlink** — drift is inevitable. The repo-A and pre-fix-repo-B precedents are both real. Fix: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
 - **Paragraphs of HOW-TO content** — pattern or module material in `CLAUDE.md`. Fix: move to the appropriate skill reference; replace with a "When to Invoke" row that routes there.
 - **Restated foundation conventions** — `CLAUDE.md` teaching Screen/State/View or `IList` rules. Fix: collapse to "see `utopia-hooks`" with the foundation pointer.
 - **Long CLAUDE.md (>~300 lines)** — content leaked from references. Fix: scan for the longest sections; move the deepest content out.
@@ -449,7 +449,7 @@ Content has leaked from references. Top-of-context budget is finite; bloating CL
 
 ### Repeating the architecture doc
 
-CLAUDE.md isn't the place to re-explain rejected alternatives or reversal criteria. The §"Architecture decisions" section is one paragraph pointing at the architecture doc, not a summary (`madrosc-tlumu/CLAUDE.md:87-89`).
+CLAUDE.md isn't the place to re-explain rejected alternatives or reversal criteria. The §"Architecture decisions" section is one paragraph pointing at the architecture doc, not a summary (`production-repo-C/CLAUDE.md:87-89`).
 
 ## See also
 

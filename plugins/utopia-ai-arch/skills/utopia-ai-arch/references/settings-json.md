@@ -87,7 +87,7 @@ Everything else (model defaults, theme, UI prefs) lives elsewhere. `settings.jso
 }
 ```
 
-Note: the blueprint and existing repos use both `utopia-flutter-skills` and `utopia-claude-skills` as marketplace names — the repo URL is what matters; the key is just a local name. Pick one and use it consistently. (qbt uses `utopia-flutter-skills`; jolly and tlumu use `utopia-claude-skills`. Either works.)
+Note: the blueprint and existing repos use both `utopia-flutter-skills` and `utopia-claude-skills` as marketplace names — the repo URL is what matters; the key is just a local name. Pick one and use it consistently. (repo-A uses `utopia-flutter-skills`; repo-B and repo-C use `utopia-claude-skills`. Either works.)
 
 ## Plugin scope choice — project is the default for the foundation
 
@@ -154,7 +154,7 @@ Every production repo's allowlist starts here:
 "Bash(gh pr diff:*)"
 ```
 
-Source: inline template at [`../templates/claude-layer/settings.json`](../templates/claude-layer/settings.json) — same shape in qbt, jolly, tlumu.
+Source: inline template at [`../templates/claude-layer/settings.json`](../templates/claude-layer/settings.json) — same shape in repo-A, repo-B, repo-C.
 
 **Why these and only these in the blueprint.** They're read-mostly (`status / diff / log / show / fetch / branch / checkout`) plus the two write-but-safe operations (`add`, `commit`, `stash`). `stash` is included because it's reversible. `commit` is included because the precommit-auditor agent gates commits via `/<prefix>-audit`. `gh pr view / list / diff` is read-only PR access for the architect / reviewer agents.
 
@@ -191,7 +191,7 @@ Add `gh pr create` only when contributors expect agents to open PRs — without 
 
 ### Per-repo additions
 
-qbt's `permissions.allow` adds `docker build/run/compose`, `git submodule`, `git rev-list`, `git rev-parse`, and Dart MCP entries (`mcp__dart__dart_format`, etc.). Tlumu adds `npm install / run` for the functions package. These are repo-specific — add what the team actually runs, not what they might.
+repo-A's `permissions.allow` adds `docker build/run/compose`, `git submodule`, `git rev-list`, `git rev-parse`, and Dart MCP entries (`mcp__dart__dart_format`, etc.). Repo-C adds `npm install / run` for the functions package. These are repo-specific — add what the team actually runs, not what they might.
 
 ### Why `git push` is deliberately OFF
 
@@ -220,11 +220,11 @@ The `enabledMcpjsonServers` field activates MCP servers declared in a separate `
 
 A declared-but-uninstalled server adds noise to the allowlist (the corresponding `mcp__<server>__*` permissions go nowhere) and confuses agents whose prompts reference tools they can't call.
 
-### Precedent — tlumu's deliberate rejection
+### Precedent — repo-C's deliberate rejection
 
-Tlumu deliberately does NOT declare a Dart MCP server, despite jolly and qbt both having one:
+Repo-C deliberately does NOT declare a Dart MCP server, despite repo-B and repo-A both having one:
 
-> "**Assume an MCP Dart server.** Alternative. Mirror jolly's `mcp__jolly-dart__*` permissions and agent fallback tables. Case for. Faster iteration, structured diagnostics. Case against here. No MCP Dart server is configured for this repo. Listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model. Reversal criterion. A `mcp.json` with a Dart MCP entry lands → wire MCP-preferred / bash-fallback throughout." — `madrosc-tlumu/.claude/docs/claude-architecture.md:147-152`
+> "**Assume an MCP Dart server.** Alternative. Mirror repo-B's `mcp__<prefix>-dart__*` permissions and agent fallback tables. Case for. Faster iteration, structured diagnostics. Case against here. No MCP Dart server is configured for this repo. Listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model. Reversal criterion. A `mcp.json` with a Dart MCP entry lands → wire MCP-preferred / bash-fallback throughout." — `production-repo-C/.claude/docs/claude-architecture.md:147-152`
 
 The cost of declaring an absent server is real: agent prompts written "use `mcp__<prefix>-dart__analyze_files` for analysis; bash `fvm dart analyze` as fallback" leak the absent tool into every relevant agent body. The model attempts the MCP call, it fails, the fallback runs anyway — wasted tokens, wasted turn.
 
@@ -241,7 +241,7 @@ When the MCP server **is** installed, list its specific tools in `permissions.al
 "mcp__<prefix>-dart__resolve_workspace_symbol"
 ```
 
-Source: `qbt-black-phone/.claude/settings.json:56-62` and `jolly-phonics-apps/.claude/settings.json:44-49`.
+Source: `production-repo-A/.claude/settings.json:56-62` and `production-repo-B/.claude/settings.json:44-49`.
 
 Per-tool granularity (not `mcp__<prefix>-dart__*`) is the convention — explicit beats wildcard, and a new tool added upstream shouldn't auto-elevate without review.
 
@@ -313,7 +313,7 @@ A separate top-level key under `hooks`:
 }
 ```
 
-Only add when a measurable local-resource leak is observed — see [enforcement-hooks.md](enforcement-hooks.md) §"When to add a SessionStart hook" for the rule. Jolly is the only production precedent.
+Only add when a measurable local-resource leak is observed — see [enforcement-hooks.md](enforcement-hooks.md) §"When to add a SessionStart hook" for the rule. Only one production repo currently uses this — see [enforcement-hooks.md](enforcement-hooks.md).
 
 ## `settings.local.json` — the un-committed override
 

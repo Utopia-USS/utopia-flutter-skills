@@ -1,7 +1,7 @@
 <!-- TEMPLATE - command-only workflow. Open only if Phase 0.5 confirmed ticketing-tool integration. Substitute <prefix> and <ticketing-tool> placeholders. Strip this banner. -->
 ---
 description: Break uncommitted changes into feature-based commits, sync <ticketing-tool> (umbrella + subtasks), branch by ticket, push.
-argument-hint: "[optional context, e.g. 'DEV-213' or 'migrate teacher guidance']"
+argument-hint: "[optional context, e.g. '<TICKET-ID>' or 'migrate teacher guidance']"
 allowed-tools: Bash, Read, mcp__<ticketing-tool>
 ---
 
@@ -19,7 +19,7 @@ User-provided context: `$ARGUMENTS`
 ## Hard rules
 
 - **Never commit or push without explicit user approval** — there is a mandatory STOP between Phase 4 (plan) and Phase 5 (execute). User must say "ok" / "go" / "ship" to proceed.
-- **Ticket-ID format** (e.g. `DEV-213` for ClickUp custom task IDs, `LIN-1234` for Linear, `PROJ-1234` for Jira). Workspace uses one format — use that in commit messages and branches, never the long internal ID.
+- **Ticket-ID format** (e.g. `<TICKET-ID>` for <ticketing-tool> custom task IDs, `LIN-1234` for Linear, `PROJ-1234` for Jira). Workspace uses one format — use that in commit messages and branches, never the long internal ID.
 - **Commit format:** `<TICKET> | <human description>` — match what `git log` already shows. Swap for `[TICKET] desc` or `feat(TICKET): desc` if that's the repo convention.
 - **One umbrella, N subtasks, ONE branch.** All commits on this run go to one branch named after the umbrella ticket. Subtasks live as children of the umbrella in `<ticketing-tool>`, not separate branches.
 - **Small fixes get batched.** Trivial typos, lints, formatting, or 1-3 line drive-by fixes do NOT get their own `<ticketing-tool>` task — fold them into the nearest meaningful chunk.
@@ -63,7 +63,7 @@ Don't show the plan yet — Phase 4 prints the full integrated plan once umbrell
 ## Phase 3 — Identify umbrella ticket
 
 Use `$ARGUMENTS` first:
-- Looks like a ticket ID (e.g. `DEV-213`, `LIN-1234`, `PROJ-1234`)? → fetch it via `<ticketing-tool>` MCP, confirm it exists, grab its title + parent context.
+- Looks like a ticket ID (e.g. `<TICKET-ID>`, `LIN-1234`, `PROJ-1234`)? → fetch it via `<ticketing-tool>` MCP, confirm it exists, grab its title + parent context.
 - Free-text description? → keep as a hint for searching/creating.
 - Empty? → ask the user: *"What's this work about? Existing ticket ID, or describe so I can create an umbrella?"*
 
@@ -73,7 +73,7 @@ If no existing umbrella:
 - Otherwise → propose creating an umbrella task. Need: title, target list / project. Ask user which list / project (and remember the answer for this session). Title should describe the feature, not the diff.
 
 The umbrella ticket determines:
-- **Branch name:** `<TICKET>-<slug-of-title>` (e.g. `DEV-213-migrate-teacher-guidance`).
+- **Branch name:** `<TICKET>-<slug-of-title>` (e.g. `<TICKET-ID>-migrate-teacher-guidance`).
 - **Commit ticket prefix** (when a chunk doesn't have its own subtask, it falls back to the umbrella's ID).
 
 ## Phase 4 — Map chunks → `<ticketing-tool>` (PLAN ONLY)
@@ -86,8 +86,8 @@ For each significant chunk from Phase 2:
 Print the full plan in this exact shape:
 
 ```
-Umbrella: DEV-213 | Migrate teacher guidance
-Branch:   DEV-213-migrate-teacher-guidance        (new — agent created umbrella)
+Umbrella: <TICKET-ID> | Migrate teacher guidance
+Branch:   <TICKET-ID>-migrate-teacher-guidance        (new — agent created umbrella)
                                                   (or: stay on <current> — umbrella already existed)
 Base:     <current branch HEAD>                   (or: origin/staging only if user asked for clean cut)
 
@@ -99,7 +99,7 @@ Commits (in order):
   3. (folded into #1) small typo fix in TeacherGuidanceState
      files: <repo-web-target>/lib/ui/teacher_guidance/state.dart (1 line)
 
-Push:     origin/DEV-213-migrate-teacher-guidance
+Push:     origin/<TICKET-ID>-migrate-teacher-guidance
 <ticketing-tool>:  per (sub)task → comment with commit hash + branch URL; status → "<in-review-column-name>"; assign → me
 
 Skipped (never-ship):

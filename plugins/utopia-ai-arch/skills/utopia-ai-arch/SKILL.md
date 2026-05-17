@@ -7,7 +7,7 @@ description: >
   skill / agent / command / hook, recording a rejected alternative, auditing
   for drift, splitting or graduating content, or evolving an existing layer.
   Encodes the project-claude-layer blueprint plus the invariants and decision
-  criteria distilled from qbt-black-phone, jolly-phonics-apps, and madrosc-tlumu.
+  criteria distilled from multiple production `.claude/` layers in Utopia repos.
   Layered on top of the upstream `utopia-hooks` plugin — this skill stays
   silent on hook idioms / Screen-State-View / Dart conventions (foundation concerns).
 license: MIT
@@ -45,7 +45,7 @@ Full documentation with verbatim file skeletons and quoted invariants in [refere
 | [agent-roster.md][agent-roster] | CRITICAL | 4-agent blueprint (architect / maintainer / reviewer / precommit-auditor), invariants per role, hand-off chain, frontmatter shape, when to add domain auditors or per-area maintainers |
 | [skill-design.md][skill-design] | CRITICAL | Positive+negative applicability, no-router/no-shared rules, when to split a skill, primitive sister skills, `.claude/refs/` cross-link discipline, 3 reference styles (module / pattern / cheatsheet), graduation gradient |
 | [enforcement-hooks.md][enforcement-hooks] | CRITICAL | `<prefix>_quality_check.sh` shape (contract / guards / generated-file block / path nudges / mode env var), `<prefix>_skills_drift.sh` shape, SessionStart hook criteria, why NO push-guard |
-| [evolution-and-drift.md][evolution-and-drift] | CRITICAL | Operations on a live layer (graduate / split / collapse / delete a skill, add/remove path nudges, add a domain auditor mid-project) paired with the 22-symptom drift catalogue from production (qbt / jolly / tlumu). Triggers for re-reading the architecture doc + audit grep one-liners |
+| [evolution-and-drift.md][evolution-and-drift] | CRITICAL | Operations on a live layer (graduate / split / collapse / delete a skill, add/remove path nudges, add a domain auditor mid-project) paired with the 22-symptom drift catalogue from production. Triggers for re-reading the architecture doc + audit grep one-liners |
 | [slash-commands.md][slash-commands] | HIGH | 3-base commands (/implement, /audit, /audit-skills), implement-loop shape with retry cap = 2, never-commit/never-push, when to add `/plan` `/team` `/design` `/ship` |
 | [architecture-doc.md][architecture-doc] | HIGH | `.claude/docs/claude-architecture.md` 9-section spine, rejected-alternative 4-field entry shape, toolchain canon, MCP-assumption rules |
 | [claude-md.md][claude-md] | HIGH | What belongs in `CLAUDE.md` (always-loaded inventory) vs deep content (references), table shapes, `AGENTS.md` symlink convention and rationale |
@@ -119,7 +119,7 @@ For non-diagnostic lookups (adding a new skill / agent / command / hook, editing
 - **Retry cap = 2.** Maintainer → reviewer → maintainer → reviewer. Still failing? Hand both reports to the user. Scope stays constant across retries.
 - **/implement never commits, never pushes.** Commit gate is `/<prefix>-audit`.
 - **Generated files hook-blocked (exit 2, regardless of mode).** Always blocked. Regenerate via build_runner; never edit.
-- **Prefix ≠ repo-folder-name; basename guard uses repo-folder-name.** Hook's `basename "$repo_root"` match MUST use the on-disk folder (e.g. `qbt-black-phone`), not the prefix (e.g. `bp`). Otherwise the hook silently never fires.
+- **Prefix ≠ repo-folder-name; basename guard uses repo-folder-name.** Hook's `basename "$repo_root"` match MUST use the on-disk folder (e.g. `production-repo-A`), not the prefix (e.g. `<prefix>`). Otherwise the hook silently never fires.
 - **No `git push` guard hook.** `permissions.allow` deliberately omits `git push` (every push prompts), GitHub branch protection covers the remote. Reintroduce only if a repo lacks both layers.
 - **`AGENTS.md` is a symlink to `CLAUDE.md`.** Single source of truth. Hard links don't survive git; copies drift silently.
 - **Don't reference an MCP server that isn't installed.** Allowlist pollution + agent prompts confused by absent tools.
@@ -143,4 +143,4 @@ The diagnostic checklist is concentrated in [evolution-and-drift.md][evolution-a
 
 ## Attribution
 
-Distilled from the production `.claude/` layers of `qbt-black-phone`, `jolly-phonics-apps`, and `madrosc-tlumu`. Built by UtopiaSoftware.
+Distilled from production `.claude/` layers across multiple Utopia Flutter repos. Built by UtopiaSoftware.

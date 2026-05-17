@@ -48,7 +48,7 @@ invokes carry the domain knowledge.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`acme`, `acme`, `acme`, …).
+- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
 - Agent references — `<prefix>-architect`, `<prefix>-maintainer`,
   `<prefix>-reviewer`, `<prefix>-precommit-auditor`.
 - Domain auditor — `<prefix>-security-auditor` is repo-specific (example). If the
@@ -58,7 +58,7 @@ invokes carry the domain knowledge.
 - Sister-command references — `/<prefix>-implement`, `/<prefix>-audit`
   must exist in the repo, or remove the cross-links.
 - Domain-specific gate criteria — the production version triggers
-  security-auditor on "auth, crypto, key management, DSKE FFI, ML-KEM,
+  security-auditor on "auth, crypto, key management, native FFI bindings, post-quantum KEM,
   Supabase RLS". Replace with the repo's actual security-sensitive surface
   (or perf-sensitive, or migration-touching, depending on what the domain
   auditor covers).

@@ -10,14 +10,14 @@ the command references the skill, and the skill references the command.
 Open this bundle only when the team has a real design-tool integration in
 their workflow:
 
-- **paper.design MCP** is configured and used by designers, or
+- **<design-tool> MCP** is configured and used by designers, or
 - **claude.design** handoff bundles (`.claude-handoff/` directory,
   `PROMPT.md`) are part of the design-to-code handoff, or
 - **Figma** export → markdown / tokens bundle is part of the workflow.
 
 **Not auto-inspectable.** Phase 0.5 must surface this with a user prompt:
 
-> *"Do you use a design tool with an agent integration — paper.design,
+> *"Do you use a design tool with an agent integration — <design-tool>,
 > claude.design handoff bundles, or a Figma export bundle?"*
 
 If the answer is no (designs arrive as PNGs / Slack screenshots / Figma
@@ -38,7 +38,7 @@ nothing to load.
 Two co-installed files:
 
 - `skill/<prefix>-design/SKILL.md` — **how to consume designs**. Acquisition
-  workflows for paper.design (`get_jsx`, `get_tree_summary`,
+  workflows for <design-tool> (`get_jsx`, `get_tree_summary`,
   `get_screenshot`) and claude.design (handoff bundle structure). Defers
   component selection to the master skill and state patterns to
   `utopia-hooks`.
@@ -50,7 +50,7 @@ The two are co-installed — neither makes sense alone.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`acme`, `acme`, `acme`, …).
+- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
   Appears in:
   - skill name (`<prefix>-design`)
   - command name (`/<prefix>-design`)

@@ -29,13 +29,13 @@ Architectural decisions later (skill split, agent roster, hook scope, slash comm
 Does this repo handle any of:
 
 - End-to-end crypto / message confidentiality
-- Native FFI (DSKE, ML-KEM, platform-keystore bindings)
+- Native FFI (native crypto FFI, post-quantum KEM, platform-keystore bindings)
 - Row-level security / multi-tenant data isolation (Supabase RLS, Postgres RLS, Firestore rules)
 - Auth tokens, refresh-token flows, OAuth callbacks
 - Payments / IAP / revenue (RevenueCat, App Store / Play billing, paywall)
 - Push-payload contents (notification payloads that may leak data)
 
-**If yes → plan a domain auditor** (`<prefix>-<domain>-auditor`, read-only fifth agent). See [agent-roster.md](agent-roster.md) "Add a domain auditor" decision criteria. Precedent: qbt's `bp-security-auditor` for E2E messaging.
+**If yes → plan a domain auditor** (`<prefix>-<domain>-auditor`, read-only fifth agent). See [agent-roster.md](agent-roster.md) "Add a domain auditor" decision criteria. Precedent: repo-A's `<prefix>-security-auditor` for E2E messaging.
 
 If no → the standard four agents cover it.
 
@@ -51,10 +51,10 @@ List the workspaces and what they each are:
 └── ...
 ```
 
-Example (madrosc-tlumu):
+Example (production-repo-C):
 
 ```
-madrosc-tlumu/
+production-repo-C/
 ├── packages/app/        # main Flutter app · Dart/Flutter+FVM
 ├── packages/admin/      # admin Flutter app · Dart/Flutter+FVM
 ├── packages/core/       # shared Dart code · Dart+FVM
@@ -73,25 +73,25 @@ Determines what skill applicability scopes look like and whether to open primiti
 |-------|----------|-------------------|
 | Flutter/Dart with FVM | most Utopia apps | Foundation hook (utopia-hooks) fires; project skill carries domain |
 | Flutter/Dart **without** FVM | (rare) | Toolchain canon paragraph reflects bare `dart`/`flutter` |
-| Kotlin/Ktor backend | qbt's classroom-api precedent | Separate skill; no foundation hook |
+| Kotlin/Ktor backend | repo-A's classroom-api precedent | Separate skill; no foundation hook |
 | TypeScript/Next.js | landing sites, marketing | Separate skill; no foundation hook |
 | TypeScript/Node Cloud Functions | Firebase, Vercel | Separate (often primitive) skill |
 | Deno / other runtimes | Supabase Edge, Cloudflare Workers | Separate skill |
 
 ### 0.4 External integrations — USER-PROMPT REQUIRED (not auto-inspectable)
 
-**These integrations cannot be reliably determined from repo state.** A team can be on Linear without a `.linear-config` in the repo; they can plan to use paper.design without the MCP installed yet; they can have routine cross-package PRs without anything recording that fact. **Ask the user explicitly** with the prompts below. The answers gate which `templates/workflow-templates/<bundle>/` to copy.
+**These integrations cannot be reliably determined from repo state.** A team can be on Linear without a `.linear-config` in the repo; they can plan to use <design-tool> without the MCP installed yet; they can have routine cross-package PRs without anything recording that fact. **Ask the user explicitly** with the prompts below. The answers gate which `templates/workflow-templates/<bundle>/` to copy.
 
 #### Required user prompts
 
 ```text
 1. Design tool integration?
-   (paper.design MCP / Figma export / claude.design handoff bundle / none)
+   (<design-tool> MCP / Figma export / claude.design handoff bundle / none)
    → Affects: opening `<prefix>-design` (skill + command pair)
    → Template: workflow-templates/design/
 
 2. Ticketing tool with commit-message conventions?
-   (Linear / ClickUp / Jira / none / unstructured)
+   (Linear / <ticketing-tool> / Jira / none / unstructured)
    → Affects: opening `/<prefix>-ship` command
    → Template: workflow-templates/ship/
 
@@ -127,10 +127,10 @@ A small table per affirmative user-prompt answer mapping to a template bundle to
 
 List MCPs **actually installed** for this repo or user-globally:
 
-- Dart MCP (`dart-mcp`, project-named like `jolly-dart`, `bp-dart`)
+- Dart MCP (`dart-mcp`, project-named like `<prefix>-dart`, `<prefix>-dart`)
 - Chrome DevTools / browser-testing MCP
-- paper.design MCP
-- ClickUp / Linear MCP
+- <design-tool> MCP
+- <ticketing-tool> / Linear MCP
 - Sentry MCP
 - Custom project MCPs
 
@@ -175,7 +175,7 @@ grep -rl "fvm " .github/ scripts/ Makefile 2>/dev/null
 
 If all four are empty → bare `dart` / `flutter`.
 
-**Once decided, propagate binary choice everywhere:** agents (`bp-maintainer.md` tool references), slash commands (`/<prefix>-implement` baseline step), `<prefix>_quality_check.sh` remediation hint, `permissions.allow` Bash patterns, `CLAUDE.md` Common Commands table, `tlumu/SKILL.md` Non-negotiables. **No alternation.** This was a wave-2 smoke regression — the agent inferred FVM=no from glancing at one indicator; FVM was actually present.
+**Once decided, propagate binary choice everywhere:** agents (`<prefix>-maintainer.md` tool references), slash commands (`/<prefix>-implement` baseline step), `<prefix>_quality_check.sh` remediation hint, `permissions.allow` Bash patterns, `CLAUDE.md` Common Commands table, `<prefix>/SKILL.md` Non-negotiables. **No alternation.** This was a wave-2 smoke regression — the agent inferred FVM=no from glancing at one indicator; FVM was actually present.
 
 ### 0.8 Recent incidents (if any)
 
@@ -204,7 +204,7 @@ A "primitive" skill = SKILL.md with no `references/` content yet. Open one ONLY 
 
 Otherwise **defer** — document the decision in `claude-architecture.md` §"Rejected alternatives" with a reversal criterion. See [skill-design.md](skill-design.md) "Don't preempt with primitive skills".
 
-Precedent (tlumu): `tlumu-functions` opened as primitive because Cloud Functions is a distinct runtime; `tlumu-landing` deferred because no active Claude-driven landing work and no concrete content.
+Precedent (repo-C): `<prefix>-functions` opened as primitive because Cloud Functions is a distinct runtime; `<prefix>-landing` deferred because no active Claude-driven landing work and no concrete content.
 
 ### Identify cross-cutting Dart content destined for `.claude/refs/`
 
@@ -276,13 +276,13 @@ Mechanical sed replacements (be selective — do **not** run inside `.git/`):
 
 | Find | Replace | Notes |
 |------|---------|-------|
-| `<repo>` | project prefix lowercase (`bp`, `jolly`, `tlumu`) | in body text and file paths |
-| `<REPO>` | project prefix uppercase | env var: `<REPO>_QUALITY_MODE` → `JOLLY_QUALITY_MODE` |
-| `<project name>` | human-readable name ("Black Phone", "Jolly Phonics Apps", "Madrosc Tlumu") | in `CLAUDE.md` title |
-| `REPO-AREA` in skill path | first concrete area name (e.g. `bp-flutter`, `jolly-flutter`, `tlumu`) | skill directory rename |
+| `<repo>` | project prefix lowercase (`<prefix>`, `<prefix>`, `<prefix>`) | in body text and file paths |
+| `<REPO>` | project prefix uppercase | env var: `<REPO>_QUALITY_MODE` → `<PREFIX>_QUALITY_MODE` |
+| `<project name>` | human-readable name ("<Project A>", "<Project B>", "<Project C>") | in `CLAUDE.md` title |
+| `REPO-AREA` in skill path | first concrete area name (e.g. `<prefix>-flutter` (one per area)) | skill directory rename |
 | `<repo-folder-name>` in hook | actual repo directory basename | basename guard — load-bearing, see Phase 7 |
 
-> **Prefix ≠ repo-folder-name.** They are independent and frequently differ. `qbt-black-phone` (repo folder) uses `bp` (prefix, for "Black Phone"). The **`<prefix>`** is the slug that appears in every artifact name (`<prefix>-architect`, `<prefix>_quality_check.sh`, `<prefix>-flutter`, `/<prefix>-implement`). The **`<repo-folder-name>`** is the on-disk basename ONLY used by the hook's `basename "$repo_root"` scope guard — it determines whether the hook fires in *this* workspace vs. an unrelated one with the same script path. If you substitute `<repo>` into the basename guard by mistake, the hook will silently never fire in the actual project. Verify post-substitution: open `<prefix>_quality_check.sh`, grep for the basename match, confirm it's the repo's directory name not the prefix.
+> **Prefix ≠ repo-folder-name.** They are independent and frequently differ. `production-repo-A` (repo folder) uses `<prefix>` (e.g. a 2-letter slug for a longer project name). The **`<prefix>`** is the slug that appears in every artifact name (`<prefix>-architect`, `<prefix>_quality_check.sh`, `<prefix>-flutter`, `/<prefix>-implement`). The **`<repo-folder-name>`** is the on-disk basename ONLY used by the hook's `basename "$repo_root"` scope guard — it determines whether the hook fires in *this* workspace vs. an unrelated one with the same script path. If you substitute `<repo>` into the basename guard by mistake, the hook will silently never fire in the actual project. Verify post-substitution: open `<prefix>_quality_check.sh`, grep for the basename match, confirm it's the repo's directory name not the prefix.
 
 ### Strip blueprint banners
 
@@ -398,7 +398,7 @@ ls -la AGENTS.md
 
 If `AGENTS.md` shows as a regular file `(-rw-r--r--)`, re-create: `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`.
 
-Why symlink (not copy, not hard link), Windows-contributor gotcha, and the verified-in-production `ls -la` output across `jolly-phonics-apps`, `madrosc-tlumu`, and `qbt-black-phone` (where the symlink rotted into a copy): see [claude-md.md](claude-md.md) §"The AGENTS.md symlink".
+Why symlink (not copy, not hard link), Windows-contributor gotcha, and the verified-in-production `ls -la` output across `production-repo-B`, `production-repo-C`, and `production-repo-A` (where the symlink rotted into a copy): see [claude-md.md](claude-md.md) §"The AGENTS.md symlink".
 
 ## Phase 7 — Validate
 
@@ -432,9 +432,9 @@ Ask Claude in a fresh session: "review this code change in `<area-1>`". The corr
 
 ### 7.6 Update §"Rollout status"
 
-In `.claude/docs/claude-architecture.md` §"Rollout status", check each step done. Example (tlumu):
+In `.claude/docs/claude-architecture.md` §"Rollout status", check each step done. Example (repo-C):
 
-> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `tlumu` has `game-flow-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/tlumu_skills_drift.sh --all` passes." — `madrosc-tlumu/.claude/docs/claude-architecture.md:156-163`
+> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `<prefix>` has `game-flow-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/tlumu_skills_drift.sh --all` passes." — `production-repo-C/.claude/docs/claude-architecture.md:156-163`
 
 ## Validation checklist
 
@@ -514,6 +514,6 @@ find .claude/ CLAUDE.md AGENTS.md -type f \( -name '*.md' -o -name '*.sh' -o -na
 - [evolution-and-drift.md](evolution-and-drift.md) — once bootstrapped, the playbook for evolving the layer; catalogue of bootstrap-time omissions that surface later (validation greps target these)
 - Inline templates: [`../templates/`](../templates/) + [`../templates/TEMPLATES.md`](../templates/TEMPLATES.md) (target-path + substitution map)
 - Production precedents:
-  - qbt: `qbt-black-phone/.claude/` (with `bp-security-auditor`, `/bp-plan`, `/bp-team`)
-  - jolly: `jolly-phonics-apps/.claude/` (with `/jolly-design`, `/jolly-ship`)
-  - tlumu: `madrosc-tlumu/.claude/` (smallest, baseline four agents, three base commands)
+  - repo-A: `production-repo-A/.claude/` (with `<prefix>-security-auditor`, `/<prefix>-plan`, `/<prefix>-team`)
+  - repo-B: `production-repo-B/.claude/` (with `/<prefix>-design`, `/<prefix>-ship`)
+  - repo-C: `production-repo-C/.claude/` (smallest, baseline four agents, three base commands)

@@ -51,7 +51,7 @@ Every Utopia repo's AI architecture has exactly two layers, hard-separated:
 
 Cross-link via `utopia-hooks:references/<file>.md` or a plain reference to the file path. Every project SKILL.md opens with a "Relationship to the foundation" table that lists what `utopia-hooks` owns and explicitly disclaims those concerns.
 
-> "Project references foundation, never duplicates. Cross-reference via `utopia-hooks:references/<file>.md`. If utopia renames something, we find out and fix; we don't inherit silently." — `qbt-black-phone/.claude/docs/claude-architecture.md:88-91`
+> "Project references foundation, never duplicates. Cross-reference via `utopia-hooks:references/<file>.md`. If utopia renames something, we find out and fix; we don't inherit silently." — `production-repo-A/.claude/docs/claude-architecture.md:88-91`
 
 **Why.** A repo that restates "use IList not List" inside its own skill diverges silently the day `utopia-hooks` updates its convention. A cross-link breaks loud — the link or the rule on the other end is what fails review, not behaviour months later.
 
@@ -72,11 +72,11 @@ These belong to `utopia-hooks`, NEVER to a project skill:
 
 A concern is project-level when it requires knowing your repo's specifics:
 
-- Monorepo topology (which workspace owns what — `phone/`, `admin/`, `core_messaging/`, `packages/dske/`)
+- Monorepo topology (which workspace owns what — `<area1>/`, `admin/`, `<crypto-package>/`, `packages/<crypto-pkg>/`)
 - Domain logic (E2E crypto pipeline, party-game rooms, classroom lessons, daily packs)
 - Design system tokens / components specific to this product
 - Backend contracts (Supabase RLS, gRPC proto, Firestore rules, Cloud Functions)
-- External integrations (Linear, ClickUp, paper.design, RevenueCat)
+- External integrations (Linear, <ticketing-tool>, <design-tool>, RevenueCat)
 - Build-runner / codegen specifics (proto, freezed, retrofit, route, localization)
 - Toolchain canon (FVM yes/no — a binary repo-level choice)
 
@@ -95,7 +95,7 @@ A concern is project-level when it requires knowing your repo's specifics:
 
 `<prefix>_quality_check.sh` and the foundation hook fire on the same `Edit|Write|MultiEdit` events. They must coexist without conflict. Each script proves it's in scope (jq, file type, pubspec, repo-basename match) BEFORE doing anything. Out-of-scope = silent `exit 0`. See [enforcement-hooks.md](enforcement-hooks.md).
 
-> "Hooks from different layers coexist without conflict." — `qbt-black-phone/.claude/docs/claude-architecture.md:75`
+> "Hooks from different layers coexist without conflict." — `production-repo-A/.claude/docs/claude-architecture.md:75`
 
 ## Concrete shape
 
@@ -156,7 +156,7 @@ If `<prefix>/references/foo.md` is referenced by two or more sister skills, it d
 
 ### "We don't need utopia-hooks, we write our own conventions"
 
-> "A Claude config for this repo without `utopia-hooks` is missing the foundation this codebase is written on — do not score its absence as self-containment; score it as missing baseline alignment." — `qbt-black-phone/.claude/docs/claude-architecture.md:120`
+> "A Claude config for this repo without `utopia-hooks` is missing the foundation this codebase is written on — do not score its absence as self-containment; score it as missing baseline alignment." — `production-repo-A/.claude/docs/claude-architecture.md:120`
 
 If the code uses utopia_hooks / utopia_arch, the foundation plugin is non-optional. A "self-contained" `.claude/` is a layer missing its base.
 

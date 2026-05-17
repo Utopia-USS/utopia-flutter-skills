@@ -69,11 +69,11 @@ Never bury a cross-link three levels deep in a reference file.
 
 A primitive skill = a SKILL.md with no `references/` content, opened just because a techstack exists.
 
-> "Skills with no applicability content … fire wrongly and confuse the agent." — `jolly-phonics-apps/.claude/docs/claude-architecture.md:139-141`
+> "Skills with no applicability content … fire wrongly and confuse the agent." — `production-repo-B/.claude/docs/claude-architecture.md:139-141`
 
 **Exception:** open a primitive sister skill ONLY when:
 - A distinct techstack lives in the repo
-- AND there's a `.claude/refs/<contract>.md` that needs a logical owner (e.g. jolly's `jolly-api` primitive existed primarily to legitimise `proto-contract.md`)
+- AND there's a `.claude/refs/<contract>.md` that needs a logical owner (e.g. repo-B's `<prefix>-api` primitive existed primarily to legitimise `proto-contract.md`)
 
 Otherwise defer until there's real content.
 
@@ -83,15 +83,15 @@ Otherwise defer until there's real content.
 - AND benefits from being preloaded alongside the master skill (not in competition)
 - AND has ≥3 reference docs of audit-only material
 
-**Precedent (DO split):** qbt's `bp` / `bp-security` split — engineering surface vs adversarial audit. All agents preload both.
+**Precedent (DO split):** repo-A's `<prefix>` / `<prefix>-security` split — engineering surface vs adversarial audit. All agents preload both.
 
-> "The audit checklist applies under a tighter description (confidentiality / integrity / RLS / push-payload contract) and benefits from being preloaded by all five agents alongside `bp` + `utopia-hooks`, separately from the engineering surface." — `qbt-black-phone/.claude/docs/claude-architecture.md:127`
+> "The audit checklist applies under a tighter description (confidentiality / integrity / RLS / push-payload contract) and benefits from being preloaded by all five agents alongside `<prefix>` + `utopia-hooks`, separately from the engineering surface." — `production-repo-A/.claude/docs/claude-architecture.md:127`
 
 **Do NOT split** when the content is <3 refs or applies under the same description as the master. Keep it in `<master>/references/`.
 
 ### 7. Don't put cross-cutting Dart content inside the master skill's `references/`.
 
-> "[bp] was originally documented as the master skill that 'owns' Freezed / codegen / strict-analyzer / imports / design-system / dependencies / release coordination — but those concerns are not BP-specific, they apply to anyone authoring Dart in this repo. Keeping them inside `bp/references/` made `bp` look like an uber-skill that has to fire on every techstack." — `qbt-black-phone/.claude/docs/claude-architecture.md:126`
+> "[<prefix>] was originally documented as the master skill that 'owns' Freezed / codegen / strict-analyzer / imports / design-system / dependencies / release coordination — but those concerns are not master-skill-specific, they apply to anyone authoring Dart in this repo. Keeping them inside `<prefix>/references/` made `<prefix>` look like an uber-skill that has to fire on every techstack." — `production-repo-A/.claude/docs/claude-architecture.md:126`
 
 If two or more skills consume the same content, lift it to `.claude/refs/` and link from each consuming SKILL.md's See also.
 
@@ -99,7 +99,7 @@ If two or more skills consume the same content, lift it to `.claude/refs/` and l
 
 `dart format`, `dart fix`, the analyzer, `utopia_lints` — these enforce mechanics. A reference titled "Imports and Formatting" or "Strict Analysis" that documents what the tool catches is a maintenance liability without payoff.
 
-> "`imports-and-formatting.md` and `strict-analysis.md` were originally in this set, then deleted — `dart format` + `dart fix` + `utopia_lints` + the analyzer enforce the mechanics directly, so the refs were repeating tool output." — `qbt-black-phone/.claude/docs/claude-architecture.md:126`
+> "`imports-and-formatting.md` and `strict-analysis.md` were originally in this set, then deleted — `dart format` + `dart fix` + `utopia_lints` + the analyzer enforce the mechanics directly, so the refs were repeating tool output." — `production-repo-A/.claude/docs/claude-architecture.md:126`
 
 ## Reference styles (3-way split)
 
@@ -170,9 +170,9 @@ Hard rules:
 
 ### Workflow-style skills — recognised exception to the trichotomy
 
-Some skills are about **driving a tool / surface** end-to-end: browser automation (Chrome DevTools MCP, `preview_*`), a design MCP (paper.design / claude.design handoff), a vendored CMS submodule, a remote-deploy procedure. Their content is mostly procedural / how-to, not "what the code is shaped like" — and forcing them into the module / pattern / cheatsheet trichotomy distorts both the reference and the trichotomy.
+Some skills are about **driving a tool / surface** end-to-end: browser automation (Chrome DevTools MCP, `preview_*`), a design MCP (<design-tool> / claude.design handoff), a vendored CMS submodule, a remote-deploy procedure. Their content is mostly procedural / how-to, not "what the code is shaped like" — and forcing them into the module / pattern / cheatsheet trichotomy distorts both the reference and the trichotomy.
 
-**Precedent.** `browser-testing` exists as a top-level skill in all three production repos (qbt, jolly, tlumu). Its content is about driving the browser via MCP tools — not a user flow (no business intent), not a code-shape pattern (no Dart at all), not an inventory (it's procedural). It's a fourth shape.
+**Precedent.** `browser-testing` exists as a top-level skill in all three production repos (repo-A, repo-B, repo-C). Its content is about driving the browser via MCP tools — not a user flow (no business intent), not a code-shape pattern (no Dart at all), not an inventory (it's procedural). It's a fourth shape.
 
 **Rule.** When a skill's reference content is mostly tool-driving procedure:
 
@@ -188,7 +188,7 @@ Some skills are about **driving a tool / surface** end-to-end: browser automatio
 | Category | Examples | How agent decides to open |
 |---|---|---|
 | **Auto-inspectable** | `browser-testing` (web build presence), `<repo>-deployment` (docker-compose presence), `<repo>-cms` (vendored submodule presence) | Agent inspects repo for the signal, applies three-test (frequency / decision burden / recurrence). |
-| **User-driven (workflow-template)** | `<repo>-design` (paper.design / Figma / handoff), `<repo>-ship` (Linear / ClickUp / Jira), `<repo>-plan`, `<repo>-team` | Agent CANNOT infer from repo state. Requires explicit user-prompt — see [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
+| **User-driven (workflow-template)** | `<repo>-design` (<design-tool> / Figma / handoff), `<repo>-ship` (Linear / <ticketing-tool> / Jira), `<repo>-plan`, `<repo>-team` | Agent CANNOT infer from repo state. Requires explicit user-prompt — see [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
 
 Both categories ship ready-to-copy bundles under [`../templates/workflow-templates/`](../templates/workflow-templates/). Bundles contain skill (where needed) + command (where needed) + a per-bundle README explaining when to open and what to substitute.
 
@@ -275,7 +275,7 @@ After editing files in this skill's applicability, verify:
 
 The canonical shape above is the **minimum** for a new skill. As the skill grows, production SKILL.md files commonly add:
 
-- **`## Priority-Ordered Guidelines`** — a sorted table `Priority | Category | Impact | Reference` for **deterministic pruning under context pressure**. Impact ratings (CRITICAL / HIGH / MEDIUM) are user-curated and load-bearing. Once added, never overwrite ordering or ratings without explicit human approval. Precedent: `jolly-phonics-apps/.claude/skills/jolly/SKILL.md`, `utopia-hooks/SKILL.md`.
+- **`## Priority-Ordered Guidelines`** — a sorted table `Priority | Category | Impact | Reference` for **deterministic pruning under context pressure**. Impact ratings (CRITICAL / HIGH / MEDIUM) are user-curated and load-bearing. Once added, never overwrite ordering or ratings without explicit human approval. Precedent: `production-repo-B/.claude/skills/<prefix>/SKILL.md`, `utopia-hooks/SKILL.md`.
 - **`## Quick Reference`** — pointer paragraphs for the 3-5 most-common entry points (one paragraph per top reference). Useful when a master skill grows past ~10 references.
 - **`## Searching References`** — a grep code block listing distinctive symbol / hook names per reference, for fast lookup by an agent navigating unfamiliar territory.
 - **`## Problem → reference mapping`** — task / question → starting reference. This is in the minimum shape too, but matures by listing 15-30 rows once the skill has real surface area.

@@ -15,8 +15,8 @@ installed without an explicit signal from the team prompt.
 | Bundle              | Skill? | Command? | Open-when signal                                              | Production precedent | Reversal criterion (when to reject) |
 |---------------------|:------:|:--------:|---------------------------------------------------------------|----------------------|--------------------------------------|
 | `browser-testing/`  | yes    | no       | Repo has a buildable web target (Flutter web, admin web, Next.js landing) — auto-inspectable | across multiple production repos    | No web target compiles; team verifies via emulator / device only |
-| `design/`           | yes    | yes      | Team uses paper.design MCP, claude.design handoff bundles, or Figma export — **ask in Phase 0.5** | acme                | No design-tool integration; designs arrive as PNGs / Slack screenshots |
-| `ship/`             | no     | yes      | Team uses external ticketing (Linear / ClickUp / Jira) with required commit-message format — **ask in Phase 0.5** | acme                | No ticketing tool, or commits don't reference tickets |
+| `design/`           | yes    | yes      | Team uses <design-tool> MCP, claude.design handoff bundles, or Figma export — **ask in Phase 0.5** | acme                | No design-tool integration; designs arrive as PNGs / Slack screenshots |
+| `ship/`             | no     | yes      | Team uses external ticketing (Linear / <ticketing-tool> / Jira) with required commit-message format — **ask in Phase 0.5** | acme                | No ticketing tool, or commits don't reference tickets |
 | `plan/`             | no     | yes      | PRs frequently span 3+ packages / workspaces and benefit from a plan-only invocation — **ask in Phase 0.5** | production-repo                  | Most PRs touch a single package; planning is inline in `/implement` |
 | `team/`             | no     | yes      | PRs routinely split into 2+ genuinely disjoint chunks worth implementing in parallel — **ask in Phase 0.5** | production-repo                  | Work is mostly sequential; parallel maintainer fan-out adds coordination overhead with no wall-clock win |
 
@@ -29,7 +29,7 @@ to confirm is the canonical path.
 - `browser-testing/README.md` — skill-only; web-target verification flow with
   Chrome DevTools MCP / Claude_Preview MCP.
 - `design/README.md` — skill + command **pair**; design → code orchestration
-  with paper.design or claude.design as the source.
+  with <design-tool> or claude.design as the source.
 - `ship/README.md` — command-only; commit-breakdown + ticketing-sync + branch
   + push.
 - `plan/README.md` — command-only; architect-driven plan-only invocation for
@@ -42,10 +42,10 @@ to confirm is the canonical path.
 Across all bundles, the following placeholders appear and must be replaced
 before checking the result into a repo:
 
-- `<prefix>` — repo command/agent prefix (`acme`, `acme`, `acme`, …).
+- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
 - `<repo-web-target>` — directory name of the Flutter-web or web app
   (`classroom`, `admin`, `packages/app`, …).
-- `<ticketing-tool>` — ticketing system name (Linear / ClickUp / Jira).
+- `<ticketing-tool>` — ticketing system name (Linear / <ticketing-tool> / Jira).
 - `<feature>`, `<TICKET>` — call-time placeholders, leave for the agent.
 
 Each file carries a banner at the top describing what to substitute. **Strip

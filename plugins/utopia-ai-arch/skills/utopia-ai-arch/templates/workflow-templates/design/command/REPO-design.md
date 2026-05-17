@@ -1,6 +1,6 @@
 <!-- TEMPLATE - workflow-style slash command paired with REPO-design/SKILL.md. Open only if Phase 0.5 confirmed design-tool integration. Substitute <prefix> tokens. Strip this banner. -->
 ---
-description: "Design→code pipeline — reads design from paper.design or claude.design, then runs architect → maintainer ↔ reviewer loop. Does NOT commit."
+description: "Design→code pipeline — reads design from <design-tool> or claude.design, then runs architect → maintainer ↔ reviewer loop. Does NOT commit."
 argument-hint: "[paper | handoff <path>] [--no-analyze-baseline]"
 allowed-tools: Task, Read, Bash, Glob, Grep, Edit
 model: inherit
@@ -30,13 +30,13 @@ Raw arguments: `$ARGUMENTS`
 
 Detect the design source from `$ARGUMENTS`:
 
-- `paper` → use paper.design MCP tools.
+- `paper` → use <design-tool> MCP tools.
 - `handoff <path>` → read handoff bundle from `<path>`.
 - (empty) → auto-detect: try `mcp__paper__get_basic_info` (paper MCP
   available?), check for `.claude-handoff/` directory, ask user if
   neither found.
 
-### paper.design acquisition
+### <design-tool> acquisition
 
 ```
 1. get_basic_info          → file name, artboards, dimensions
@@ -46,7 +46,7 @@ Detect the design source from `$ARGUMENTS`:
 5. Compile into design brief
 ```
 
-If the user has selected specific nodes in paper.design, use `get_selection`
+If the user has selected specific nodes in <design-tool>, use `get_selection`
 first instead of `get_tree_summary`.
 
 ### Claude.design acquisition
@@ -66,7 +66,7 @@ Compile the acquired design into a structured brief:
 
 ```
 ## Design Brief
-Source: paper.design / claude.design
+Source: <design-tool> / claude.design
 Artboard(s): <name, dimensions>
 
 ### Structure
@@ -207,7 +207,7 @@ Hand off to the user. Print:
 ```
 # /<prefix>-design — <design label>
 
-source: <paper.design / claude.design>
+source: <<design-tool> / claude.design>
 status: <passed | partial | review_double_fail | needs_human>
 
 files_touched:
@@ -236,7 +236,7 @@ next step:
 
 Brief text updates at meaningful moments:
 
-- "Acquiring design from paper.design…"
+- "Acquiring design from <design-tool>…"
 - "Design brief compiled: 3 artboards, ~12 components identified."
 - "Running architect — planning component mapping + Screen/State/View
   structure."

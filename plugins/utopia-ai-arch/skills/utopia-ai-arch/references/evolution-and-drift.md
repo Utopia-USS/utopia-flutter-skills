@@ -11,7 +11,7 @@ tags: evolution, drift, graduation, splits, decision-log, maintenance, lifecycle
 Two halves, deliberately fused:
 
 1. **Operations** — the mechanical procedures for evolving an existing `.claude/` layer once bootstrap is done (graduate a memory entry, split a skill, collapse one back, delete a stale skill, add/remove a path nudge, add a domain auditor mid-project, record a rejected alternative).
-2. **Drift catalogue** — the empirical failure-mode list: 22 things that have actually happened in qbt-black-phone, jolly-phonics-apps, or madrosc-tlumu. Each entry: symptom, file:line evidence, fix.
+2. **Drift catalogue** — the empirical failure-mode list: 22 things that have actually happened in production-repo-A, production-repo-B, or production-repo-C. Each entry: symptom, file:line evidence, fix.
 
 They live in one file because every operation has a corresponding drift symptom — every "how to" pairs with a "what goes wrong if you don't". Reading them apart re-creates the same drift twice.
 
@@ -23,7 +23,7 @@ Triggers that should make the agent **re-read `.claude/docs/claude-architecture.
 
 - A **new techstack** joining the repo (Kotlin backend in a Dart-only repo; Cloud Functions alongside Flutter; an active Next.js landing).
 - A **new MCP server** considered or installed (changes the permission allowlist, the agent-prompt tool tables, and the `assumed MCP` rejected-alternative entry).
-- A **new external integration** (Linear, ClickUp, paper.design, Figma, RevenueCat, GitHub Issues) an agent or slash command will need to talk to.
+- A **new external integration** (Linear, <ticketing-tool>, <design-tool>, Figma, RevenueCat, GitHub Issues) an agent or slash command will need to talk to.
 - A **recent incident** — the strongest trigger for adding a domain auditor.
 - A **proposal to add or remove an agent / a slash command** — even before drafting, check §"Agent roster" / §"Rejected alternatives".
 - **Repeated agent drift** — the agent keeps losing convention X across unrelated sessions; X belongs in a hook, a skill row, or `CLAUDE.md`, not just memory.
@@ -91,7 +91,7 @@ Reversibility is load-bearing. A graduation that turns out to be premature colla
 - The skill's `references/` content is consumed only by the parent skill's domain workflows.
 - Split justified by "we expect this to grow" and it hasn't for ≥3 months.
 
-Pre-recorded reversal precedent: `madrosc-tlumu/.claude/docs/claude-architecture.md:117` for `tlumu-functions`.
+Pre-recorded reversal precedent: `production-repo-C/.claude/docs/claude-architecture.md:117` for `<prefix>-functions`.
 
 **Mechanical steps:**
 
@@ -116,7 +116,7 @@ When the master is firing on too broad a surface, or an audit/convention checkli
 - AND benefits from being preloaded alongside the master skill.
 - AND has ≥3 reference docs of audit-only material.
 
-**Precedent.** qbt's `bp` / `bp-security` split — engineering surface vs adversarial audit, all agents preload both (`qbt-black-phone/.claude/docs/claude-architecture.md:127`).
+**Precedent.** repo-A's `<prefix>` / `<prefix>-security` split — engineering surface vs adversarial audit, all agents preload both (`production-repo-A/.claude/docs/claude-architecture.md:127`).
 
 **Mechanical steps:**
 
@@ -140,7 +140,7 @@ When the master is firing on too broad a surface, or an audit/convention checkli
 - Content overlaps with `CLAUDE.md`'s always-loaded inventory.
 - The skill was a "FAQ skill" better expressed as inline `CLAUDE.md` rows.
 
-**Precedent.** qbt rejected `bp-repo-map` and `bp-build-verify` for this — content thin, overlapped with `CLAUDE.md` which loads every turn (`qbt-black-phone/.claude/docs/claude-architecture.md:256-258`).
+**Precedent.** repo-A rejected `<prefix>-repo-map` and `<prefix>-build-verify` for this — content thin, overlapped with `CLAUDE.md` which loads every turn (`production-repo-A/.claude/docs/claude-architecture.md:256-258`).
 
 **Mechanical steps:**
 
@@ -160,7 +160,7 @@ When the master is firing on too broad a surface, or an audit/convention checkli
 
 When a surface has **≥2 references** the agent should consult, deterministic path nudging starts to pay rent. Single-reference surfaces are better served by description matching alone — adding a nudge for one reference clutters the hook.
 
-Precedents: `jolly-phonics-apps/.claude/docs/claude-architecture.md:170-178` (defer `jolly-api` nudge); `madrosc-tlumu/.claude/docs/claude-architecture.md:141-145` (defer `tlumu-functions` nudge until 2+ refs).
+Precedents: `production-repo-B/.claude/docs/claude-architecture.md:170-178` (defer `<prefix>-api` nudge); `production-repo-C/.claude/docs/claude-architecture.md:141-145` (defer `<prefix>-functions` nudge until 2+ refs).
 
 **Mechanical steps:**
 
@@ -222,7 +222,7 @@ Two-pronged drift target: it must (a) match every artefact in `.claude/`, and (b
 
 **Also update whenever the architecture doc changes** in a way that contradicts what `CLAUDE.md` describes (e.g. you flipped a rejected-alternative entry into a `Decisions` row).
 
-Run `/<prefix>-audit-skills` after edits — drift scanner flags dead links. Precommit-auditor catches CLAUDE.md inconsistency on staged diffs that touch `.claude/**/*.md` or `CLAUDE.md` itself (`qbt-black-phone/.claude/agents/bp-precommit-auditor.md:120-122`).
+Run `/<prefix>-audit-skills` after edits — drift scanner flags dead links. Precommit-auditor catches CLAUDE.md inconsistency on staged diffs that touch `.claude/**/*.md` or `CLAUDE.md` itself (`production-repo-A/.claude/agents/<prefix>-precommit-auditor.md:120-122`).
 
 ---
 
@@ -262,9 +262,9 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** Master's `references/` holds `freezed.md`, `code-generation.md`, `components.md`, `strict-analysis.md`, `imports-and-formatting.md` — concerns that apply to any Dart authoring, not just the master's surface. Sister skills deep-link into the master.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:126` — `bp` originally documented as the master skill that "owns" Freezed / codegen / strict-analyzer / imports / design-system; the master became uber-skill firing on every techstack.
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:126` — `<prefix>` originally documented as the master skill that "owns" Freezed / codegen / strict-analyzer / imports / design-system; the master became uber-skill firing on every techstack.
 
-**Fix.** Lift cross-cutting Dart refs to `.claude/refs/<topic>.md`. Each consuming SKILL.md links from `See also`. Master keeps only what's truly master-specific (qbt kept `ffi-conventions.md`, `isar.md`).
+**Fix.** Lift cross-cutting Dart refs to `.claude/refs/<topic>.md`. Each consuming SKILL.md links from `See also`. Master keeps only what's truly master-specific (repo-A kept `ffi-conventions.md`, `isar.md`).
 
 ---
 
@@ -272,7 +272,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** Reference files (`imports-and-formatting.md`, `strict-analysis.md`, `naming-conventions.md`) describing rules `dart fix` / `dart format` / `utopia_lints` / the analyzer already block.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:126` — `imports-and-formatting.md` and `strict-analysis.md` were deleted; tools enforce mechanics, the refs were repeating tool output. Judgment calls (suppression policy, FFI-bindings exception) were inlined into `SKILL.md` §"Non-Negotiable Rules".
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:126` — `imports-and-formatting.md` and `strict-analysis.md` were deleted; tools enforce mechanics, the refs were repeating tool output. Judgment calls (suppression policy, FFI-bindings exception) were inlined into `SKILL.md` §"Non-Negotiable Rules".
 
 **Fix.** Delete the reference. Move *judgment calls* (suppression policy, exceptions) inline into `SKILL.md` §"Non-Negotiable Rules". Rule: if the analyzer/formatter would catch the violation, it does not need a markdown ref.
 
@@ -282,7 +282,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** `<prefix>-eng-manager.md` / `<prefix>-doc-auditor.md` agent that "audits the `.claude/` layer after feature work" using probabilistic heuristics.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:244` — "a probabilistic agent is strictly weaker than a script that always runs."
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:244` — "a probabilistic agent is strictly weaker than a script that always runs."
 
 **Fix.** Replace with `<prefix>_skills_drift.sh` (dead-link scanner that always runs) + `/<prefix>-audit-skills` (explicit invocation for full scan + guided repair). The precommit-auditor handles internal `CLAUDE.md` / `.claude/docs/` consistency.
 
@@ -292,7 +292,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** Multiple write-capable agents scoped to disjoint directories.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:222-223` — typical work is ticket-scoped single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (description-matching noise, heavier `/team` protocol, more drift surface) is paid every turn.
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:222-223` — typical work is ticket-scoped single-area; three-area cross-cutting features are infrequent. Parallelism payoff triggers on a small fraction of tasks; the cost (description-matching noise, heavier `/team` protocol, more drift surface) is paid every turn.
 
 **Fix.** Single cross-area `<prefix>-maintainer`. For genuine parallelism, batch multiple `Agent` calls in one assistant message. **Reversal criterion.** Sustained pattern of branches spanning ≥3 disjoint areas in a single PR.
 
@@ -302,9 +302,9 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** `SKILL.md` with frontmatter that matches a techstack, but `references/` is empty or contains a single pointer to `.claude/refs/`. Skill loads on description match and the agent reads nothing actionable.
 
-**Evidence.** `jolly-phonics-apps/.claude/docs/claude-architecture.md:138-141`; `madrosc-tlumu/.claude/docs/claude-architecture.md:122-124` — "skills with no applicability content fire wrongly and confuse the agent."
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:138-141`; `production-repo-C/.claude/docs/claude-architecture.md:122-124` — "skills with no applicability content fire wrongly and confuse the agent."
 
-**Fix.** Don't preempt. Defer the skill until there's real content. Legitimate exception: a primitive sister skill existing **only to legitimise a `.claude/refs/<contract>.md`** (jolly's `jolly-api` owns `proto-contract.md`). Record as deliberate decision in §"Skill split" with reversal criterion.
+**Fix.** Don't preempt. Defer the skill until there's real content. Legitimate exception: a primitive sister skill existing **only to legitimise a `.claude/refs/<contract>.md`** (repo-B's `<prefix>-api` owns `proto-contract.md`). Record as deliberate decision in §"Skill split" with reversal criterion.
 
 ---
 
@@ -312,9 +312,9 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** `<prefix>-<domain>-auditor` agent added because "this surface looks risky", with no recorded incident or threat-surface change.
 
-**Evidence.** `jolly-phonics-apps/.claude/docs/claude-architecture.md:148-152`; `madrosc-tlumu/.claude/docs/claude-architecture.md:75` — "no recent incident has cost enough to warrant a dedicated read-only pass."
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:148-152`; `production-repo-C/.claude/docs/claude-architecture.md:75` — "no recent incident has cost enough to warrant a dedicated read-only pass."
 
-**Fix.** Defer until incident or documented threat-surface change. Record candidate in §"Rejected alternatives" with reversal criterion. qbt's `bp-security-auditor` is the precedent for justified (DSKE FFI, ML-KEM, Supabase RLS, push-payload confidentiality — real adversarial surface).
+**Fix.** Defer until incident or documented threat-surface change. Record candidate in §"Rejected alternatives" with reversal criterion. repo-A's `<prefix>-security-auditor` is the precedent for justified (native FFI bindings, post-quantum KEM, Supabase RLS, push-payload confidentiality — real adversarial surface).
 
 ---
 
@@ -322,7 +322,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** Agent diffs show changes far outside stated scope — trailing commas flipped on hundreds of files, `prefer_const_*` cascades, `unnecessary_this` removals across untouched packages.
 
-**Evidence.** `jolly-phonics-apps/.claude/agents/jolly-maintainer.md:38-46` — "do NOT run `mcp__jolly-dart__dart_fix` as a mandatory step." `jolly-reviewer.md:42-44` — "project-wide `dart_fix` ran → **BLOCKER**."
+**Evidence.** `production-repo-B/.claude/agents/<prefix>-maintainer.md:38-46` — "do NOT run `mcp__<prefix>-dart__dart_fix` as a mandatory step." `<prefix>-reviewer.md:42-44` — "project-wide `dart_fix` ran → **BLOCKER**."
 
 **Fix.** Maintainer rule: `dart_format` on `files_touched` ONLY; never project-wide `dart_fix`. If you genuinely need auto-fix, invoke on a **single specific file** from `files_touched` and review the diff. Reviewer rule: project-wide `dart_fix` is a **BLOCKER**, not a warning.
 
@@ -332,7 +332,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** Agent edits Dart files in a worktree. Analyzer says "no issues". Hot reload doesn't show changes. Build keeps using the main repo's content.
 
-**Evidence.** `jolly-phonics-apps/.claude/skills/jolly/references/worktree-gotchas.md:9-20` — a worktree shares `.git/` but has its own working tree; with no `.dart_tool/`, `dart analyze` walks **up** and resolves `package:<x>/…` to the **main repo's** copy.
+**Evidence.** `production-repo-B/.claude/skills/<prefix>/references/worktree-gotchas.md:9-20` — a worktree shares `.git/` but has its own working tree; with no `.dart_tool/`, `dart analyze` walks **up** and resolves `package:<x>/…` to the **main repo's** copy.
 
 **Fix.** Pre-flight before any non-trivial Dart edit in a worktree:
 
@@ -350,17 +350,17 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** ~40GB+ resident memory by end of day. `ps aux | grep dart` shows multiple `dart mcp-server` / `dart language-server` processes with PPID 1 (orphaned).
 
-**Evidence.** `jolly-phonics-apps/.claude/scripts/dart_mcp_setup.sh:4-10` — each Claude Code session spawns its own `dart mcp-server`, which spawns a `dart language-server` (~2.5GB). Clean `/exit` cascades them; crashes orphan to init and accumulate.
+**Evidence.** `production-repo-B/.claude/scripts/dart_mcp_setup.sh:4-10` — each Claude Code session spawns its own `dart mcp-server`, which spawns a `dart language-server` (~2.5GB). Clean `/exit` cascades them; crashes orphan to init and accumulate.
 
-**Fix.** A `SessionStart` hook that (a) kills Claude top-level processes older than a threshold, (b) reaps orphaned `dart mcp-server` / `dart language-server` with `PPID == 1`, (c) warns to stderr when too many live sessions. Always exits 0. See jolly's `dart_mcp_setup.sh` for the template.
+**Fix.** A `SessionStart` hook that (a) kills Claude top-level processes older than a threshold, (b) reaps orphaned `dart mcp-server` / `dart language-server` with `PPID == 1`, (c) warns to stderr when too many live sessions. Always exits 0. See repo-B's `dart_mcp_setup.sh` for the template.
 
 ---
 
 ### J. AI-comment cruft (prompt-referencing, task-referencing, review-thread-referencing comments)
 
-**Symptom.** Comments like `// Added per user request for BP-2025-180`, `// FIXME from the review feedback`, `// AI-generated layout for the new flow`.
+**Symptom.** Comments like `// Added per user request for <TASK-ID>`, `// FIXME from the review feedback`, `// AI-generated layout for the new flow`.
 
-**Evidence.** `qbt-black-phone/.claude/agents/bp-maintainer.md:170-189`; `jolly-phonics-apps/.claude/agents/jolly-maintainer.md:144-164`; `jolly-reviewer.md:45-48` — same rule, verbatim in three places: "if the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it."
+**Evidence.** `production-repo-A/.claude/agents/<prefix>-maintainer.md:170-189`; `production-repo-B/.claude/agents/<prefix>-maintainer.md:144-164`; `<prefix>-reviewer.md:45-48` — same rule, verbatim in three places: "if the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it."
 
 **Fix.** Inline `//` for genuine WHY (subtle invariants, workarounds); `///` for public API doc; never for narrating WHAT or referencing the prompt. Reviewer rule: WARN-grade; strip before merge. Precommit-auditor surfaces these as COMMIT-FIX-FIRST when staged.
 
@@ -370,7 +370,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** Reviewer's report quotes maintainer's reasoning ("the maintainer mentioned this was intentional because…") instead of verifying from the diff. BLOCKER findings get downgraded because "the maintainer explained why".
 
-**Evidence.** `jolly-phonics-apps/.claude/agents/jolly-maintainer.md:222-227` — "when `/jolly-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch."
+**Evidence.** `production-repo-B/.claude/agents/<prefix>-maintainer.md:222-227` — "when `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch."
 
 **Fix.** `/<prefix>-implement` passes the reviewer only `files_touched`, `proposed_commit_message`, `baseline_analyze` — NOT the maintainer's warnings, observations, or reasoning. Maintainer rule: anything the reviewer needs to know goes into the code or a code comment, not a hint.
 
@@ -380,9 +380,9 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** Single skill description matches files across three or four techstacks. Agent loads the skill on a Kotlin file edit; skill is mostly Dart conventions; agent gets misleading context.
 
-**Evidence.** `jolly-phonics-apps/.claude/docs/claude-architecture.md:122-126`; `madrosc-tlumu/.claude/docs/claude-architecture.md:114-117` — "three techstacks share no real conventions; applicability scope becomes 'everywhere relevant' — a router-in-disguise."
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:122-126`; `production-repo-C/.claude/docs/claude-architecture.md:114-117` — "three techstacks share no real conventions; applicability scope becomes 'everywhere relevant' — a router-in-disguise."
 
-**Fix.** Split by techstack. Each skill gets explicit positive + negative applicability; negative scope must name what's NOT covered (`NOT classroom-api/ (Kotlin)`; `NOT functions/ (TS)`). Description matching now picks the right skill per file type.
+**Fix.** Split by techstack. Each skill gets explicit positive + negative applicability; negative scope must name what's NOT covered (`NOT <area-backend>/ (Kotlin)`; `NOT functions/ (TS)`). Description matching now picks the right skill per file type.
 
 ---
 
@@ -390,7 +390,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** `CLAUDE.md` describes a skill/agent/command that doesn't exist under `.claude/`, or vice versa.
 
-**Evidence.** `qbt-black-phone/.claude/agents/bp-precommit-auditor.md:120-122` — "CLAUDE.md / `.claude/docs/` edits must keep CLAUDE.md internally consistent. Flag mismatches. **COMMIT-FIX-FIRST**."
+**Evidence.** `production-repo-A/.claude/agents/<prefix>-precommit-auditor.md:120-122` — "CLAUDE.md / `.claude/docs/` edits must keep CLAUDE.md internally consistent. Flag mismatches. **COMMIT-FIX-FIRST**."
 
 **Fix.** Precommit-auditor checks CLAUDE.md internal consistency on staged diffs that touch `.claude/**/*.md` or `CLAUDE.md`. `<prefix>_skills_drift.sh` catches dead markdown links. Run `/<prefix>-audit-skills` periodically. Every `.claude/` artefact change ends with "and update `CLAUDE.md` inventory" — non-optional.
 
@@ -400,7 +400,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** Thin SKILL.md files named after meta-concerns — `<prefix>-repo-map.md`, `<prefix>-build-verify.md`, `<prefix>-conventions-overview.md`. Content is mostly inventory tables.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:256-258` — "content thin and overlaps with `CLAUDE.md`. `CLAUDE.md` loads on every turn; the skill would only load on description match. Inlining makes it unconditionally available at lower context cost."
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:256-258` — "content thin and overlaps with `CLAUDE.md`. `CLAUDE.md` loads on every turn; the skill would only load on description match. Inlining makes it unconditionally available at lower context cost."
 
 **Fix.** Inline into `CLAUDE.md` (Topology, Skills inventory, Common commands). `CLAUDE.md` stays tight by linking deep content to skills, not by hosting it.
 
@@ -410,7 +410,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** `.claude/scripts/<prefix>_git_push_guard.sh` registered as `PreToolUse` on `Bash`, parsing commands and blocking `git push`.
 
-**Evidence.** `jolly-phonics-apps/.claude/docs/claude-architecture.md:108-113` — push protection delegated to (a) `permissions.allow` deliberately excluding `git push` (every push prompts), (b) GitHub branch protection on `master` / `staging`. A `PreToolUse` push-guard was removed as redundant.
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:108-113` — push protection delegated to (a) `permissions.allow` deliberately excluding `git push` (every push prompts), (b) GitHub branch protection on `master` / `staging`. A `PreToolUse` push-guard was removed as redundant.
 
 **Fix.** Delete the `PreToolUse` push-guard. **Reintroduce only in a repo that has neither layer.** Canonical statement in [enforcement-hooks.md](enforcement-hooks.md).
 
@@ -420,7 +420,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** Agent prompts reference `mcp__<server>__<tool>` calls; permissions allowlist has `mcp__<server>__*` entries; agent fallback tables list "MCP preferred / bash fallback" for a server the repo never declared in `.mcp.json`.
 
-**Evidence.** `madrosc-tlumu/.claude/docs/claude-architecture.md:147-152` — "listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model."
+**Evidence.** `production-repo-C/.claude/docs/claude-architecture.md:147-152` — "listing permissions for a server that isn't installed pollutes the allowlist; agent prompts referencing absent tools confuse the model."
 
 **Fix.** Pre-flight: before listing an MCP permission or referencing an MCP tool, verify the server is declared in `.mcp.json` or the user's MCP config. If absent, don't reference it. Reversal: when `mcp.json` lands the entry, wire MCP-preferred / bash-fallback throughout.
 
@@ -430,7 +430,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** A write-capable `<prefix>-release-manager` agent with submodule tables, remote URLs, tag procedure, version-bump commands. Loads on every description match for "release"; invocations are once a month at best.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:235-237` — "release cadence is low. Agent cost is amortized over too few invocations. A playbook skill loads on demand, has the same information, and doesn't compete with domain skills for description matching."
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:235-237` — "release cadence is low. Agent cost is amortized over too few invocations. A playbook skill loads on demand, has the same information, and doesn't compete with domain skills for description matching."
 
 **Fix.** Write a release-playbook **skill** (`<prefix>/references/release-playbook.md` or a sister skill if large). Loads on demand via description match on "release" + path context. **Reversal criterion.** Release cadence becomes weekly with a mechanical workflow.
 
@@ -440,7 +440,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** `.claude/commands/<prefix>-review.md` that does nothing except invoke `<prefix>-reviewer`. Or `/<prefix>-plan` invoking `<prefix>-architect` directly.
 
-**Evidence.** `qbt-black-phone/.claude/docs/claude-architecture.md:249-251` — "the reviewer agent is the entire value; the wrapper adds a layer and splits context. Direct invocation by name gives subagent isolation with a clean context and no wrapper overhead."
+**Evidence.** `production-repo-A/.claude/docs/claude-architecture.md:249-251` — "the reviewer agent is the entire value; the wrapper adds a layer and splits context. Direct invocation by name gives subagent isolation with a clean context and no wrapper overhead."
 
 **Fix.** Slash commands are for **orchestration** (multi-step, fan-out, conditional flow). For single-agent invocations, rely on description matching and `@<agent-name>`. **Reversal criterion.** Review routinely needs to fan out to multiple read-only specialists in parallel.
 
@@ -450,7 +450,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** A `case` branch in `<prefix>_quality_check.sh` that surfaces a skill name on path match, but the surfaced skill has no `references/` content — the agent reads `SKILL.md` ("see references for…") and finds nothing.
 
-**Evidence.** `jolly-phonics-apps/.claude/docs/claude-architecture.md:170-178`; `madrosc-tlumu/.claude/docs/claude-architecture.md:141-145` — "adding a nudge that points at 'no content yet' wastes a hook firing."
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:170-178`; `production-repo-C/.claude/docs/claude-architecture.md:141-145` — "adding a nudge that points at 'no content yet' wastes a hook firing."
 
 **Fix.** **≥2-references rule** for adding a path nudge (§5.1). Description matching alone handles primitives.
 
@@ -571,7 +571,7 @@ done
 
 ### Treating one of these symptoms as "always wrong"
 
-Most symptoms are wrong-by-default with explicit reversal criteria. qbt **did** add `bp-security-auditor` (F reversed); qbt **does** maintain a release playbook as a *skill* (Q non-reversed). Read the linked entry.
+Most symptoms are wrong-by-default with explicit reversal criteria. repo-A **did** add `<prefix>-security-auditor` (F reversed); repo-A **does** maintain a release playbook as a *skill* (Q non-reversed). Read the linked entry.
 
 ### Removing a §"Rejected alternatives" entry because "we've confirmed it's wrong"
 
@@ -632,12 +632,12 @@ If `.claude/refs/freezed.md` and `<prefix>/references/freezed.md` both exist (or
 - [claude-md.md](claude-md.md) — what stays in `CLAUDE.md` vs graduates
 - [bootstrap-procedure.md](bootstrap-procedure.md) — creating the layer from scratch
 - Source documents (the precedent corpus):
-  - `qbt-black-phone/.claude/docs/claude-architecture.md`
-  - `jolly-phonics-apps/.claude/docs/claude-architecture.md`
-  - `madrosc-tlumu/.claude/docs/claude-architecture.md`
-  - `qbt-black-phone/.claude/agents/bp-maintainer.md`
-  - `jolly-phonics-apps/.claude/agents/jolly-maintainer.md`
-  - `jolly-phonics-apps/.claude/agents/jolly-reviewer.md`
-  - `jolly-phonics-apps/.claude/scripts/dart_mcp_setup.sh`
-  - `jolly-phonics-apps/.claude/skills/jolly/references/worktree-gotchas.md`
+  - `production-repo-A/.claude/docs/claude-architecture.md`
+  - `production-repo-B/.claude/docs/claude-architecture.md`
+  - `production-repo-C/.claude/docs/claude-architecture.md`
+  - `production-repo-A/.claude/agents/<prefix>-maintainer.md`
+  - `production-repo-B/.claude/agents/<prefix>-maintainer.md`
+  - `production-repo-B/.claude/agents/<prefix>-reviewer.md`
+  - `production-repo-B/.claude/scripts/dart_mcp_setup.sh`
+  - `production-repo-B/.claude/skills/<prefix>/references/worktree-gotchas.md`
   - blueprint `conventions/pattern-style.md`, `conventions/cheatsheet-style.md`

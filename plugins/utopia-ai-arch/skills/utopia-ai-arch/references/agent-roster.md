@@ -69,7 +69,7 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 - "Surface blockers back to the planner; do not invent design decisions."
 - "Generated files … are regenerated, not edited. The hook hard-blocks edits — do not work around it."
 - "Stay within the architect's scope. If a change requires touching surfaces outside the plan, surface it instead of expanding silently."
-- **Reviewer-facing rule:** "If you find yourself writing 'the reviewer should be OK with this because X', that X belongs in the code or in a warning, not as a hint to the reviewer." (jolly-maintainer.md:225-227)
+- **Reviewer-facing rule:** "If you find yourself writing 'the reviewer should be OK with this because X', that X belongs in the code or in a warning, not as a hint to the reviewer." (<prefix>-maintainer.md:225-227)
 - **`dart_fix` discipline:** never run `mcp__<repo>-dart__dart_fix` project-wide as a mandatory step. It bulldozes the user's WIP. Run only on a narrow set of files in the change.
 
 **Self-report shape — REQUIRED, parsed by `/<prefix>-implement`** (handed to the main context — NOT to the reviewer):
@@ -85,9 +85,9 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 ## out_of_scope_observations  — for the main context only, NOT the reviewer
 ```
 
-> "When `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch, not from your reasoning." (`jolly-maintainer.md:222-227`)
+> "When `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch, not from your reasoning." (`<prefix>-maintainer.md:222-227`)
 
-**This is a contract, not a suggestion.** The orchestrator slash command (`/<prefix>-implement`) parses these section headers to (a) extract `files_touched` + `commit_message_draft` + `analyze` for the reviewer's fresh-context input, and (b) surface `warnings` + `out_of_scope_observations` to the user. A maintainer that returns free-form prose breaks the loop. Production precedents: `jolly-maintainer.md:192-220`, `tlumu-maintainer.md:99-129`. The maintainer template at [`../templates/claude-layer/agents/REPO-maintainer.md`](../templates/claude-layer/agents/REPO-maintainer.md) includes this block — preserve it verbatim during substitution.
+**This is a contract, not a suggestion.** The orchestrator slash command (`/<prefix>-implement`) parses these section headers to (a) extract `files_touched` + `commit_message_draft` + `analyze` for the reviewer's fresh-context input, and (b) surface `warnings` + `out_of_scope_observations` to the user. A maintainer that returns free-form prose breaks the loop. Production precedents: `<prefix>-maintainer.md:192-220`, `<prefix>-maintainer.md:99-129`. The maintainer template at [`../templates/claude-layer/agents/REPO-maintainer.md`](../templates/claude-layer/agents/REPO-maintainer.md) includes this block — preserve it verbatim during substitution.
 
 ### 3. `<prefix>-reviewer` — Post-implementation reviewer (read-only)
 
@@ -102,8 +102,8 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 
 **Invariants:**
 
-- Read-only: "Do not edit product code." (`jolly-reviewer.md:110-111`)
-- **Blockers must cite a skill rule.** "If you cannot point to a non-negotiable rule in `<prefix>` or `utopia-hooks`, downgrade to WARN." (`jolly-reviewer.md:123-124`)
+- Read-only: "Do not edit product code." (`<prefix>-reviewer.md:110-111`)
+- **Blockers must cite a skill rule.** "If you cannot point to a non-negotiable rule in `<prefix>` or `utopia-hooks`, downgrade to WARN." (`<prefix>-reviewer.md:123-124`)
 - "Do not invent fixes that aren't grounded in a skill or foundation rule."
 - "Do not duplicate the precommit auditor's job — your scope is correctness and convention, not commit-readiness hygiene."
 - **Independence is the reviewer's only superpower** — does not see the maintainer's self-report, reasoning, or warnings.
@@ -157,7 +157,7 @@ model: inherit
 
 ## Description-as-router
 
-> "Description as router. Frontmatter `description` is the only signal for auto-invocation — written as *WHEN to apply*, not *WHAT I am*." — `qbt-black-phone/.claude/docs/claude-architecture.md:67-70`
+> "Description as router. Frontmatter `description` is the only signal for auto-invocation — written as *WHEN to apply*, not *WHAT I am*." — `production-repo-A/.claude/docs/claude-architecture.md:67-70`
 
 ❌ `description: "Reviews code for correctness and conventions."` (WHAT)
 ✅ `description: "Use after maintainer completes a change set — diff review against <prefix> + utopia-hooks rules; produces BLOCKER / WARN / NIT."` (WHEN)
@@ -173,9 +173,9 @@ The default is **four**. Adding a fifth agent requires a written justification i
 - The project's primary risk surface is **crypto, native FFI, RLS / multi-tenant data isolation, push-payload confidentiality, or auth**
 - AND there's a recent incident OR a documented threat-surface rationale that says "the standard reviewer doesn't catch this"
 
-**Precedent (DO add):** qbt's `bp-security-auditor` for E2E messaging — DSKE FFI, ML-KEM, Supabase RLS bypass risk. All four other agents route to it for security-sensitive paths. (`qbt-black-phone/.claude/docs/claude-architecture.md:121`)
+**Precedent (DO add):** repo-A's `<prefix>-security-auditor` for E2E messaging — native FFI bindings, post-quantum KEM, Supabase RLS bypass risk. All four other agents route to it for security-sensitive paths. (`production-repo-A/.claude/docs/claude-architecture.md:121`)
 
-**Precedent (DO NOT add):** jolly and tlumu both considered domain auditors and rejected them. "No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today." (`jolly-phonics-apps/.claude/docs/claude-architecture.md:148-152`)
+**Precedent (DO NOT add):** repo-B and repo-C both considered domain auditors and rejected them. "No recent incident has cost enough to warrant a dedicated read-only pass. The standard reviewer + precommit auditor cover these surfaces today." (`production-repo-B/.claude/docs/claude-architecture.md:148-152`)
 
 **Reversal criterion:** A real cost-bearing incident, or a clearly-out-of-scope audit checklist that the reviewer can't carry without bloating its prompt.
 
@@ -184,9 +184,9 @@ The default is **four**. Adding a fifth agent requires a written justification i
 - ≥3-area PRs in a single branch are **routine**, not occasional
 - AND the parallelism payoff outweighs the description-matching noise across a larger roster
 
-**Precedent (rejected):** qbt tried four per-area maintainers (`bp-phone-maintainer`, `bp-core-maintainer`, `bp-backend-maintainer`, `bp-messaging-maintainer`). Reverted.
+**Precedent (rejected):** repo-A tried four per-area maintainers (`<prefix>-area1-maintainer`, `<prefix>-area2-maintainer`, `<prefix>-area3-maintainer`, `<prefix>-area4-maintainer`). Reverted.
 
-> "Typical work is ticket-scoped and single-area. … Parallelism payoff triggers on a small fraction of tasks, while the cost — noisier description-matching across a larger roster, heavier `/bp-team` protocol, higher onboarding surface, more to audit for drift — is paid on every turn." — `qbt-black-phone/.claude/docs/claude-architecture.md:222-223`
+> "Typical work is ticket-scoped and single-area. … Parallelism payoff triggers on a small fraction of tasks, while the cost — noisier description-matching across a larger roster, heavier `/<prefix>-team` protocol, higher onboarding surface, more to audit for drift — is paid on every turn." — `production-repo-A/.claude/docs/claude-architecture.md:222-223`
 
 **The "parallel" alternative without splitting maintainers:** batch multiple `Agent` calls to `<prefix>-maintainer` in a single assistant message — one per disjoint chunk. The architect's plan splits the work; the orchestrator fans out.
 
@@ -194,13 +194,13 @@ The default is **four**. Adding a fifth agent requires a written justification i
 
 The code↔review loop *requires* a write side. Removing the maintainer to make every Agent invocation predictable breaks the orchestration model and forces ad-hoc `general-purpose` subagents that lack preloaded skills.
 
-> "Ad-hoc `general-purpose` subagents work but lack preloaded domain skills, so each invocation pays a context warm-up cost the blueprint avoids by design." — `qbt-black-phone/.claude/docs/claude-architecture.md:227-231`
+> "Ad-hoc `general-purpose` subagents work but lack preloaded domain skills, so each invocation pays a context warm-up cost the blueprint avoids by design." — `production-repo-A/.claude/docs/claude-architecture.md:227-231`
 
 ### Do NOT add hygiene / doc-drift / "eng-manager" agents.
 
 The primary failure mode (dead links, stale SKILL.md) is caught **deterministically** by `<prefix>_skills_drift.sh` + `/<prefix>-audit-skills`. A probabilistic agent is strictly weaker than a script that always runs.
 
-> "A probabilistic agent is strictly weaker than a script that always runs." — `qbt-black-phone/.claude/docs/claude-architecture.md:244`
+> "A probabilistic agent is strictly weaker than a script that always runs." — `production-repo-A/.claude/docs/claude-architecture.md:244`
 
 ### Do NOT add release-playbook agents for low-cadence procedures.
 
@@ -221,10 +221,10 @@ Every agent body, in this order:
 
 ## Comment-style block (maintainer / reviewer / auditor)
 
-The qbt and jolly maintainers inline a comment-style section. It is repeated in the reviewer and precommit-auditor to make the rule independently enforceable. Verbatim core rules:
+The repo-A and repo-B maintainers inline a comment-style section. It is repeated in the reviewer and precommit-auditor to make the rule independently enforceable. Verbatim core rules:
 
-- "If the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it." (`bp-maintainer.md:188-189`)
-- Always-bad examples (treat as BLOCK in review): `// Added per user request for BP-2025-180`, `// FIXME from the review feedback`, `// This handles the case where Ben mentioned in Slack`, `// Removed the bool flag — see commit`, `// AI-generated layout for the new flow`.
+- "If the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it." (`<prefix>-maintainer.md:188-189`)
+- Always-bad examples (treat as BLOCK in review): `// Added per user request for <TASK-ID>`, `// FIXME from the review feedback`, `// This handles the case where Ben mentioned in Slack`, `// Removed the bool flag — see commit`, `// AI-generated layout for the new flow`.
 - Inline `//` for genuine WHY (subtle invariants, workarounds for specific bugs); `///` for public API doc comments; never for narrating WHAT the code does or referencing the prompt.
 
 ## Anti-patterns
