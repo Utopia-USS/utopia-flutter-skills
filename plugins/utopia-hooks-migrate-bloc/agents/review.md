@@ -118,6 +118,13 @@ grep -nE 'BuildContext|Overlay\.|MediaQuery\.|showSnackBar|ScaffoldMessenger' <s
 grep -nE '^final (Map|List|Set)\b|^(int|bool|double|String|DateTime\??) [a-zA-Z_]+ *=' <state_files>
 ```
 
+Also flag indented mutable collections (State class fields, hook-body locals) — per
+flutter-conventions §2 use `IList` / `IMap` / `ISet` from `fast_immutable_collections`:
+
+```bash
+grep -nE '^[[:space:]]+final[[:space:]]+(Map|List|Set)<' <state_files>
+```
+
 ### E. Screen discipline (Phase 3 Screen file)
 
 The Screen (HookWidget) must be thin — only calls `useXScreenState(...)` and passes to View:
@@ -340,7 +347,7 @@ Concrete apply-mechanics:
 
 **Skip if:** migration is Simple (≤10 methods, no streams, no lifecycle) AND none of the §G mandatory triggers fired. Post-migration bloat is a Complex-screen phenomenon in the default case, but a bloated "Simple" screen is itself suspect — re-examine.
 
-**How to run:** load `references/post-migration-refactor-checklist.md` and walk the 12 anti-patterns (§A1–A4, §B1–B2, §C1–C3, §D1–D2, §E1) against `files_touched`. Each anti-pattern has a grep-shape in the checklist. Report each hit with the anti-pattern ID, file/line, and the fix pattern name from the checklist.
+**How to run:** load `references/post-migration-refactor-checklist.md` and walk the 14 anti-patterns (§A1–A4, §B1–B2, §C1–C5, §D1–D2, §E1) against `files_touched`. Each anti-pattern has a grep-shape in the checklist. Report each hit with the anti-pattern ID, file/line, and the fix pattern name from the checklist.
 
 **Report shape** (added to output, see § "Output" below):
 
