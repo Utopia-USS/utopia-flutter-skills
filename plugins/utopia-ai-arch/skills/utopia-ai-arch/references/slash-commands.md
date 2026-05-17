@@ -341,17 +341,7 @@ Raw arguments: `$ARGUMENTS`
 
 ## Anti-patterns
 
-### Slash-command wrapper around a single agent
-
-❌ `/<prefix>-review` that just delegates to `<prefix>-reviewer`.
-❌ `/<prefix>-plan` in a repo where it would only delegate to `<prefix>-architect` with no domain auditors brought in, no STOP gate.
-
-**Why.** Direct agent invocation auto-loads the agent via `description:` matching with subagent isolation for free. The slash wrapper adds:
-- A second naming surface (users must remember the slash AND the agent)
-- A second drift target (the wrapper may go stale relative to the agent's prompt)
-- Zero new orchestration
-
-> "Plain agent-aliases (`/<repo>-plan` → architect) are not added. Description matching auto-loads the architect when the user asks for a plan; the slash adds a layer for no benefit." — blueprint `README.md:234-237`
+(Symptoms common across the whole layer — wrapper-around-single-agent, `dart_fix` bulldoze, reviewer leakage — live in [evolution-and-drift.md](evolution-and-drift.md) §R, §G, §K. Below: only the slash-command-specific ones.)
 
 ### Slash command that commits or pushes automatically
 
@@ -361,64 +351,27 @@ Raw arguments: `$ARGUMENTS`
 
 The user decides when to commit; `/<prefix>-audit` is the gate. The only command that does commit/push is `/<prefix>-ship` — and it has a mandatory STOP gate before doing so.
 
-### Slash command passing maintainer self-report to reviewer
-
-❌ Reviewer prompt that includes `"the maintainer reports analyze is clean and warns about Y…"`.
-
-The reviewer must re-verify from scratch. Leaking the maintainer's narrative collapses independence into approval-by-narration. See "Reviewer-fresh-context discipline" above.
-
 ### Retry loop without a cap
 
-❌ `while reviewer.has_blockers(): maintainer.retry()`.
-
-**Why bad.** Reviewer thrash. Two careful attempts not resolving = scope is wrong or rule is ambiguous; that needs a human, not a third agent round. The cap is exactly 2 across all production commands.
+❌ `while reviewer.has_blockers(): maintainer.retry()`. Reviewer thrash. Two careful attempts not resolving = scope is wrong or rule is ambiguous; that needs a human, not a third agent round. The cap is exactly 2 across all production commands.
 
 ### Allowing retry to expand scope
 
-❌ Retry prompt that says "fix the BLOCKERS and feel free to clean up adjacent code".
-
-> "Scope stays constant across retries. Retry is for fixing the maintainer's mistakes against the existing scope — not for expanding scope." — `jolly-implement.md:28-30`
-
-Scope-creep on retry produces a moving target the reviewer can't pin down — every retry introduces new surface, the reviewer flags it, you loop. The retry prompt MUST include "Do NOT widen scope beyond the original request" and pass only the reviewer's BLOCKERS verbatim.
+❌ Retry prompt that says "fix the BLOCKERS and feel free to clean up adjacent code". Scope-creep on retry produces a moving target the reviewer can't pin down. The retry prompt MUST include "Do NOT widen scope beyond the original request" and pass only the reviewer's BLOCKERS verbatim (`jolly-implement.md:28-30`).
 
 ### Project-specific command added without a recurring workflow
 
-❌ Adding `/<prefix>-design` to a repo with no paper.design / claude.design / Figma pipeline.
-❌ Adding `/<prefix>-ship` to a repo with no Linear / ClickUp / Jira.
-❌ Adding `/<prefix>-team` to a repo where cross-cutting work spanning ≥3 areas happens once a quarter.
+❌ `/<prefix>-design` in a repo with no paper.design / Figma; `/<prefix>-ship` with no Linear / ClickUp / Jira; `/<prefix>-team` where cross-cutting work spanning ≥3 areas happens once a quarter.
 
-**Why bad.** Slash command sprawl. Each added command:
-- Pollutes the `/`-prefix namespace (the user must remember more)
-- Adds drift target (the command goes stale)
-- Pays maintenance for no recurring benefit
-
-The justification lives in `claude-architecture.md` §"Slash commands". If you can't write the justification, the command shouldn't exist.
+Slash command sprawl pays maintenance for no recurring benefit. The justification lives in `claude-architecture.md` §"Slash commands". If you can't write it, the command shouldn't exist.
 
 ### Over-broad `allowed-tools`
 
-❌ `allowed-tools: Task, Read, Edit, Write, MultiEdit, Bash, Glob, Grep` on `/<prefix>-audit`.
-
-The audit command needs only `Task` — one subagent invocation. Listing `Edit` / `Write` / `MultiEdit` gives the orchestrator latitude to "fix things on the way" — which is the auto-fix anti-pattern the audit explicitly forbids.
-
-> "**Do not modify the diff.** This command is read-only. The user fixes; we re-audit." — `bp-audit.md:50-52`
-
-Match `allowed-tools` to the command's actual needs. Tighter allowlist = tighter determinism.
-
-### `dart_fix` in the retry prompt
-
-❌ Retry prompt that tells the maintainer to run `dart fix --apply` project-wide.
-
-> "Re-run output hygiene (`mcp__<prefix>-dart__dart_format` on `files_touched` only — do NOT run `dart_fix`, it bulldozes unrelated files and conflicts with the user's WIP)." — `jolly-implement.md:207-209`
-
-Project-wide `dart fix --apply` collides with the user's WIP and produces noise in the diff the reviewer can't classify. Scope to `files_touched`. See [evolution-and-drift.md](evolution-and-drift.md) for the precedent.
+❌ `allowed-tools: Task, Read, Edit, Write, MultiEdit, Bash, Glob, Grep` on `/<prefix>-audit`. The audit command needs only `Task`. Listing `Edit` / `Write` / `MultiEdit` gives the orchestrator latitude to "fix things on the way" — which is the auto-fix anti-pattern the audit explicitly forbids (`bp-audit.md:50-52`). Match `allowed-tools` to actual needs.
 
 ### Multiple parallel writers
 
-❌ Spinning up `general-purpose` write-capable subagents alongside the maintainer for "throughput".
-
-> "Do not spin up `general-purpose` write-capable subagents — use the maintainer." — `bp-implement.md:53-54`
-
-The maintainer is the only writer in the roster on purpose. Ad-hoc subagents lack preloaded skills and pay context warm-up on each invocation. If parallelism matters, batch multiple `Agent` calls to **`<prefix>-maintainer`** in a single assistant message — disjoint chunks, one call each.
+❌ Spinning up `general-purpose` write-capable subagents alongside the maintainer for "throughput". The maintainer is the only writer in the roster on purpose; ad-hoc subagents lack preloaded skills and pay context warm-up on each invocation. For parallelism, batch multiple `Agent` calls to **`<prefix>-maintainer`** in a single assistant message — disjoint chunks, one call each (`bp-implement.md:53-54`).
 
 ## See also
 

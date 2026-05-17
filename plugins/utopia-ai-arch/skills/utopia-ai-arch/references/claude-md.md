@@ -425,49 +425,31 @@ Cross-link to [evolution-and-drift.md](evolution-and-drift.md) for the catalogue
 
 ## Anti-patterns
 
+(AGENTS.md drift to a copy is [evolution-and-drift.md](evolution-and-drift.md) symptom + canonical fix at §"The AGENTS.md symlink" above. MCP-not-installed copy-paste is §P. Below: CLAUDE.md-specific.)
+
 ### CLAUDE.md restating Screen/State/View, IList rules, hook idioms
 
-Foundation territory. Restating it makes the foundation feel optional. The cross-link to `utopia-hooks` is the contract — restatement is silent divergence.
-
-**Fix:** delete the restatement. Add (or keep) the single `## Foundation` paragraph that points at utopia-hooks. The agent loads the foundation skill on every Dart edit; that's where the content lives.
+Foundation territory. Restating makes the foundation feel optional; the cross-link to `utopia-hooks` is the contract — restatement is silent divergence. **Fix:** delete the restatement; keep the single `## Foundation` paragraph pointing at utopia-hooks.
 
 ### CLAUDE.md containing module-level user flows
 
-A "How activities work" or "Game flow lifecycle" section deep in `CLAUDE.md` is module-ref material. It belongs in `skills/<prefix>/references/<feature>-module.md`.
-
-**Fix:** lift the prose to a module ref; add a "When to Invoke" row routing to it.
-
-### AGENTS.md as a copy of CLAUDE.md
-
-Two files, two truths, silent drift. The qbt precedent (a copy where the symlink should be — 16574 bytes of regular file, 2 lines already diverged from CLAUDE.md) is the canonical example.
-
-**Fix:** `rm AGENTS.md && ln -s CLAUDE.md AGENTS.md && git add AGENTS.md`.
+A "How activities work" / "Game flow lifecycle" section deep in `CLAUDE.md` is module-ref material — belongs in `skills/<prefix>/references/<feature>-module.md`. **Fix:** lift to a module ref; add a "When to Invoke" row routing to it.
 
 ### "When to Invoke" table missing rows for newly-added skills/agents
 
-The new skill exists but the routing table doesn't mention it. The agent's auto-routing falls back to description matching alone — fine for some skills, brittle for path-tight ones.
-
-**Fix:** every new skill / agent / command lands with at least one "When to Invoke" row added in the same change. Add a self-audit checklist entry to enforce.
+The new skill exists but the routing table doesn't mention it. Auto-routing falls back to description matching alone — fine for some skills, brittle for path-tight ones. **Fix:** every new skill / agent / command lands with at least one "When to Invoke" row in the same change.
 
 ### Common Commands table with commands that don't actually work in this repo
 
-Copy-paste from another repo's `CLAUDE.md` is the usual cause. `melos bootstrap` in a repo without melos. `fvm dart` in a repo without FVM. `mcp__<repo>-dart__analyze_files` in a repo where the MCP isn't installed.
-
-**Fix:** every command in the table is run-verified before landing the table edit. Cross-check against the architecture doc's §"Toolchain canon" and §"MCP assumption".
+`melos bootstrap` in a repo without melos. `fvm dart` in a repo without FVM. `mcp__<repo>-dart__*` in a repo where the MCP isn't installed. **Fix:** every command in the table is run-verified before landing the edit; cross-check against §"Toolchain canon" and §"MCP assumption" in the architecture doc.
 
 ### Long CLAUDE.md (>~300 lines)
 
-Content has leaked from references. The agent's top-of-context budget is finite; bloating CLAUDE.md pushes useful context out.
-
-**Fix:** scan the longest section; if it's not an inventory or routing table, the content moves to a skill reference. The CLAUDE.md row becomes a one-line pointer.
+Content has leaked from references. Top-of-context budget is finite; bloating CLAUDE.md pushes useful context out. **Fix:** scan the longest section; if it's not inventory/routing, move it to a skill reference and replace with a one-line pointer.
 
 ### Repeating the architecture doc
 
-The architecture doc is the decision log. CLAUDE.md isn't the place to re-explain rejected alternatives or reversal criteria. The §"Architecture decisions" section in CLAUDE.md is one paragraph pointing at the architecture doc — not a summary.
-
-**Fix:** strip CLAUDE.md's `## Architecture decisions` section to one pointer paragraph (tlumu / jolly precedents):
-
-> "See `.claude/docs/claude-architecture.md` — skill split rationale, enforcement mode, agent roster choices, rejected alternatives, reversal criteria, toolchain canon." — `madrosc-tlumu/CLAUDE.md:87-89`
+CLAUDE.md isn't the place to re-explain rejected alternatives or reversal criteria. The §"Architecture decisions" section is one paragraph pointing at the architecture doc, not a summary (`madrosc-tlumu/CLAUDE.md:87-89`).
 
 ## See also
 

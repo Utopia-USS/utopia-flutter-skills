@@ -229,21 +229,15 @@ The qbt and jolly maintainers inline a comment-style section. It is repeated in 
 
 ## Anti-patterns
 
+(Cross-layer drift — reviewer leakage from maintainer self-report, slash-wrapping a single agent, per-area maintainers, AI-cruft comments — lives in [evolution-and-drift.md](evolution-and-drift.md) §K, §R, §D, §J. Below: roster-specific.)
+
 ### Architect implementing
 
 The architect plans. If you find an architect's plan returns "I made the changes," the agent's scope is broken. Read-only tools (`Read, Grep, Glob, Bash`) enforce this at the tool level.
 
-### Reviewer leakage from maintainer self-report
-
-The orchestrator (`/<prefix>-implement`) is responsible for withholding the maintainer's self-report from the reviewer. If your orchestrator passes both, the reviewer's independence collapses into approval-by-narration. See [slash-commands.md](slash-commands.md).
-
 ### "Just one more agent" creep
 
 Each agent adds description-matching noise. Every new agent should have a §"Agent roster" entry in `claude-architecture.md` justifying its existence. If you can't write the justification, the agent shouldn't exist.
-
-### Slash-wrapping a single agent
-
-`/<prefix>-review` that just calls `<prefix>-reviewer` adds nothing. Direct agent invocation gives subagent isolation for free and avoids context fragmentation. The reviewer wraps in [slash-commands.md](slash-commands.md) is `/<prefix>-implement` because the loop *is* the orchestration.
 
 ### Frontmatter without `model: inherit`
 

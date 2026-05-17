@@ -323,59 +323,27 @@ The architecture doc's job is to be **short** and **decision-dense**. Tlumu's is
 
 ## Anti-patterns
 
+(For drift symptoms common across the layer — deleting rejected entries, MCP-not-installed, toolchain ambiguity — see [evolution-and-drift.md](evolution-and-drift.md). Below: only the architecture-doc-specific ones.)
+
 ### Writing the doc after the files
 
-The doc narrates instead of decides. By the time it's drafted, the skills exist; the §"Rejected alternatives" entries are written to defend choices already shipped, not to actually weigh alternatives. The decision-log discipline collapses.
-
-**Fix:** Phase the bootstrap (see [bootstrap-procedure.md](bootstrap-procedure.md)) so the doc is written and validated **before** the first SKILL.md.
-
-### Deleting a rejected-alternative entry because "we now know it's wrong"
-
-The entry IS the prevention. If you delete the per-area-maintainers entry the day after the fan-out experiment is reverted, the next architect who learns about parallel `Agent` calls proposes per-area maintainers in a clean window.
-
-**Fix:** update the entry — add a "Tried, reverted on <date>" note inside `Case against here`. Keep the entry.
+The doc narrates instead of decides. By the time it's drafted, the skills exist; §"Rejected alternatives" entries defend choices already shipped instead of actually weighing alternatives. Phase the bootstrap so the doc is written and validated **before** the first SKILL.md (see [bootstrap-procedure.md](bootstrap-procedure.md) Phase 2).
 
 ### Skipping a §"Rejected alternatives" entry for a deliberate omission
 
-"Standard four, no domain auditor" with no entry explaining WHY leaves future-you in the dark. A new auditor proposal can't be evaluated against precedent that doesn't exist.
-
-> "Domain auditor candidates (deferred): Firestore/RTDB rules auditor … IAP/paywall auditor. Open until a real incident motivates dedicated review." — `madrosc-tlumu/.claude/docs/claude-architecture.md:73-75`
-
-This sentence is the missing prevention if it isn't there. The full entry in §8 reinforces it.
+"Standard four, no domain auditor" with no entry leaves future-you in the dark — a new proposal can't be evaluated against precedent that doesn't exist. Even "no addition needed" is a recorded decision: pre-populate per [`madrosc-tlumu/.claude/docs/claude-architecture.md:73-75`].
 
 ### Rejected-alternative entry missing the `reversal criterion`
 
-Without it, the decision can never be flipped honestly — every reversal becomes "we just changed our mind." The reversal criterion is what lets a future person say "the world changed in the specific way the entry anticipated; here's the flip."
-
-**Fix:** for every existing entry without a reversal criterion, write one. If you can't write one, the entry is unfalsifiable and probably wrong.
-
-### Toolchain canon left ambiguous
-
-Some files use `fvm dart`, others use `dart`, some agents use `mcp__<repo>-dart__*` with bash fallbacks. Bash resolves against whatever `$PATH` exposes — including a system Dart that doesn't match the FVM pin. CI ships green; production ships broken.
-
-> "Bare-toolchain ambiguity (bash resolving against whatever `$PATH` exposes) has bitten teams before — this section exists to short-circuit that." — blueprint `README.md:286-288`
-
-**Fix:** record the binary FVM-yes / FVM-no call in §"Toolchain canon", propagate to every agent prompt, slash command, hook script, and `permissions.allow` entry. No alternation slashes.
-
-### MCP listed in `enabledMcpjsonServers` but architecture doc doesn't justify it
-
-Allowlist pollution. Agent prompts reference `mcp__<name>__<tool>` calls the model can't actually make. The doc should explicitly say which MCPs are assumed present; agent prompts should match.
-
-**Fix:** add an MCP assumption paragraph to §4 or §7. If the server isn't actually installed, either install it (and document the assumption) or remove the references and add a §"Rejected alternatives" entry explaining the explicit non-assumption (tlumu precedent).
+Without it, the decision can never be flipped honestly — every reversal becomes "we just changed our mind." If you can't write a reversal criterion, the entry is unfalsifiable and probably wrong.
 
 ### Doc growing into deep design documentation
 
-Architecture sequence diagrams, formal proofs, full data-exchange specs, key-exchange ceremonies — these are NOT decision-log content. They are **design documentation** and belong in `docs/architecture.md` at the repo root.
-
-Qbt's split is exemplary: `.claude/docs/claude-architecture.md` is the Claude-layer decision log; `docs/architecture.md`, `docs/data_exchange.md`, `docs/key_exchange_formal.tex` carry the system-level design (see `qbt-black-phone/CLAUDE.md:234-236`).
-
-**Fix:** if your doc is over ~300 lines and growing, scan it for narrative paragraphs that aren't decisions — those move to repo-root docs.
+Architecture sequence diagrams, formal proofs, full data-exchange specs, key-exchange ceremonies — these are design documentation, not decision log. They belong in `docs/architecture.md` at the repo root (qbt's precedent: `.claude/docs/claude-architecture.md` decision log; `docs/architecture.md`, `docs/data_exchange.md`, `docs/key_exchange_formal.tex` carry system-level design). If your doc is over ~300 lines, scan for narrative paragraphs that aren't decisions — those move out.
 
 ### Reordering or renaming the 9-section spine
 
-The order is structural. §"Rejected alternatives" comes after §"Hook scope" because by the time you're reading rejected alternatives, you've already seen the decisions that were taken — the entries make sense as counter-positives to the table rows.
-
-**Fix:** keep the order. If you have nothing for a section, write the section with a single sentence: "Standard three — no additions" / "Standard four — no domain auditor" / etc.
+The order is structural. §"Rejected alternatives" comes after §"Hook scope" because by then you've seen the decisions that were taken — the entries make sense as counter-positives. Keep the order. If a section is empty, write a one-sentence holder ("Standard three — no additions") rather than skip.
 
 ## See also
 
