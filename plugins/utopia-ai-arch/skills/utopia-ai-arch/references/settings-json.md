@@ -195,17 +195,7 @@ repo-A's `permissions.allow` adds `docker build/run/compose`, `git submodule`, `
 
 ### Why `git push` is deliberately OFF
 
-`git push *` is **not** on the allowlist. This is deliberate:
-
-- Every `git push` invocation prompts the user — the human is the gate.
-- GitHub branch protection covers the remote side (force-push protection, required reviews on `main`/`master`/`staging`).
-- A pre-push guard hook would duplicate both — see [enforcement-hooks.md](enforcement-hooks.md) §"Why NO `git push` guard hook".
-
-> "**No local push guard.** `.claude/settings.json` permissions deliberately omit `git push`, so every push prompts the user. Branch protection on `develop` / `main` / `staging` lives at the GitHub side." — `production-repo-A/.claude/docs/claude-architecture.md:123`
-
-> "Push protection is delegated to `permissions.allow` (which deliberately excludes `git push` — every push prompts the user) and GitHub branch protection on `main`. No `PreToolUse` push-guard is needed." — `production-repo-C/.claude/docs/claude-architecture.md:106-108`
-
-**Reversal criterion.** A repo with neither contributor-side prompt discipline nor GitHub branch protection. Add `git push` to the allowlist only if both layers exist; in practice, never.
+`git push *` is **not** on the allowlist — every `git push` prompts the user (human is the gate), and GitHub branch protection covers the remote. A `PreToolUse` push-guard would duplicate both. Full rationale + reversal criterion: [enforcement-hooks.md](enforcement-hooks.md) §"Why NO `git push` guard hook".
 
 ### Don't allow arbitrary `Bash(*)`
 

@@ -418,15 +418,9 @@ Don't blindly copy this hook to a new repo. Validate the leak first.
 
 A `PreToolUse` push-guard duplicates both **and runs on every Bash invocation** (every `git status`, every `ls`, every `melos run`). The matcher cost is real; the benefit is zero given the two existing layers.
 
-> "**No local push guard.** `.claude/settings.json` permissions deliberately omit `git push`, so every push prompts the user. Branch protection on `develop` / `main` / `staging` lives at the GitHub side. The repo previously shipped a `bp_git_push_guard.sh` `PreToolUse` hook; removed when the upstream blueprint dropped its equivalent — a permission-prompt + GitHub branch protection covers the same surface with less to maintain." — `production-repo-A/.claude/docs/claude-architecture.md:123`
-
-> "Push protection is delegated to (a) the `permissions.allow` whitelist (which deliberately excludes `git push` — every push prompts the user) and (b) GitHub's branch protection on `master` / `staging`. A `PreToolUse` push-guard hook was removed as redundant; reintroduce only if a future repo lacks both layers." — `production-repo-B/.claude/docs/claude-architecture.md:109-113`
-
-> "Push protection is delegated to `permissions.allow` (which deliberately excludes `git push` — every push prompts the user) and GitHub branch protection on `main`. No `PreToolUse` push-guard is needed." — `production-repo-C/.claude/docs/claude-architecture.md:106-108`
+Precedent: explicitly rejected in `production-repo-A/.claude/docs/claude-architecture.md:123`, `production-repo-B/.claude/docs/claude-architecture.md:109-113`, `production-repo-C/.claude/docs/claude-architecture.md:106-108` — all three repos removed their `PreToolUse` push-guard once the two existing layers were in place.
 
 **Reversal criterion.** A repo with **neither** a `permissions.allow` exclusion **nor** GitHub branch protection. In that case the guard plugs a real hole. Until then, it's overhead.
-
-See [settings-json.md](settings-json.md) §"Why `git push` is deliberately OFF" for the permissions-side rationale.
 
 ## Guarded hooks coexist — foundation + project
 

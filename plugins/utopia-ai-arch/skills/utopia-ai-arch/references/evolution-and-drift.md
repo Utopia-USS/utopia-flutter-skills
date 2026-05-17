@@ -244,18 +244,7 @@ A `.claude/refs/<doc>.md` is only justified when ≥2 skills link to it from the
 
 ## 10. Recording a rejected alternative mid-project
 
-Even if you **didn't** do the thing, write it down. Future-you will re-propose it.
-
-Use the 4-field shape from [architecture-doc.md](architecture-doc.md):
-
-```
-### <Short alternative name>
-
-- **Alternative.** <What it would look like concretely if adopted.>
-- **Case for.** <Real upside; why a reasonable person would propose this.>
-- **Case against here.** <Why this repo/team/cadence rejected it. Evidence, not opinion.>
-- **Reversal criterion.** <Specific observable that would flip the call.>
-```
+Even if you **didn't** do the thing, write it down — future-you will re-propose it. Use the canonical 4-field shape (`Alternative` / `Case for` / `Case against here` / `Reversal criterion`) documented in [architecture-doc.md](architecture-doc.md) §"Rejected alternatives — 4-field shape".
 
 **Never delete prior entries.** When a previously-rejected alternative IS reversed: update the entry, don't delete. The original `case against` becomes a history note; append "**Flipped (date / context).** New status: adopted / partial / pending"; cross-link the §"Decisions" or §"Skill split" row that owns the adopted shape.
 
