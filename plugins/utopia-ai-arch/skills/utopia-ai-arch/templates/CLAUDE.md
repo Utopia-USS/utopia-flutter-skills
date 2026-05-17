@@ -1,10 +1,10 @@
 <!--
   BLUEPRINT FILE — not a production CLAUDE.md.
 
-  Adapt per-repo when applying the project-claude-layer blueprint.
+  Adapt per-repo when applying the utopia-ai-arch project layer.
   Replace <repo>, <project name>, <area-N> placeholders with concrete
   values; trim sections you don't need; add repo-specific commands.
-  See blueprint/project-claude-layer/README.md for the model.
+  Strip this banner after substitution.
 -->
 
 # <project name>
