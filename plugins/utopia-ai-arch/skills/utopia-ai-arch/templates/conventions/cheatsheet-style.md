@@ -33,7 +33,7 @@ Examples of good fits:
 
 ### `# <Catalogue name>`
 
-Noun phrase naming what's catalogued (e.g. *the design system Component Map*,
+Noun phrase naming what's catalogued (e.g. *the project component catalogue Component Map*,
 *App Tokens*, *Activity Catalogue*).
 
 ### `## How to use this`
@@ -55,7 +55,7 @@ Examples of good shapes:
 ```
 | Component | Where | Use when | Avoid when |
 |---|---|---|---|
-| `CrazyPage` | classroom/lib/ui/common/design_system/page/ | Standard scaffolded screen | Pupil-facing lesson UI (different layer) |
+| `<PrimaryPage>` | <area-flutter>/lib/ui/common/<design-system>/page/ | Standard scaffolded screen | Domain-specific UI (different layer) |
 | `CrazySchoolPage` | …/page/ | School-context screen with header | Class-context (use CrazyClassPage) |
 ```
 
