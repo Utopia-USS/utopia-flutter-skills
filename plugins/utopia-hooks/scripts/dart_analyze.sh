@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dart_analyze.sh — thin wrapper around `dart analyze`
+# dart_analyze.sh - thin wrapper around `dart analyze`
 #
 # Usage: dart_analyze.sh [<path>...]
 #   Runs `dart analyze` scoped to the given paths (or CWD by default).

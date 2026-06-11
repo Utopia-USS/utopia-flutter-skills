@@ -1,0 +1,38 @@
+{
+  "name": "utopia-hooks",
+  "version": "0.4.0",
+  "description": "Flutter state management with utopia_hooks. Screen/State/View pattern, hook catalog, global state, async/pagination patterns, app bootstrap, global error handling, navigation conventions, hook-state testing, and convention analysis via utopia_cli.",
+  "author": {
+    "name": "UtopiaSoftware",
+    "email": "hello@utopiasoft.io",
+    "url": "https://utopiasoft.io"
+  },
+  "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-hooks",
+  "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "flutter",
+    "dart",
+    "utopia_hooks",
+    "state-management",
+    "hooks"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Utopia Hooks",
+    "shortDescription": "Flutter Screen/State/View patterns for utopia_hooks.",
+    "longDescription": "Guides Codex through Utopia Flutter apps built with utopia_hooks: Screen/State/View, global state, async flows, pagination, navigation, DI, testing, and convention analysis through utopia_cli.",
+    "developerName": "UtopiaSoftware",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://utopiasoft.io",
+    "defaultPrompt": [
+      "Build a utopia_hooks screen.",
+      "Analyze changed utopia_hooks files.",
+      "Review Screen/State/View structure."
+    ]
+  }
+}
