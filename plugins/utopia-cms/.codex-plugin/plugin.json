@@ -1,0 +1,39 @@
+{
+  "name": "utopia-cms",
+  "version": "0.2.0",
+  "description": "Flutter CMS and admin-panel patterns with utopia_cms. CmsWidget shell, CmsTablePage, CmsDelegate integrations, CmsEntry catalog, filters, custom actions, and management sections.",
+  "author": {
+    "name": "UtopiaSoftware",
+    "email": "hello@utopiasoft.io",
+    "url": "https://utopiasoft.io"
+  },
+  "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-cms",
+  "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "flutter",
+    "dart",
+    "utopia_cms",
+    "cms",
+    "admin-panel",
+    "backoffice"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Utopia CMS",
+    "shortDescription": "Flutter CMS and admin-panel patterns for utopia_cms.",
+    "longDescription": "Guides Codex through Flutter CMS and admin-panel work with utopia_cms: CmsWidget shells, CmsTablePage tables, CmsDelegate integrations for Firebase, Supabase, Hasura, and GraphQL, CmsEntry catalogs, filters, row actions, and management sections.",
+    "developerName": "UtopiaSoftware",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://utopiasoft.io",
+    "defaultPrompt": [
+      "Build a utopia_cms admin panel.",
+      "Review an admin screen for utopia_cms anti-patterns.",
+      "Add a CmsTablePage with filters and actions."
+    ]
+  }
+}
