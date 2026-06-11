@@ -1,7 +1,7 @@
 ---
 title: Paginated Lists
 impact: HIGH
-tags: pagination, usePaginatedComputedState, PaginatedComputedStateWrapper, loadMore, cursor, infinite-scroll, pull-to-refresh
+tags: pagination, usePaginatedComputedState, PaginatedComputedStateWrapper, loadMore, cursor, infinite-scroll, pull-to-refresh, shouldCompute, useIf, global paginated state
 ---
 
 # Skill: Paginated Lists
@@ -56,11 +56,11 @@ final users = usePaginatedComputedState<User, String?>(
 
 ### `PaginatedPage<T, C>`
 
-What `compute` returns — one page of items plus the cursor for the **next** page.
+What `compute` returns - one page of items plus the cursor for the **next** page.
 
 ```dart
 PaginatedPage(items: [...], nextCursor: 2)   // more pages available
-PaginatedPage.last(items: [...])             // final page — nextCursor is null
+PaginatedPage.last(items: [...])             // final page - nextCursor is null
 ```
 
 A `null` `nextCursor` signals "no more pages"; further `loadMore()` calls become no-ops until `refresh()` or a `keys` change resets `hasMore` to `true`.
@@ -85,7 +85,7 @@ Snapshot of the paginated computation. Returned by the hook and consumed by the 
 
 ## Cursor schemes
 
-`C` is opaque to the hook — pick the type that matches your backend.
+`C` is opaque to the hook - pick the type that matches your backend.
 
 ### Offset-based
 
@@ -150,9 +150,15 @@ usePaginatedComputedState<T, C>(
 })
 ```
 
-### `shouldCompute` — gate all loading
+### `shouldCompute` - gate the automatic loads
 
-Same contract as `useAutoComputedState`. While `false`, no load runs and any in-flight load is cancelled. Transitioning back to `true` loads the first page.
+`shouldCompute` gates **only the automatic loads**: the first-page load on mount and the refresh triggered by a `keys` change. While `false`, those triggers are skipped; when it transitions back to `true`, the first page loads (a refresh from `initialCursor`).
+
+The contract is **weaker than `useAutoComputedState`'s** (where `shouldCompute: false` clears the state immediately):
+
+- An in-flight load is **not** cancelled when `shouldCompute` turns `false` - it completes normally.
+- `items` are **not** cleared - previously loaded data stays visible.
+- Manual `loadMore()` / `refresh()` calls are **never** gated - they run regardless of `shouldCompute`.
 
 ```dart
 final users = usePaginatedComputedState<User, int>(
@@ -162,11 +168,13 @@ final users = usePaginatedComputedState<User, int>(
 );
 ```
 
-`clearOnShouldComputeFalse: true` additionally drops `items` to `null` when the gate closes — useful when the gating condition is "user logged in" and you don't want the previous user's data lingering.
+### `clearOnShouldComputeFalse` - opt into clearing
 
-### `keys` — refresh on dependency change
+`clearOnShouldComputeFalse: true` resets the state when the gate closes: the in-flight load is cancelled and `items` / `error` drop back to their initial state (same as calling `clear()`). Use it when the gating condition is "user logged in" and you don't want the previous user's data lingering. Without it, `shouldCompute: false` leaves everything in place.
 
-Any change to `keys` triggers `refresh()` from `initialCursor`. Items **stay visible** during the reload (no flicker) — they are replaced by the first page of the new load. Use this exactly like `useAutoComputedState`'s `keys`.
+### `keys` - refresh on dependency change
+
+Any change to `keys` triggers `refresh()` from `initialCursor` (only while `shouldCompute` is `true`). Items **stay visible** during the reload (no flicker) - they are replaced by the first page of the new load. Use this exactly like `useAutoComputedState`'s `keys`.
 
 ```dart
 final messages = usePaginatedComputedState<Message, String?>(
@@ -176,13 +184,13 @@ final messages = usePaginatedComputedState<Message, String?>(
 );
 ```
 
-### `debounceDuration` — delay the first-page load after `keys` change
+### `debounceDuration` - delay the first-page load after `keys` change
 
-For paginated search. Only affects the first-page load triggered by `keys` / initial mount — subsequent `loadMore()` calls are immediate.
+For paginated search. Only affects the first-page load triggered by `keys` / initial mount - subsequent `loadMore()` calls are immediate.
 
 ```dart
 final searchField = useFieldState();
-final query = useDebounced(searchField.value, duration: 300.ms);
+final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
 
 final results = usePaginatedComputedState<Result, int>(
   initialCursor: 0,
@@ -192,9 +200,9 @@ final results = usePaginatedComputedState<Result, int>(
 );
 ```
 
-(With `useDebounced` already in the keys, the extra `debounceDuration` is optional — but if you drive `keys` directly from the raw query, `debounceDuration` does the debouncing for you.)
+(With `useDebounced` already in the keys, the extra `debounceDuration` is optional - but if you drive `keys` directly from the raw query, `debounceDuration` does the debouncing for you.)
 
-### `deduplicateBy` — drop overlapping items
+### `deduplicateBy` - drop overlapping items
 
 Optional identifier extractor. Items whose key matches any already-collected item are dropped before being appended. Useful when adjacent pages overlap due to concurrent server-side writes or when `nextCursor` is inclusive.
 
@@ -208,7 +216,7 @@ final reactions = usePaginatedComputedState<Reaction, String?>(
 
 First-occurrence wins. Without `deduplicateBy`, duplicates are kept.
 
-### `initialCursor` — captured on first build
+### `initialCursor` - captured on first build
 
 `initialCursor` is captured once and ignored on subsequent builds. For dynamic starting points (e.g. a "jump to date" UI), wrap the whole hook in `useKeyed([startDate], () => usePaginatedComputedState(...))` so the entire state is recreated.
 
@@ -219,18 +227,18 @@ First-occurrence wins. Without `deduplicateBy`, duplicates are kept.
 ### `loadMore()`
 
 - No-op when `hasMore` is `false`.
-- While a load is in flight, returns the in-flight operation — concurrent calls share it. The wrapper's scroll listener therefore cannot trigger duplicate loads.
+- While a load is in flight, returns the in-flight operation - concurrent calls share it. The wrapper's scroll listener therefore cannot trigger duplicate loads.
 - On failure, sets `error` and keeps previously loaded `items`.
 
 ### `refresh({bool clearCache = false})`
 
 - Cancels any in-flight load, resets `cursor` to `initialCursor`, `hasMore` to `true`, clears `error`, then loads the first page.
-- **Default `clearCache: false`** — `items` stay visible and are replaced by the first page of the new load. No flicker. This is what pull-to-refresh and keys-triggered reloads want.
-- `clearCache: true` drops `items` to `null` before reloading — use only when you explicitly want a blank slate (e.g. switching to a fundamentally different dataset).
+- **Default `clearCache: false`** - `items` stay visible and are replaced by the first page of the new load. No flicker. This is what pull-to-refresh and keys-triggered reloads want.
+- `clearCache: true` drops `items` to `null` before reloading - use only when you explicitly want a blank slate (e.g. switching to a fundamentally different dataset).
 
 ### `clear()`
 
-Cancels any in-flight load and resets **all** fields (`items`, `cursor`, `hasMore`, `error`, `isLoading`) to their initial state. Does **not** trigger a reload. Rarely needed directly — `refresh(clearCache: true)` is usually what you want.
+Cancels any in-flight load and resets **all** fields (`items`, `cursor`, `hasMore`, `error`, `isLoading`) to their initial state. Does **not** trigger a reload. Rarely needed directly - `refresh(clearCache: true)` is usually what you want.
 
 ---
 
@@ -238,7 +246,7 @@ Cancels any in-flight load and resets **all** fields (`items`, `cursor`, `hasMor
 
 - Errors from `compute` are stored in `state.error`. `items` remain unchanged.
 - The next `loadMore()` or `refresh()` clears `error` when it starts.
-- Unhandled errors from the **auto-triggered** first load propagate via the zone — if you need to observe them, use an error-boundary widget at the screen level, or gate the initial load with `shouldCompute: false` + manual `refresh()` so you can `await` it.
+- Unhandled errors from the **auto-triggered** first load propagate via the zone - if you need to observe them, use an error-boundary widget at the screen level, or gate the initial load with `shouldCompute: false` + manual `refresh()` so you can `await` it.
 
 ```dart
 // Typical View-side error handling
@@ -251,7 +259,7 @@ if (state.error != null && state.items == null) {
 
 ## Rendering with `PaginatedComputedStateWrapper`
 
-The companion widget wires the scroll listener + pull-to-refresh to a `MutablePaginatedComputedState`. The caller owns **all** rendering — empty, error, and loading states are your business.
+The companion widget wires the scroll listener + pull-to-refresh to a `MutablePaginatedComputedState`. The caller owns **all** rendering - empty, error, and loading states are your business.
 
 ```dart
 PaginatedComputedStateWrapper<User, int>(
@@ -271,17 +279,39 @@ PaginatedComputedStateWrapper<User, int>(
 
 **Contract:**
 - `builder` receives `(context, items, loadingMore)`.
-  - `items` is `null` until the first successful load — render your top-level loader here.
-  - `loadingMore` is `state.isLoading && items != null` — a follow-up load is in flight on top of visible items. Render a bottom spinner / shimmer.
-- `builder` **must return a scrollable** (`ListView`, `CustomScrollView`, `GridView`, …) — the `NotificationListener` that drives `loadMore` listens to scroll notifications from the child.
-- `loadMoreThreshold` (default `200`) — pixels-from-end at which `loadMore()` fires.
-- `refreshable` (default `true`) — wraps the child in `RefreshIndicator(onRefresh: state.refresh)`. Set `false` when you don't want pull-to-refresh (e.g. reverse-scrolling chat history).
+  - `items` is `null` until the first successful load - render your top-level loader here.
+  - `loadingMore` is `state.isLoading && items != null` - a follow-up load is in flight on top of visible items. Render a bottom spinner / shimmer.
+- `builder` **must return a scrollable** (`ListView`, `CustomScrollView`, `GridView`, …) - the `NotificationListener` that drives `loadMore` listens to scroll notifications from the child.
+- `loadMoreThreshold` (default `200`) - pixels-from-end at which `loadMore()` fires.
+- `refreshable` (default `true`) - wraps the child in `RefreshIndicator(onRefresh: state.refresh)`. Set `false` when you don't want pull-to-refresh (e.g. reverse-scrolling chat history).
+- **Auto-`loadMore` is suppressed while `error != null`** (and while `items` is `null` or empty) - a failed `loadMore` will not retry in an endless scroll loop. The user must trigger the retry; render an explicit affordance at the end of the list:
+
+```dart
+PaginatedComputedStateWrapper<User, int>(
+  state: state.users,
+  builder: (context, items, loadingMore) {
+    if (items == null) return const CrazyLoader();
+    final hasTrailingRow = loadingMore || state.users.hasError;
+    return ListView.builder(
+      itemCount: items.length + (hasTrailingRow ? 1 : 0),
+      itemBuilder: (context, i) {
+        if (i < items.length) return UserTile(user: items[i]);
+        if (state.users.hasError) {
+          // loadMore() clears error when it starts, which re-enables auto-loading.
+          return TextButton(onPressed: state.users.loadMore, child: const Text("Retry"));
+        }
+        return const Padding(padding: EdgeInsets.all(16), child: CrazyLoader());
+      },
+    );
+  },
+)
+```
 
 **The wrapper does not render spinners or errors.** If all you pass for an empty list is `const SizedBox.shrink()`, the user sees nothing. Render explicit empty / error states from `items` and `state.error`.
 
 ### Why the wrapper is thin
 
-It intentionally has no `emptyBuilder` / `errorBuilder` / `loadingBuilder` parameters. Every screen has its own idea of what "empty" looks like (illustration + CTA, filters hint, …) — forcing builders would mean a dozen parameters and still missing cases. Keep empty/error logic next to the data in your `builder`.
+It intentionally has no `emptyBuilder` / `errorBuilder` / `loadingBuilder` parameters. Every screen has its own idea of what "empty" looks like (illustration + CTA, filters hint, …) - forcing builders would mean a dozen parameters and still missing cases. Keep empty/error logic next to the data in your `builder`.
 
 ---
 
@@ -329,7 +359,7 @@ FeedScreenState useFeedScreenState({
 }) {
   final api = useInjected<FeedApi>();
   final searchField = useFieldState();
-  final query = useDebounced(searchField.value, duration: 300.ms);
+  final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
 
   final posts = usePaginatedComputedState<Post, String?>(
     initialCursor: null,
@@ -349,11 +379,11 @@ FeedScreenState useFeedScreenState({
 }
 ```
 
-**Expose the mutable state directly.** The View needs `loadMore` / `refresh`, so passing `MutablePaginatedComputedState<T, C>` through is correct — do **not** project each field separately on the State class.
+**Expose the mutable state directly.** The View needs `loadMore` / `refresh`, so passing `MutablePaginatedComputedState<T, C>` through is correct - do **not** project each field separately on the State class.
 
 ### Optimistic mutations on a paginated list
 
-`items` is read-only — the hook owns its buffer. For optimistic add/edit/delete, keep a **local override layer** and overlay it at render time. After the server confirms, call `refresh()` (or clear the overlay).
+`items` is read-only - the hook owns its buffer. For optimistic add/edit/delete, keep a **local override layer** and overlay it at render time. After the server confirms, call `refresh()` (or clear the overlay).
 
 ```dart
 // State hook
@@ -378,13 +408,109 @@ void deletePost(PostId id) => deleteSubmit.runSimple<void, Never>(
 );
 ```
 
-This keeps the paginated buffer honest (always mirrors the server) while the UI shows the optimistic view. Do **not** try to replace `items` — there is no setter on purpose.
+This keeps the paginated buffer honest (always mirrors the server) while the UI shows the optimistic view. Do **not** try to replace `items` - there is no setter on purpose.
+
+---
+
+## Global paginated state
+
+A paginated list shared by several screens (home feed, notification list) can live in a global state hook like any other state - see [global-state.md](./global-state.md) for registration. The `MutablePaginatedComputedState` is exposed as a field; items stay cached across screen pushes/pops, and a mutation anywhere in the app can call `refresh()` on it.
+
+```dart
+class FeedState {
+  final MutablePaginatedComputedState<Post, String?> posts;
+
+  const FeedState({required this.posts});
+}
+
+FeedState useFeedState() {
+  final api = useInjected<FeedApi>();
+
+  final posts = usePaginatedComputedState<Post, String?>(
+    initialCursor: null,
+    (token) async {
+      final response = await api.feed(pageToken: token);
+      return PaginatedPage(items: response.items, nextCursor: response.nextPageToken);
+    },
+  );
+
+  return FeedState(posts: posts);
+}
+
+// Registered in _providers:  FeedState: useFeedState,
+
+// Elsewhere - e.g. in the create-post screen's submit:
+final feed = useProvided<FeedState>();
+// ... afterSubmit: (_) => feed.posts.refresh(),
+```
+
+`refresh()`'s default `clearCache: false` shines here: every screen currently showing the feed keeps its items visible while the new first page loads.
+
+### Screen-local fallback composition with `useIf`
+
+Sometimes a screen needs its **own** paginated state only under a condition (an active search query, a filter) and the shared global state otherwise. Hooks must be called unconditionally, so you cannot wrap the hook call in an `if` statement - `useIf(condition, block)` is the sanctioned conditional wrapper: it returns `block()`'s result while `condition` is `true` and `null` otherwise.
+
+```dart
+final feed = useProvided<FeedState>();
+final api = useInjected<FeedApi>();
+final searchField = useFieldState();
+final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
+
+final searchResults = useIf(
+  query.isNotEmpty,
+  () => usePaginatedComputedState<Post, String?>(
+    initialCursor: null,
+    (token) async {
+      final response = await api.search(query: query, pageToken: token);
+      return PaginatedPage(items: response.items, nextCursor: response.nextPageToken);
+    },
+    keys: [query],
+  ),
+);
+
+final posts = searchResults ?? feed.posts;
+// Expose `posts` on the State - the View never knows whether it is local or global.
+```
+
+Notes:
+
+- `useIf` keys its inner hooks on the condition: when `query` becomes empty, the search state is disposed (results discarded); when it becomes non-empty again, a fresh state is created and auto-loads. For search this is usually exactly what you want.
+- Give the local and the global state the **same** `T` and `C` type arguments so `??` produces a usable `MutablePaginatedComputedState<T, C>` instead of an unhelpful common supertype.
+
+---
+
+## When not to use it: reactive bidirectional lists
+
+`usePaginatedComputedState` is one-directional pull: a cursor walks forward, pages append. A live chat view - a database watch stream pushing new messages at one end while the user scrolls back through history at the other - does not fit a single paginated state. Split the two directions instead:
+
+```dart
+// Older pages: plain backward pagination (newest -> oldest).
+final history = usePaginatedComputedState<Message, DateTime?>(
+  initialCursor: null,
+  (before) async {
+    final batch = await api.messagesBefore(roomId, before: before, limit: 50);
+    return PaginatedPage(items: batch, nextCursor: batch.isEmpty ? null : batch.last.sentAt);
+  },
+  keys: [roomId],
+);
+
+// Live tail: watch stream from the DB / socket.
+final live = useMemoizedStream(() => api.watchMessages(roomId), keys: [roomId]);
+
+// Merge at render time, deduplicated by id.
+final messages = useMemoized(
+  () => [...?live.data, ...?history.items].distinctBy((m) => m.id).toList(),
+  [live.data, history.items],
+);
+```
+
+This split holds while stream items only prepend. Once the stream pushes **in-place edits and deletes** that must rewrite already-paginated history, the merge gets stateful - at that point hand-roll a dedicated state hook around your database's query API instead of fighting the paginated hook. That is the honest limit of `usePaginatedComputedState`.
 
 ---
 
 ## Testing
 
-`usePaginatedComputedState` is tested the same way as any hook — with `SimpleHookContext`. See [testing.md](./testing.md) for the fundamentals. The in-repo test suite (`packages/hooks/test/hook/complex/paginated/use_paginated_computed_state_test.dart`) covers every branch and is a good reference for edge cases.
+`usePaginatedComputedState` is tested the same way as any hook - with `SimpleHookContext`. See [testing.md](./testing.md) for the fundamentals, including how to mock injected services.
 
 ```dart
 test("loadMore appends items and advances cursor", () async {
@@ -416,19 +542,22 @@ test("loadMore appends items and advances cursor", () async {
 
 ## Common Pitfalls
 
-- **Hand-rolling pagination with `useState` + `useEffect`** — you will re-invent debouncing, in-flight deduplication, cancellation, and the stay-visible-during-refresh behavior badly. Use the hook.
-- **Projecting every field on the State class** (`items`, `isLoading`, `loadMore`, …) — pass the `MutablePaginatedComputedState<T, C>` through as a single field. The View needs the actions, not just the data.
-- **Forgetting `deduplicateBy` for token-based APIs that return overlapping pages** — symptom: the same item appears twice near page boundaries. Add `deduplicateBy: (it) => it.id`.
-- **Using `refresh(clearCache: true)` for pull-to-refresh** — causes a flicker as items vanish then reappear. Default `clearCache: false` is correct here.
-- **Expecting `initialCursor` to be reactive** — it's captured on first build. For runtime-dynamic starting points, wrap in `useKeyed`.
-- **Returning a non-scrollable from the wrapper's `builder`** — the scroll listener can never fire, so `loadMore()` is never triggered. Must be a `ListView` / `GridView` / `CustomScrollView` / any scrollable.
-- **Writing to `items`** — there's no setter. Optimistic mutations belong in an override layer (see pattern above).
-- **Using `usePaginatedComputedState` for non-paged data** — single-shot loads should use `useAutoComputedState`, streams should use `useMemoizedStream`. Paginated is for cursor-driven pages.
+- **Hand-rolling pagination with `useState` + `useEffect`** - you will re-invent debouncing, in-flight deduplication, cancellation, and the stay-visible-during-refresh behavior badly. Use the hook.
+- **Projecting every field on the State class** (`items`, `isLoading`, `loadMore`, …) - pass the `MutablePaginatedComputedState<T, C>` through as a single field. The View needs the actions, not just the data.
+- **Forgetting `deduplicateBy` for token-based APIs that return overlapping pages** - symptom: the same item appears twice near page boundaries. Add `deduplicateBy: (it) => it.id`.
+- **Using `refresh(clearCache: true)` for pull-to-refresh** - causes a flicker as items vanish then reappear. Default `clearCache: false` is correct here.
+- **Expecting `initialCursor` to be reactive** - it's captured on first build. For runtime-dynamic starting points, wrap in `useKeyed`.
+- **Expecting `shouldCompute: false` to cancel or clear** - it only skips the automatic loads; in-flight loads finish, items stay, and manual `loadMore()`/`refresh()` still work. Pass `clearOnShouldComputeFalse: true` if you need the state wiped when the gate closes.
+- **Wondering why infinite scroll stopped after a failure** - the wrapper suppresses auto-`loadMore` while `error != null` (no retry loops). Render a retry affordance that calls `loadMore()`; it clears the error and resumes.
+- **Returning a non-scrollable from the wrapper's `builder`** - the scroll listener can never fire, so `loadMore()` is never triggered. Must be a `ListView` / `GridView` / `CustomScrollView` / any scrollable.
+- **Writing to `items`** - there's no setter. Optimistic mutations belong in an override layer (see pattern above).
+- **Using `usePaginatedComputedState` for non-paged data** - single-shot loads should use `useAutoComputedState`, streams should use `useMemoizedStream`. Paginated is for cursor-driven pages.
 
 ## Related Skills
 
-- [hooks-reference.md](./hooks-reference.md) — catalogue including `useAutoComputedState` and `useMemoizedStream` for non-paged shapes
-- [async-patterns.md](./async-patterns.md) — download/upload/stream mental model; paginated is the cursor-based cousin of download
-- [screen-state-view.md](./screen-state-view.md) — where the paginated state field lives on the State class
-- [complex-state-examples.md](./complex-state-examples.md) — feed-style list with optimistic updates (shape 3) built on `usePaginatedComputedState`
-- [testing.md](./testing.md) — `SimpleHookContext` patterns used by the paginated-state tests
+- [hooks-reference.md](./hooks-reference.md) - catalogue including `useAutoComputedState` and `useMemoizedStream` for non-paged shapes
+- [async-patterns.md](./async-patterns.md) - download/upload/stream mental model; paginated is the cursor-based cousin of download
+- [screen-state-view.md](./screen-state-view.md) - where the paginated state field lives on the State class
+- [global-state.md](./global-state.md) - registering a shared paginated state in `_providers`
+- [complex-state-examples.md](./complex-state-examples.md) - feed-style list with optimistic updates (shape 3) built on `usePaginatedComputedState`
+- [testing.md](./testing.md) - `SimpleHookContext` fundamentals and mocking injected services

@@ -14,7 +14,7 @@ bottom nav bar, top tabs, navigation rail, segmented control, wizard steps, anyt
 > **1. Shell is Screen/State/View.** Standard triple. Owns the "currently selected page"
 > state and shell-level cross-cutting effects.
 >
-> **2. EVERY inner page is Screen/State/View — the SAME full triple.** Not a monolithic
+> **2. EVERY inner page is Screen/State/View - the SAME full triple.** Not a monolithic
 > `HookWidget`, not a `StatefulWidget`, not an inline `StreamBuilder` soup. Every page is
 > a complete Page + State class + hook + stateless View, identical in shape to any
 > top-level routable screen. Being embedded in a `PageView` / `IndexedStack` /
@@ -22,17 +22,17 @@ bottom nav bar, top tabs, navigation rail, segmented control, wizard steps, anyt
 > **not** exempt a page from the pattern. Being "simple" does **not** exempt a page from
 > the pattern.
 
-Everything else — index vs enum, `PageView` vs `IndexedStack` vs `TabBarView`, local vs
-global index, swipeable vs tap-only — is a spectrum chosen per project. **The
+Everything else - index vs enum, `PageView` vs `IndexedStack` vs `TabBarView`, local vs
+global index, swipeable vs tap-only - is a spectrum chosen per project. **The
 composition rule is constant.** If you find yourself writing an inner page without its
 own `state/` and `view/` folders, you are violating the pattern regardless of how small
 or shell-specific the page feels.
 
 ## Quick Pattern
 
-**Incorrect — monolithic page widget with inline logic:**
+**Incorrect - monolithic page widget with inline logic:**
 ```dart
-// songs_tab_widget.dart — 149 lines, all logic in build()
+// songs_tab_widget.dart - 149 lines, all logic in build()
 class SongListWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
@@ -57,10 +57,10 @@ class SongListWidget extends HookWidget {
 ```
 Problem: page carries its own logic, streams, derivations directly in `build`.
 No State class, no View split, no testability. The fact that it's hosted inside a
-shell's `PageView` is irrelevant — it's still a screen, so it must follow the screen
+shell's `PageView` is irrelevant - it's still a screen, so it must follow the screen
 pattern.
 
-**Correct — page is a full Screen/State/View triple:**
+**Correct - page is a full Screen/State/View triple:**
 ```dart
 // pages/songs/songs_page.dart
 class SongsPage extends HookWidget {
@@ -84,12 +84,14 @@ class SongsPageState {
 
 SongsPageState useSongsPageState() {
   final audioPlayer = useInjected<AudioPlayerService>();
-  final currentIndex = useMemoizedStream(() => audioPlayer.currentIndexStream, []);
-  final isPlaying = useMemoizedStream(() => audioPlayer.playingStream, []);
+  // useMemoizedStreamData returns the latest value (T?) directly; keys is a NAMED
+  // parameter (keys: [...]) on both useMemoizedStream and useMemoizedStreamData.
+  final currentIndex = useMemoizedStreamData(() => audioPlayer.currentIndexStream);
+  final isPlaying = useMemoizedStreamData(() => audioPlayer.playingStream) ?? false;
   // ...
 }
 
-// pages/songs/view/songs_page_view.dart — StatelessWidget, receives only `state`
+// pages/songs/view/songs_page_view.dart - StatelessWidget, receives only `state`
 ```
 
 ## Deep Dive
@@ -102,34 +104,34 @@ screen. Typical shapes:
 - Bottom nav bar (Home / Profile / Settings)
 - Top tabs (by category, by status, by time range)
 - Navigation rail (tablet/desktop layouts)
-- Wizard / stepper (sequential multi-step flow — same pattern, just with "next/prev"
+- Wizard / stepper (sequential multi-step flow - same pattern, just with "next/prev"
   semantics instead of free switching)
 - Segmented control switching between views of the same data
 
 If the user leaves the shell entirely when switching (`Navigator.push` to another
-route), that's just routing — not this pattern.
+route), that's just routing - not this pattern.
 
 ### Invariants (constant across all implementations)
 
-1. **Shell is Screen/State/View.** `MainScreen` / `HomeScreen` / `RootScreen` — whatever
-   name — follows the triple.
-2. **Each page is Screen/State/View — no exceptions.** Not "only if complex", not
+1. **Shell is Screen/State/View.** `MainScreen` / `HomeScreen` / `RootScreen` - whatever
+   name - follows the triple.
+2. **Each page is Screen/State/View - no exceptions.** Not "only if complex", not
    "unless it's just displaying a list", not "we'll split later". Every inner page has
    its own `pages/<name>/<name>_page.dart` + `pages/<name>/state/<name>_page_state.dart`
    + `pages/<name>/view/<name>_page_view.dart` from day one. A page may omit
-   `route` / `routeConfig` statics if it's never pushed as a route — that is the **only**
+   `route` / `buildRoute` statics if it's never pushed as a route - that is the **only**
    difference from a top-level screen. Everything else is identical: pure-wiring Page,
    State class + hook with all logic, stateless View receiving `state` only.
 3. **Shell state owns selection.** A field like `int currentIndex` / `HomePage currentPage`
    plus an `onPageChanged` callback.
-4. **Nav widget is stateless and takes `state`.** `BottomBar(state: state)` — not a
+4. **Nav widget is stateless and takes `state`.** `BottomBar(state: state)` - not a
    `StatefulWidget` tracking its own index, not a widget calling hooks.
 5. **State flows down, callbacks up.** Pages don't reach into shell state via
    `InheritedWidget` / context hacks. If a page needs to cause a shell-level effect
    (e.g. jump to another tab), it goes through a global state or an injected coordinator
-   — not through ancestor lookup.
+ - not through ancestor lookup.
 6. **Cross-cutting mount-time effects live in shell state hook.** Deep links, share
-   intents, onboarding dialogs, notification routing — these belong to the shell, not
+   intents, onboarding dialogs, notification routing - these belong to the shell, not
    to any single page. Split into sub-hooks when there are more than one or two.
 
 ### The Implementation Spectrum
@@ -138,7 +140,7 @@ None of these choices change the composition rule. Pick per project.
 
 | Axis | Options                                                               | When to pick |
 |---|-----------------------------------------------------------------------|---|
-| **Page identity** | `int index` / `enum HomePage` / `String id`                           | Enum preferred — refactor-safe, typed, can carry metadata (icon, label, role-gating) |
+| **Page identity** | `int index` / `enum HomePage` / `String id`                           | Enum preferred - refactor-safe, typed, can carry metadata (icon, label, role-gating) |
 | **Container** | `IndexedStack` / `PageView` / `TabBarView` / `AnimatedSwitcher`       | `IndexedStack` preserves page state across switches (best default for tabs with form inputs or scroll positions). `PageView` enables swipe. `TabBarView` when using Material `TabBar` theming |
 | **Selection state** | `useState<T>` / `PageController` + `useListenable` / `TabController` + `useListenable` | Plain `useState` when you only need to know which page is active. Controllers when you need to drive animations (swipe, indicator) |
 | **Index scope** | local (shell state) / global (`TabGlobalState`)                       | Local by default. Global only when: (a) deep links target specific tabs, (b) user configures tab order/visibility at runtime, (c) other screens jump to specific tabs |
@@ -154,7 +156,9 @@ computed `visiblePages` + stateless nav widget.
 // home_screen.dart
 class HomeScreen extends HookWidget {
   static const route = '/home';
-  static final routeConfig = RouteConfig.material(HomeScreen._);
+
+  static Route<void> buildRoute(RouteSettings settings) =>
+      MaterialPageRoute(settings: settings, builder: (_) => const HomeScreen._());
 
   const HomeScreen._();
 
@@ -203,9 +207,20 @@ HomeScreenState useHomeScreenState() {
     return HomePage.values.where((p) => visibility[p] ?? true).toIList();
   }
 
+  final visiblePages = computeVisiblePages();
+
+  // Clamp: the View indexes into visiblePages, so when a config/role change hides
+  // the selected page, fall back synchronously (an off-list currentPage would mean
+  // indexOf == -1), then persist the fallback.
+  final currentPage = visiblePages.contains(pageState.value) ? pageState.value : visiblePages.first;
+  useEffect(() {
+    pageState.value = currentPage;
+    return null;
+  }, [currentPage]);
+
   return HomeScreenState(
-    currentPage: pageState.value,
-    visiblePages: computeVisiblePages(),
+    currentPage: currentPage,
+    visiblePages: visiblePages,
     onPageChanged: (page) => pageState.value = page,
   );
 }
@@ -221,8 +236,8 @@ class HomeScreenView extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: IndexedStack(
-          index: HomePage.values.indexOf(state.currentPage),
-          children: [for (final page in HomePage.values) page.builder()],
+          index: state.visiblePages.indexOf(state.currentPage),
+          children: [for (final page in state.visiblePages) page.builder()],
         ),
       ),
       bottomNavigationBar: HomeScreenBottomBar(state: state),
@@ -230,7 +245,7 @@ class HomeScreenView extends StatelessWidget {
   }
 }
 
-// widget/home_screen_bottom_bar.dart — StatelessWidget, renders state.visiblePages,
+// widget/home_screen_bottom_bar.dart - StatelessWidget, renders state.visiblePages,
 // calls state.onPageChanged(page). No hooks.
 ```
 
@@ -240,11 +255,43 @@ in its own folder: `pages/info/info_page.dart`, `pages/info/state/info_page_stat
 
 ### Variants
 
-**Swipeable (`PageView`):** replace `IndexedStack` with `PageView`, swap `useState<HomePage>`
-for `useMemoized(PageController.new)` + `useListenable(controller)`, map enum ↔ index in
-the state hook. Use when swipe-to-switch is the intended UX. Note: `PageView` rebuilds
-pages as they scroll into view — if pages have expensive state you want preserved, prefer
-`IndexedStack`.
+**Swipeable (`PageView`):** keep the state exactly as in the canonical shape (enum +
+`useState`) and let `PageControllerWrapper` (exported by utopia_hooks) own the
+`PageController` - creation, disposal, and two-way sync between the controller and a
+`MutableValue<int>` are all handled, including the not-yet-attached (`hasClients`) case.
+The State exposes an int view over the enum selection:
+
+```dart
+// On HomeScreenState:
+MutableValue<int> get pageIndex => MutableValue.computed(
+      () => visiblePages.indexOf(currentPage),
+      (it) => onPageChanged(visiblePages[it]),
+    );
+
+// In the View:
+PageControllerWrapper(
+  index: state.pageIndex,
+  // Default transition is jumpToPage; pass onTransition to animate instead:
+  onTransition: (controller, index) => controller.animateToPage(
+    index,
+    duration: const Duration(milliseconds: 300),
+    curve: Curves.easeInOut,
+  ),
+  builder: (controller) => PageView(
+    controller: controller,
+    children: [for (final page in state.visiblePages) page.builder()],
+  ),
+)
+```
+
+If you manage the controller by hand instead, you take on everything the wrapper does for
+you: create it with `useMemoized(PageController.new, [], (it) => it.dispose())` (the
+dispose callback is mandatory - leaking controllers is the classic bug), rebuild with
+`useListenable(controller)`, guard reads with `controller.hasClients` (`controller.page`
+is null before the `PageView` attaches), and expose `int get index` on the State so the
+View never reads the raw controller. Use swipe only when it's the intended UX; `PageView`
+mounts pages lazily as they scroll into view - if pages have expensive state you want
+preserved, prefer `IndexedStack`.
 
 **Material tabs (`TabBarView`):** use `TabController` (or the `TabControllerWrapper` helper
 from utopia_hooks) when you want `TabBar`'s indicator animation and gesture integration.
@@ -255,8 +302,17 @@ The shell state still owns the enum; the controller is wired to it.
 it via `useProvided<TabGlobalState>()` and calls `tabState.selectPage(page)` instead of
 mutating a local `useState`. Everything else is identical.
 
-**Wizard / stepper:** same pattern — just constrain `onPageChanged` to `goNext()` /
+**Wizard / stepper:** same pattern - just constrain `onPageChanged` to `goNext()` /
 `goPrevious()` and compute `canGoNext` in the state.
+
+**Router-backed shell:** some routers can host the tabs in the route stack itself
+(auto_route's tabbed routes are one example; go_router-style shell routes another), making
+each tab deep-linkable with its own URL and back sub-stack. The composition rule does not
+change: the shell is still Screen/State/View, each tab's content is still a full triple -
+only the "selection state" axis moves from shell state into the router. Pick this when
+tabs must be addressable from outside (web URLs, push notifications targeting a tab that
+keeps its own back stack). Selection changes then go through the router inside
+Screen-built callbacks, same as any other navigation - see [navigation.md](./navigation.md).
 
 ### Inner Page Rules
 
@@ -266,27 +322,28 @@ justifies its own entry in the shell's nav, it justifies its own Screen/State/Vi
 
 Required for every single page, same as [screen-state-view.md](./screen-state-view.md):
 
-- `pages/<name>/<name>_page.dart` — `HookWidget`, pure wiring. Its `build()` calls
+- `pages/<name>/<name>_page.dart` - `HookWidget`, pure wiring. Its `build()` calls
   exactly one hook: `use<Name>PageState(...)`, and returns `<Name>PageView(state: state)`.
   Nothing else.
-- `pages/<name>/state/<name>_page_state.dart` — immutable State class + `use<Name>PageState`
+- `pages/<name>/state/<name>_page_state.dart` - immutable State class + `use<Name>PageState`
   hook. All logic, streams, computations, callbacks. No widget imports.
-- `pages/<name>/view/<name>_page_view.dart` — `StatelessWidget`. Constructor takes only
+- `pages/<name>/view/<name>_page_view.dart` - `StatelessWidget`. Constructor takes only
   `state`. No hooks, no `useProvided`, no `useInjected`, no `BuildContext` reads beyond
   theming.
-- `pages/<name>/widget/` — for extracted widgets when the View grows past ~300 lines.
+- `pages/<name>/widget/` - for extracted widgets when the View grows past ~300 lines.
 
 Cross-cutting rules for inner pages:
 
-- Global state via `useProvided<X>()` inside the page's own state hook — **not** via
+- Global state via `useProvided<X>()` inside the page's own state hook - **not** via
   the shell's state, **not** by reading shell State through context.
 - Page-local mount-time effects (fetches, subscriptions) live in the page's state hook.
   They run only when the page exists in the widget tree. Mount/unmount behaviour
-  depends on the container: `IndexedStack` keeps pages mounted; `PageView` mounts lazily
-  as pages scroll into view; `TabBarView` mounts all children by default (or lazily with
-  `KeepAliveBloc`-style wrappers).
+  depends on the container: `IndexedStack` builds and keeps ALL pages mounted;
+  `PageView` and `TabBarView` (a `PageView` under the hood) build pages lazily as they
+  scroll into view and dispose them when they leave, unless a page opts into staying
+  alive with `AutomaticKeepAliveClientMixin` (`wantKeepAlive => true`).
 - If a page needs shell-level context (e.g. "jump to another tab"), the shell injects a
-  callback via global state or via a coordinator object — the page does not look up the
+  callback via global state or via a coordinator object - the page does not look up the
   shell ancestor.
 
 **Red flags that indicate the rule is being violated:**
@@ -314,8 +371,8 @@ shell state hook. See [composable-hooks.md](./composable-hooks.md) Pattern 3.
 
 Common convention across canonical examples:
 
-- `XScreen` — reachable as a route (`push`ed, `go`d, or top-level)
-- `XPage` — embedded inside a shell's container, never pushed as a route
+- `XScreen` - reachable as a route (`push`ed, `go`d, or top-level)
+- `XPage` - embedded inside a shell's container, never pushed as a route
 
 Both follow the same triple. The distinction is purely where the entry point is.
 Fine to deviate per project style, but pick one and be consistent.
@@ -325,7 +382,7 @@ Fine to deviate per project style, but pick one and be consistent.
 - **Monolithic page widget.** A `*TabWidget` / `*Page` as a single `HookWidget` with
   inline `StreamBuilder`, `useProvided`, and business logic in `build`. **This is the
   #1 violation of this pattern.** Fix: extract State class + stateless View, same as
-  any other screen — no "it's just a small tab" exceptions.
+  any other screen - no "it's just a small tab" exceptions.
 - **Page with only a Page file, no `state/` or `view/`.** "I'll split it later" ages
   badly; the page will keep accreting logic in `build` until it's 400 lines. Split from
   day one, even when the page is small.
@@ -346,6 +403,7 @@ Fine to deviate per project style, but pick one and be consistent.
 
 ## Related
 
-- [screen-state-view.md](./screen-state-view.md) — the triple pattern itself
-- [global-state.md](./global-state.md) — when shell index lives in global state
-- [composable-hooks.md](./composable-hooks.md) — splitting large shell hooks into sub-hooks
+- [screen-state-view.md](./screen-state-view.md) - the triple pattern itself
+- [navigation.md](./navigation.md) - route declaration, deep links, router-backed shells
+- [global-state.md](./global-state.md) - when shell index lives in global state
+- [composable-hooks.md](./composable-hooks.md) - splitting large shell hooks into sub-hooks
