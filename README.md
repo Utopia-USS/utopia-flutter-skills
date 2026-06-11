@@ -5,8 +5,13 @@
 Hooks-based state management, project scaffolding, and architecture conventions for Flutter teams that want AI to write code the way they would.
 
 ```bash
+# Claude Code
 /plugin marketplace add Utopia-USS/utopia-flutter-skills
 /plugin install utopia-hooks@utopia-flutter-skills
+
+# Codex, from the repo root
+codex plugin marketplace add .
+codex plugin install utopia-hooks@utopia-flutter-skills
 ```
 
 > Drop-in for Claude Code and Codex. Works alongside (or replaces) BLoC, Riverpod, and Provider patterns.
@@ -37,14 +42,14 @@ Canonical hook reference list lives in [`plugins/utopia-hooks/skills/utopia-hook
 
 ## How it compares
 
-| | utopia-flutter-skills | flutter_bloc | Riverpod | VGV Wingspan |
-|---|---|---|---|---|
-| State pattern | Hooks (Screen/State/View) | Bloc/Cubit | Providers + codegen | Bloc/Cubit |
-| Agent skills | ✅ 4 plugins (Claude Code + Codex) | - | - | ✅ |
-| CLI scaffolder | [`utopia_cli`](https://github.com/Utopia-USS/utopia_cli) | — | — | `very_good_cli` |
-| BLoC migration tool | ✅ | — | — | — |
-| License | BSD-2-Clause | BSD-2-Clause | BSD-2-Clause | BSD-2-Clause (alpha) |
-| Lock-in | None | Bloc-only | Riverpod-only | VGV opinions |
+| | utopia-flutter-skills | Typical state-management packages | Generic AI coding setup |
+|---|---|---|---|
+| State pattern | Hooks (Screen/State/View) | Library-specific patterns | Unspecified |
+| Agent skills | 4 plugins for Claude Code and Codex | - | Manual prompts |
+| CLI scaffolder | [`utopia_cli`](https://github.com/Utopia-USS/utopia_cli) | - | Usually separate |
+| BLoC migration tool | Included | - | Manual migration |
+| License | BSD-2-Clause | Varies | Varies |
+| Lock-in | None | Package-specific | Tooling-specific |
 
 ## Installation
 
@@ -92,7 +97,10 @@ codex plugin install utopia-cms@utopia-flutter-skills
 dart pub global activate utopia_cli
 utopia create flutter_app my_app --org io.example
 cd my_app
-claude  # .claude/ already wired to this marketplace
+# Open the project in Claude Code or register this repo marketplace in Codex.
+claude
+# or:
+codex plugin marketplace add .
 ```
 
 You get a Flutter app with `utopia_hooks` + `utopia_arch` scaffolding **and** an AI-agent layer that already knows your project's conventions.
@@ -117,7 +125,7 @@ Compatible with [`fast_immutable_collections`](https://pub.dev/packages/fast_imm
 
 ## Contributing
 
-Issues and PRs welcome. Skills are designed to be forked — copy a skill into your own `.claude/`, tweak the rules, and ship it.
+Issues and PRs welcome. Skills are designed to be forked — copy a skill into your own Claude Code or Codex setup, tweak the rules, and ship it.
 
 ## License
 
