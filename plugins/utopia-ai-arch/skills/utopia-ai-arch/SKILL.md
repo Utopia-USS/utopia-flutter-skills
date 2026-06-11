@@ -1,16 +1,19 @@
 ---
 name: utopia-ai-arch
 description: >
-  Create and maintain the Claude Code `.claude/` layer in Utopia Flutter projects —
-  agents, skills, slash commands, hooks, refs, CLAUDE.md, and the architecture
-  decision log. Applies when bootstrapping a repo's AI architecture, adding a
-  skill / agent / command / hook, recording a rejected alternative, auditing
-  for drift, splitting or graduating content, or evolving an existing layer.
-  Encodes the project-claude-layer blueprint plus the invariants and decision
-  criteria distilled from multiple production `.claude/` layers in Utopia repos.
-  Layered on top of the upstream `utopia-hooks` plugin — this skill stays
-  silent on hook idioms / Screen-State-View / Dart conventions (foundation concerns).
-license: MIT
+  Create and maintain the Claude Code `.claude/` layer in Utopia Flutter projects -
+  agents, skills, slash commands, enforcement hook scripts (PostToolUse /
+  SessionStart), settings.json permissions, `.claude/refs/`, CLAUDE.md / AGENTS.md,
+  and the `claude-architecture.md` decision log. Applies when bootstrapping a
+  repo's AI architecture, adding or editing a skill / agent / slash command /
+  hook script, recording a rejected alternative, auditing the layer for drift,
+  splitting or graduating skill content, or diagnosing why the agent keeps
+  forgetting or losing a project convention. Encodes the project-claude-layer
+  blueprint plus invariants distilled from multiple production `.claude/` layers
+  in Utopia repos. Layered on top of the upstream `utopia-hooks` plugin - stays
+  silent on Flutter hook idioms / Screen-State-View / Dart conventions, and does
+  NOT apply to writing Flutter app code itself (foundation concerns).
+license: BSD-2-Clause
 metadata:
   author: UtopiaSoftware
   tags: claude-code, ai-architecture, agents, skills, blueprint, project-layer, hooks, flutter
@@ -45,7 +48,7 @@ Full documentation with verbatim file skeletons and quoted invariants in [refere
 | [agent-roster.md][agent-roster] | CRITICAL | 4-agent blueprint (architect / maintainer / reviewer / precommit-auditor), invariants per role, hand-off chain, frontmatter shape, when to add domain auditors or per-area maintainers |
 | [skill-design.md][skill-design] | CRITICAL | Positive+negative applicability, no-router/no-shared rules, when to split a skill, primitive sister skills, `.claude/refs/` cross-link discipline, 3 reference styles (module / pattern / cheatsheet), graduation gradient |
 | [enforcement-hooks.md][enforcement-hooks] | CRITICAL | `<prefix>_quality_check.sh` shape (contract / guards / generated-file block / path nudges / mode env var), `<prefix>_skills_drift.sh` shape, SessionStart hook criteria, why NO push-guard |
-| [evolution-and-drift.md][evolution-and-drift] | CRITICAL | Operations on a live layer (graduate / split / collapse / delete a skill, add/remove path nudges, add a domain auditor mid-project) paired with the 22-symptom drift catalogue from production. Triggers for re-reading the architecture doc + audit grep one-liners |
+| [evolution-and-drift.md][evolution-and-drift] | CRITICAL | Operations on a live layer (graduate / split / collapse / delete a skill, add/remove path nudges, add a domain auditor mid-project) paired with the 21-symptom drift catalogue from production. Triggers for re-reading the architecture doc + audit grep one-liners |
 | [slash-commands.md][slash-commands] | HIGH | 3-base commands (/implement, /audit, /audit-skills), implement-loop shape with retry cap = 2, never-commit/never-push, when to add `/plan` `/team` `/design` `/ship` |
 | [architecture-doc.md][architecture-doc] | HIGH | `.claude/docs/claude-architecture.md` 9-section spine, rejected-alternative 4-field entry shape, toolchain canon, MCP-assumption rules |
 | [claude-md.md][claude-md] | HIGH | What belongs in `CLAUDE.md` (always-loaded inventory) vs deep content (references), table shapes, `AGENTS.md` symlink convention and rationale |
@@ -64,7 +67,7 @@ Foundation = `utopia-hooks` plugin (ambient, marketplace-installed, repo-agnosti
 
 ### Agent roster → [agent-roster.md][agent-roster]
 
-Four standard agents: `<prefix>-architect` (read-only planner), `<prefix>-maintainer` (write, only writer), `<prefix>-reviewer` (read-only post-impl review, output BLOCKER/SHOULD-FIX/NIT), `<prefix>-precommit-auditor` (read-only staged-diff gate). Each agent preloads `[<prefix>-<master-skill>, utopia-hooks]`. Domain auditor only with incident or threat-surface justification; per-area maintainers rejected unless ≥3-area PRs are routine.
+Four standard agents: `<prefix>-architect` (read-only planner), `<prefix>-maintainer` (write, only writer), `<prefix>-reviewer` (read-only post-impl review, output BLOCKER/WARN/NIT), `<prefix>-precommit-auditor` (read-only staged-diff gate). Each agent preloads `[<prefix>-<master-skill>, utopia-hooks]`. Domain auditor only with incident or threat-surface justification; per-area maintainers rejected unless ≥3-area PRs are routine.
 
 ### Skill design → [skill-design.md][skill-design]
 
@@ -76,7 +79,7 @@ Every skill needs positive AND negative applicability. "Cross-cutting" or "share
 
 ### Evolution & drift → [evolution-and-drift.md][evolution-and-drift]
 
-The pillar this skill exists for. Operations on a live layer paired with the 22-symptom drift catalogue. Re-read `claude-architecture.md` before acting when: new techstack, new MCP, new external integration, recent incident, or a roster proposal.
+The pillar this skill exists for. Operations on a live layer paired with the 21-symptom drift catalogue. Re-read `claude-architecture.md` before acting when: new techstack, new MCP, new external integration, recent incident, or a roster proposal.
 
 ## Diagnostic routing — when the agent is acting wrong
 
@@ -90,6 +93,7 @@ The pillar this skill exists for. Operations on a live layer paired with the 22-
 | Worktrees silently producing no-op Dart edits | [evolution-and-drift.md][evolution-and-drift] (symptom H) |
 | Stale `dart mcp-server` processes accumulating memory | [enforcement-hooks.md][enforcement-hooks] (SessionStart criteria) |
 | Reviewer accepting blockers that don't cite a rule | [agent-roster.md][agent-roster] (reviewer invariants) |
+| Hook never fires / fires in an unrelated repo | [enforcement-hooks.md][enforcement-hooks] (Scope guards) + [bootstrap-procedure.md][bootstrap-procedure] (validation checklist) |
 | Skill `references/` accumulating cross-cutting content | [evolution-and-drift.md][evolution-and-drift] (symptom A) |
 | "Should we add a `<prefix>-shared` skill?" / "a `git push` guard?" / "a 5th agent?" | [skill-design.md][skill-design] / [enforcement-hooks.md][enforcement-hooks] / [agent-roster.md][agent-roster] (each says NO — read why) |
 

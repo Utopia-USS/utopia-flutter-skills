@@ -22,14 +22,14 @@ one that reads best in the parent skill's reference table.
 ### `# <Pattern name>`
 
 Noun phrase naming the convention (e.g. *Activity Pattern*,
-*Crazy Design System*, *Flutter Services*, *Proto → Ext → Id → Ref*).
+*Acme Design System*, *Flutter Services*, *Proto → Ext → Id → Ref*).
 
 ### `## What this pattern is`
 
 1–2 sentences. The convention in plain language. *"All activities
 follow a 3-letter code + 2-digit variant naming, with proto messages
-under `proto/classroom/activity/`, base classes in `…/activity/base/`,
-and registration in `…/activity_registry.dart`."*
+under `proto/<area>/<feature>/`, base classes in `…/activity/base/`,
+and registration in `…/<feature>_registry.dart`."*
 
 If you can't summarise the pattern in two sentences, the document is
 trying to be a module — switch styles.
@@ -39,7 +39,7 @@ trying to be a module — switch styles.
 The path / surface where the pattern is enforced. Mirror the parent
 skill's `applicability`, narrowed to this specific pattern. If the
 pattern only applies in part of the skill's scope, say so explicitly
-(`"only for activity widgets, not for assessment widgets"`).
+(`"only for activity widgets, not for form widgets"`).
 
 ### `## Rules`
 

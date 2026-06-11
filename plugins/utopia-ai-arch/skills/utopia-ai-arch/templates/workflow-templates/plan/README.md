@@ -17,7 +17,7 @@ implementation orchestrator) adds value:
   proceed with `/<prefix>-implement` or `/<prefix>-team`.
 
 **Not auto-inspectable** — having multiple packages doesn't mean PRs
-routinely span them. Phase 0.5 must surface this with a user prompt:
+routinely span them. Phase 0.4 must surface this with a user prompt:
 
 > *"Do you frequently work on PRs spanning 3+ packages or workspaces?
 > Would a plan-only invocation (before deciding how to implement) be
@@ -43,22 +43,23 @@ a separate body of knowledge.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
+- `<prefix>` — repo command/agent prefix (e.g. `aap`).
   Appears in:
   - command name (`/<prefix>-plan`)
   - architect agent reference (`<prefix>-architect`)
   - any sister-command references in "Done When"
-- Domain-skill list in step 2 — the production version names
-  `acme-domain-auditor` and references area-specific sister skills
-  (`acme-sister-skill`, `acme-backend`, …). Replace with the team's
-  domain skills or drop entirely if the architect alone is enough.
+- Domain-skill list in step 2 — the production version names a domain
+  auditor and references area-specific sister skills
+  (`<prefix>-domain-auditor`, `<prefix>-backend`, …). Replace with the
+  team's domain skills or drop entirely if the architect alone is enough.
 
 ## Production precedent
 
-`<prefix>` is the only repo currently shipping this bundle. The plan step is
-upstream of both `/acme-implement` (single-area work) and `/acme-team`
-(parallel cross-cutting work), letting the user pick the right downstream
-orchestrator after seeing the plan.
+repo-A is the only production repo shipping this bundle. The plan step is
+upstream of both `/<prefix>-implement` (single-area work,
+e.g. `/aap-implement`) and `/<prefix>-team` (parallel cross-cutting work),
+letting the user pick the right downstream orchestrator after seeing the
+plan.
 
 ## Load-bearing pieces — keep when adapting
 
@@ -76,5 +77,5 @@ orchestrator after seeing the plan.
 
 ## Strip-the-banner reminder
 
-The command file ships with a `<!-- TEMPLATE -->` banner. Remove it once
-substitution is complete.
+The command file ships with a `<!-- BLUEPRINT -->` banner below the
+frontmatter. Remove it once substitution is complete.

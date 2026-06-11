@@ -1,4 +1,3 @@
-<!-- TEMPLATE - workflow-style skill paired with REPO-design.md command. Open only if Phase 0.5 confirmed design-tool integration. Substitute <prefix> tokens. Strip this banner. -->
 ---
 name: <prefix>-design
 description: >
@@ -11,10 +10,13 @@ description: >
   utopia-hooks plugin.
 ---
 
+<!-- BLUEPRINT — adapt per-repo. Workflow-style skill paired with the REPO-design.md command. Open only if Phase 0.4 confirmed design-tool integration. Substitute <prefix> tokens. Strip this banner after substitution. -->
+
 # <prefix>-design
 
-Workflow-style skill — format intentionally diverges from the foundation
-module / pattern / cheatsheet trichotomy. Knowledge is organised around
+Workflow-style skill — format intentionally diverges from the
+module / pattern / cheatsheet trichotomy that skill-design.md prescribes
+for project reference docs. Knowledge is organised around
 **sources / acquisition / translation steps**, because the value is in
 sequencing the design-acquisition tools and mapping the result onto the
 repo's component vocabulary.
@@ -32,7 +34,7 @@ For repo topology, environments, and the skills inventory see the always-on
 | Concern | Owner |
 |---------|-------|
 | Screen/State/View, hooks, async, DI | `utopia-hooks` plugin |
-| Component vocabulary, tokens, services, models | `<repo>` master skill |
+| Component vocabulary, tokens, services, models | `<prefix>` master skill |
 | Design source reading, acquisition workflow | **<prefix>-design** (this skill) |
 | Full orchestration (plan→code→review) | `/<prefix>-design` command |
 

@@ -14,8 +14,24 @@ Blueprint: the `utopia-ai-arch` Claude Code skill (its
 
 ## 1. Two layers
 
-(Foundation + project, as in the blueprint README §1. Restate briefly
-here so this doc stands alone.)
+(Full layer model: see the utopia-ai-arch skill,
+references/layer-model.md. Restate briefly here so this doc stands alone.)
+
+```
+┌──────────────────────────────────────────────────────┐
+│ PROJECT - this repo's .claude/ + CLAUDE.md           │
+│   <domain concerns: skills, agents, commands, hooks> │
+└──────────────────────────────────────────────────────┘
+                 ▲ referenced, never duplicated
+                 │
+┌──────────────────────────────────────────────────────┐
+│ FOUNDATION - utopia-hooks plugin                     │
+│   marketplace-installed, ambient, repo-agnostic      │
+└──────────────────────────────────────────────────────┘
+```
+
+Project skills cross-link to foundation references; they never restate
+foundation content.
 
 ## 2. Skill split
 
@@ -24,12 +40,13 @@ here so this doc stands alone.)
 | `<repo>-<area>` | <paths / surface> | <where it does NOT apply> | <why this boundary> |
 
 **No router skill.** Routing is solved by `CLAUDE.md` (always-on
-inventory), the path-matching hook (deterministic surfacing), and
-per-skill `applicability` (autonomous load). See blueprint §2.
+inventory), `<repo>_quality_check.sh` (the deterministic path → skill
+nudge), and per-skill `applicability` (autonomous load). See the
+utopia-ai-arch skill, references/skill-design.md.
 
 **No cross-cutting "shared" skill.** Cross-skill snippets live in
 `.claude/refs/`, linked from each consuming `SKILL.md` "See also".
-See blueprint §4.
+See the utopia-ai-arch skill, references/skill-design.md.
 
 ## 3. Reference styles in use
 
@@ -41,7 +58,10 @@ Authoring guides live in the `utopia-ai-arch` skill (not copied per-repo):
 |---|---|---|---|
 | `<repo>-<area>` | <list> | <list> | <list> |
 
-## 4. Agent roster additions
+## 4. Agent roster
+
+(Roster rationale: see the utopia-ai-arch skill,
+references/agent-roster.md.)
 
 The standard four (`<repo>-architect`, `<repo>-maintainer`,
 `<repo>-reviewer`, `<repo>-precommit-auditor`) are always present.
@@ -51,10 +71,17 @@ Document only domain auditors added beyond the standard set:
 |---|---|
 | `<repo>-<domain>-auditor` | <critical surface that warrants a dedicated review pass> |
 
+**Toolchain canon (fact, not decision).** <FVM yes/no; the chosen form
+propagates to every agent, command, script, and permissions.allow entry -
+no alternation>
+
+**MCP assumption.** <which MCP server (if any) is assumed installed; what
+is authoritative for analyze; or an explicit one-sentence non-assumption>
+
 ## 5. Enforcement mode
 
 - Hard block: edits to generated files (`*.g.dart`, `*.freezed.dart`,
-  `<other>`).
+  `<repo-specific generated extensions>`).
 - Default mode: `warn` (exit 1) on path-match nudges and convention
   violations.
 - `block` (exit 2) switchable via `<REPO>_QUALITY_MODE=block`.
@@ -71,11 +98,18 @@ Hook fires for `Edit | Write | MultiEdit` on Dart files under a
 workspace pubspec. Out-of-scope edits exit silently. Path → skill
 nudges mirror each skill's `applicability` from §2.
 
+`<repo>_skills_drift.sh` scans `.claude/**/*.md` + `CLAUDE.md` for dead
+markdown links; the full scan runs via `/<repo>-audit-skills`.
+
+Deliberate omission: no push guard. `permissions.allow` excludes
+`git push` - every push prompts; GitHub branch protection covers the
+remote.
+
 ## 8. Rejected alternatives
 
 Each entry: **alternative · case for · case against here · reversal criterion.**
 
-### <Example: per-domain skills instead of <chosen split>>
+### Example: per-domain skills instead of the chosen split
 
 - **Alternative.** <description>
 - **Case for.** <when this would be right>

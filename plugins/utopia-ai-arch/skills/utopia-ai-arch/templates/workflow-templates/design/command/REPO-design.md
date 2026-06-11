@@ -1,4 +1,3 @@
-<!-- TEMPLATE - workflow-style slash command paired with REPO-design/SKILL.md. Open only if Phase 0.5 confirmed design-tool integration. Substitute <prefix> tokens. Strip this banner. -->
 ---
 description: "Design→code pipeline — reads design from <design-tool> or claude.design, then runs architect → maintainer ↔ reviewer loop. Does NOT commit."
 argument-hint: "[paper | handoff <path>] [--no-analyze-baseline]"
@@ -6,12 +5,16 @@ allowed-tools: Task, Read, Bash, Glob, Grep, Edit
 model: inherit
 ---
 
+<!-- BLUEPRINT — adapt per-repo. Workflow-style slash command paired with REPO-design/SKILL.md. Open only if Phase 0.4 confirmed design-tool integration. Substitute <prefix> tokens. Strip this banner after substitution. -->
+
 # /<prefix>-design — design→code orchestrator
 
 You coordinate design acquisition, then `<prefix>-architect`,
 `<prefix>-maintainer`, and `<prefix>-reviewer` to land a design
 implementation with review-loop discipline. You do **not** write code
-yourself. You do **not** commit or push.
+yourself. You do **not** commit or push. The `<prefix>-design` skill owns
+the design-acquisition and translation workflow - this command assumes it
+is installed alongside.
 
 Raw arguments: `$ARGUMENTS`
 
@@ -106,14 +109,14 @@ what Screen/State/View structure is needed.
 Invoke `<prefix>-architect` via the Task tool:
 
 ```
-Implement the following design in the <repo> codebase.
+Implement the following design in the <prefix> codebase.
 
 Design brief:
 <design brief from Step 0>
 
 Plan which files to create/modify, which components to use, what
 Screen/State/View structure is needed, and what hooks handle the
-interactions. Use the <repo> master skill for component knowledge and
+interactions. Use the <prefix> master skill for component knowledge and
 utopia-hooks for state patterns.
 ```
 
@@ -134,7 +137,9 @@ Plan:
 <architect plan from Step 3>
 
 Match the visual design as closely as possible using the design system.
-Flag any design elements that don't have catalogue equivalents.
+Follow the <prefix>-design skill's Translation Workflow for the
+design-to-component mapping. Flag any design elements that don't have
+catalogue equivalents.
 
 Follow the <prefix>-maintainer workflow. Return the structured self-report
 per your "Hand-off format" section. Do NOT commit or push.
@@ -151,7 +156,7 @@ If `analyze` is non-clean and not justified → bounce back before review.
 Invoke `<prefix>-reviewer` via the Task tool, **fresh context**:
 
 ```
-Review the following change set against the <repo> + utopia-hooks skill
+Review the following change set against the <prefix> + utopia-hooks skill
 surface. You are independent — you do NOT see the maintainer's reasoning,
 self-report, or warnings. Verify the diff from scratch.
 

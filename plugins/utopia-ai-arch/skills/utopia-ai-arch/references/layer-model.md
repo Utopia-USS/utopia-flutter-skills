@@ -72,11 +72,11 @@ These belong to `utopia-hooks`, NEVER to a project skill:
 
 A concern is project-level when it requires knowing your repo's specifics:
 
-- Monorepo topology (which workspace owns what — `<area1>/`, `admin/`, `<crypto-package>/`, `packages/<crypto-pkg>/`)
+- Monorepo topology (which workspace owns what — `<area-1>/`, `admin/`, `<crypto-package>/`, `packages/<crypto-pkg>/`)
 - Domain logic (domain-specific business logic per repo)
 - Design system tokens / components specific to this product
 - Backend contracts (Supabase RLS, gRPC proto, Firestore rules, Cloud Functions)
-- External integrations (Linear, <ticketing-tool>, <design-tool>, RevenueCat)
+- External integrations (Linear, `<ticketing-tool>`, `<design-tool>`, RevenueCat)
 - Build-runner / codegen specifics (proto, freezed, retrofit, route, localization)
 - Toolchain canon (FVM yes/no — a binary repo-level choice)
 
@@ -89,7 +89,7 @@ A concern is project-level when it requires knowing your repo's specifics:
 
 **Why.** Mixing them invites the agent to load decision-log content as guidance, or to skip shared markdown thinking it's internal docs. They render the same in markdown viewers; only the directory split keeps the agent's loading model honest.
 
-> "`.claude/refs/` — content for the agent (cross-skill shared markdown). `.claude/docs/` — meta about the layer (decisions, architecture log, authoring helpers). Mixing them invites the agent to load decision-log content as guidance, or to skip shared markdown thinking it's internal docs." — blueprint `README.md:624-633`
+> "`.claude/refs/` — content for the agent (cross-skill shared markdown). `.claude/docs/` — meta about the layer (decisions, architecture log, authoring helpers). Mixing them invites the agent to load decision-log content as guidance, or to skip shared markdown thinking it's internal docs." — blueprint README v1
 
 ### 5. Foundation hooks and project hooks coexist; guarded scope is mandatory.
 

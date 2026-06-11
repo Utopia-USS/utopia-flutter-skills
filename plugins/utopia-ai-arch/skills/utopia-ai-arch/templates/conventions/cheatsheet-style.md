@@ -18,7 +18,7 @@ Common suffixes: `*-cheatsheet.md`, `*-catalogue.md`, `*-map.md`,
 
 Examples of good fits:
 
-- **Design system component map** — every `Crazy*` widget, what it
+- **Design system component map** — every `Acme*` widget, what it
   does, when to use it, where it lives.
 - **AppColors / AppValues / AppIcons inventory** — every token, its
   intended use.
@@ -33,8 +33,8 @@ Examples of good fits:
 
 ### `# <Catalogue name>`
 
-Noun phrase naming what's catalogued (e.g. *the project component catalogue Component Map*,
-*App Tokens*, *Activity Catalogue*).
+Noun phrase naming what's catalogued (e.g. *Component Map*,
+*Design Tokens*, *Feature Catalogue*).
 
 ### `## How to use this`
 
@@ -56,7 +56,7 @@ Examples of good shapes:
 | Component | Where | Use when | Avoid when |
 |---|---|---|---|
 | `<PrimaryPage>` | <area-flutter>/lib/ui/common/<design-system>/page/ | Standard scaffolded screen | Domain-specific UI (different layer) |
-| `CrazySchoolPage` | …/page/ | School-context screen with header | Class-context (use CrazyClassPage) |
+| `AcmeFormPage` | …/page/ | Form-flow screen with stepper | Wizard-context (use AcmeWizardPage) |
 ```
 
 ```
@@ -69,8 +69,8 @@ Examples of good shapes:
 ```
 | Code | Activity | Proto | Notes |
 |---|---|---|---|
-| `SIO` | Sound Identification | `proto/classroom/activity/sio.proto` | Single-letter |
-| `IMC` | Image Match | `proto/classroom/activity/imc.proto` | Has variants 01, 02 |
+| `ABC` | Alpha Sort | `proto/<area>/<feature>/abc.proto` | Single variant |
+| `XYZ` | Beta Match | `proto/<area>/<feature>/xyz.proto` | Has variants 01, 02 |
 ```
 
 Group entries when there's a natural grouping (by feature area, by
@@ -80,9 +80,9 @@ table-of-contents fits in a screen.
 ### `## When to add a new entry`
 
 When does the catalogue grow? Who decides? Often this links back to
-a `*-pattern.md` that defines the rules — *"new components follow
-[crazy-design-system pattern](crazy-design-system.md); add to this
-catalogue once merged."*
+a `*-pattern.md` that defines the rules — *"new components follow the
+design-system pattern reference (`<design-system>-pattern.md`); add to
+this catalogue once merged."*
 
 ---
 
