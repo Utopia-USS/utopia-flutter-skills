@@ -4,7 +4,7 @@ description: >
   Migrate Flutter BLoC/Cubit codebases to utopia_hooks. Applies when flutter_bloc imports,
   Bloc/Cubit classes, BlocProvider, BlocBuilder, BlocListener, or emit() calls are detected.
   Proactively suggests migration when BLoC patterns are found.
-license: MIT
+license: BSD-2-Clause
 metadata:
   author: UtopiaSoftware
   tags: flutter, dart, bloc, cubit, migration, utopia_hooks, state-management
@@ -395,7 +395,7 @@ Agents run with CWD set to the **target Flutter project**, not this plugin's dev
 **Resolve plugin files via `${CLAUDE_PLUGIN_ROOT}`.** This env var is set by the Claude Code harness to the currently-running plugin's install dir, e.g. `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`.
 
 - **This plugin's files** (migrate-bloc skill): `${CLAUDE_PLUGIN_ROOT}/skills/migrate-bloc-to-utopia-hooks/<file>`
-- **Sibling plugin's files** (utopia-hooks foundation skill): resolve via `~/.claude/plugins/installed_plugins.json` — it gives the current `installPath` for `utopia-hooks@utopia-claude-skills`. The skill lives at `<installPath>/skills/utopia-hooks/<file>`.
+- **Sibling plugin's files** (utopia-hooks foundation skill): resolve via `~/.claude/plugins/installed_plugins.json` — it gives the current `installPath` for the `utopia-hooks@...` entry (marketplace key is `utopia-flutter-skills`; legacy installs may use `utopia-claude-skills` - match on the `utopia-hooks@` prefix). The skill lives at `<installPath>/skills/utopia-hooks/<file>`.
 
 The installed plugin is the authoritative source — load from there first. If `${CLAUDE_PLUGIN_ROOT}` is unset or the sibling plugin is not installed, fall back to whatever you can find, but note it in `self_report.warnings`.
 
@@ -414,7 +414,7 @@ The installed plugin is the authoritative source — load from there first. If `
 
 ### Foundation-skill references (sibling `utopia-hooks` plugin)
 
-Path resolution: see "Resolving reference paths" above. In short: read `~/.claude/plugins/installed_plugins.json` → pluck `installPath` for `utopia-hooks@utopia-claude-skills` → references live at `<installPath>/skills/utopia-hooks/<file>`.
+Path resolution: see "Resolving reference paths" above. In short: read `~/.claude/plugins/installed_plugins.json` → pluck `installPath` for the `utopia-hooks@...` entry (match the prefix) → references live at `<installPath>/skills/utopia-hooks/<file>`.
 
 | Reference | Purpose | Loaded by |
 |---|---|---|
