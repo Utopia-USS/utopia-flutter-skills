@@ -108,6 +108,15 @@ final path = useMemoized(() => computePath(points), [points]);
 final image = useMemoized(() => loadImage(url), [url], (img) => img.dispose());
 ```
 
+When the compute body is non-trivial, give it a **named local function** instead of a private top-level helper - it captures the hook's params by closure and reads better. The local function must stay pure compute (no hook calls). See [flutter-conventions.md](./flutter-conventions.md) §7.
+
+```dart
+int useCustomState(int a) {
+  int computeNext() => a + 1;
+  return useMemoized(computeNext, [a]);
+}
+```
+
 ---
 
 ## 2. Side Effects

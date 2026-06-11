@@ -26,7 +26,8 @@ Apply to **every `.dart` file**, not just state management code.
 | 4 | Extract long `build()` into private `_buildXxx` helpers | HIGH |
 | 5 | Prefer `spacing` / `runSpacing` over manual `SizedBox` | MEDIUM |
 | 6 | Curly braces for function bodies > 2 lines | MEDIUM |
-| 7 | Never edit generated files (`.pb.dart`, `.freezed.dart`, `.g.dart`, `.gr.dart`) | CRITICAL |
+| 7 | In hooks, name compute logic with a local function - don't extract private top-level helpers | MEDIUM |
+| 8 | Never edit generated files (`.pb.dart`, `.freezed.dart`, `.g.dart`, `.gr.dart`) | CRITICAL |
 
 ---
 
@@ -298,6 +299,34 @@ Widget build(BuildContext context) {
 }
 ```
 
+### Local functions in hooks
+
+Inside a custom hook, give compute logic a **named local function** and pass it to `useMemoized` / `useCallback` / etc. Don't extract a private top-level function.
+
+```dart
+// ❌ Private top-level helper - params re-threaded, logic detached from hook
+int _computeNext(int a) => a + 1;
+
+int useCustomState(int a) {
+  return useMemoized(() => _computeNext(a), [a]);
+}
+
+// ✅ Local function - captures `a` by closure, reads as a name, stays with the hook
+int useCustomState(int a) {
+  int computeNext() => a + 1;
+  return useMemoized(computeNext, [a]);
+}
+```
+
+**Why local:**
+- Captures hook params/state by closure - no re-passing args.
+- Names the computation (better than an anonymous `() => ...` when body is non-trivial).
+- Logic lives next to the hook that owns it; no pollution of the file's top-level namespace.
+
+**Hard rule:** the local function is a **pure compute / callback closure** - it must NOT call hooks (`useState`, `useMemoized`, `useInjected`, …). Hooks run only in the hook build body, in stable order. Calling a hook inside a nested function breaks ordering. For conditional/looped hook logic use `useIf` / `useKeyed` / `useMap` instead (see [hooks-reference.md](./hooks-reference.md) §7).
+
+**Still extract a top-level function when** the logic is pure, reused across multiple hooks/files, and takes no captured state - then it's a shared util, not hook-local glue.
+
 ---
 
 ## 8. Code Generation
@@ -548,6 +577,8 @@ View to switch over domain errors).
 - **Explicit types everywhere** - `final String name = 'Alice'` is noise; Dart's inference is strong, trust it
 - **Hand-constructed `ButtonState` next to a `SubmitState`** - always `submitState.toButtonState()` so loading can't drift (section 10)
 - **Pre-resolved error strings in state hooks** - error text is `String Function(BuildContext)?`; resolving it in the hook drags context/localization into state (section 11)
+- **Private top-level helper for hook-local compute** - re-threads params Dart could capture by closure; use a named local function inside the hook instead
+- **Calling hooks inside a local function** - nested-function hook calls break ordering; the local function must be pure compute/callback only
 
 ## Related Skills
 
