@@ -1,7 +1,7 @@
 ---
 name: <repo>-<area>
 description: |
-  <Short one-line summary of what this skill knows.>
+  <One-line WHEN-to-apply summary.>
 
   Applicability — POSITIVE: <paths / surface where this applies>.
   Applicability — NEGATIVE: NOT <paths / surface where this explicitly does NOT apply>.
@@ -11,7 +11,10 @@ description: |
   / strict analyzer (those are foundation concerns).
 ---
 
-<!-- BLUEPRINT — adapt per-repo. Strip this banner after substitution. -->
+<!-- BLUEPRINT — adapt per-repo. Strip this banner after substitution.
+     Authoring guides for references: utopia-ai-arch plugin,
+     templates/conventions/{module,pattern,cheatsheet}-style.md - link from
+     claude-architecture.md §3, never copy. -->
 
 # <repo>-<area>
 
@@ -21,26 +24,17 @@ frontmatter — do not repeat it here, reference it.>
 
 ## Relationship to the foundation
 
-Foundation (`utopia-hooks`) owns:
-
-| Concern | Owner |
+| utopia-hooks owns | This skill adds |
 |---|---|
-| Screen / State / View pattern | `utopia-hooks` |
-| Hook catalog | `utopia-hooks` |
-| Async patterns (download / upload / streams) | `utopia-hooks` |
-| Global state, DI bridge | `utopia-hooks` |
-| IList/IMap/ISet, strict analyzer, lambda style | `utopia-hooks` |
-
-This skill adds:
-
-| Concern | Reference |
-|---|---|
-| <project-specific concern A> | [<area>-<topic>.md](references/<area>-<topic>.md) |
-| <project-specific concern B> | [<other-topic>.md](references/<other-topic>.md) |
+| Screen / State / View pattern | <project-specific concern A> ([<area>-<topic>.md](references/<area>-<topic>.md)) |
+| Hook catalog | <project-specific concern B> ([<other-topic>.md](references/<other-topic>.md)) |
+| Async patterns (download / upload / streams) | |
+| Global state, DI bridge | |
+| IList/IMap/ISet, strict analyzer, lambda style | |
 
 ## Problem → reference mapping
 
-| Problem | Start with |
+| Task / question | Start with |
 |---|---|
 | <typical question / task> | [<reference>.md](references/<reference>.md) |
 | ... | ... |
@@ -66,18 +60,7 @@ this section so they're visible whenever this skill loads.
 |---|---|---|---|
 | [<feature>-module.md](references/<feature>-module.md) | module | <CRITICAL/HIGH/MEDIUM> | <business feature with user flow> |
 | [<area>-<topic>.md](references/<area>-<topic>.md) | pattern | <impact> | <cross-cutting convention> |
-| [<area>-cheatsheet.md](references/<area>-cheatsheet.md) | cheat-sheet | <impact> | <inventory / lookup map> |
-
-Reference styles:
-
-- **`*-module.md`** — business module (lead with user flow). Authoring
-  guide: `utopia-ai-arch:templates/conventions/module-style.md`.
-- **`*-pattern.md` / `*-system.md` / `*-services.md` / `*-models.md`** —
-  cross-cutting convention (lead with rules + why). Authoring guide:
-  `utopia-ai-arch:templates/conventions/pattern-style.md`.
-- **`*-cheatsheet.md` / `*-catalogue.md`** — flat lookup / inventory.
-  Authoring guide:
-  `utopia-ai-arch:templates/conventions/cheatsheet-style.md`.
+| [<area>-cheatsheet.md](references/<area>-cheatsheet.md) | cheatsheet | <impact> | <inventory / lookup map> |
 
 ## Self-audit checklist
 

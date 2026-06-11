@@ -30,7 +30,7 @@ The `description:` frontmatter is the only signal for auto-invocation. It must c
 
 **Why.** Without negative scope, the skill description ends up "everywhere relevant" — a router-in-disguise that loads when the agent can't act on its content for the specific surface. Description matching fires the wrong skill, the agent reads conventions that don't apply, drift compounds.
 
-> "Not 'cross-cutting' with no real applicability. A skill whose applicability is 'everywhere relevant' is a router skill in disguise. If you can't write a concrete positive+negative scope, the content doesn't belong in a skill." — blueprint `README.md:110-116`
+> "Not 'cross-cutting' with no real applicability. A skill whose applicability is 'everywhere relevant' is a router skill in disguise. If you can't write a concrete positive+negative scope, the content doesn't belong in a skill." — blueprint README v1
 
 **The test:** if you cannot write a one-sentence negative applicability, the skill is trying to be a router. Split or merge until each skill has a real boundary.
 
@@ -38,7 +38,7 @@ The `description:` frontmatter is the only signal for auto-invocation. It must c
 
 A "router skill" — one that points the agent to other skills — fails two ways: too broad (loads instead of the domain skill, leaves the agent with a map but no content) or too narrow (the inventory belongs in `CLAUDE.md`, which is always in context).
 
-> "A 'router skill' would either fire too broadly … or too narrowly (in which case the inventory belongs in `CLAUDE.md`, which is always in context). Both cases lose to the three-mechanism split." — blueprint `README.md:86-90`
+> "A 'router skill' would either fire too broadly … or too narrowly (in which case the inventory belongs in `CLAUDE.md`, which is always in context). Both cases lose to the three-mechanism split." — blueprint README v1
 
 Routing is solved by three mechanisms working together:
 
@@ -50,13 +50,13 @@ Routing is solved by three mechanisms working together:
 
 A `<prefix>-shared/` skill is the same anti-pattern wearing different clothes. "Shared" is not an applicability scope — it's an admission the skill has no real one.
 
-> "No `<repo>-shared/` skill. 'Shared' is not an applicability scope — it's an admission the skill has no real one. Such a skill loads at the wrong times and competes with the skills that consume it." — blueprint `README.md:144-147`
+> "No `<repo>-shared/` skill. 'Shared' is not an applicability scope — it's an admission the skill has no real one. Such a skill loads at the wrong times and competes with the skills that consume it." — blueprint README v1
 
 **Where shared content goes:** `.claude/refs/<shared-doc>.md` — passive markdown, only entered via "See also" links from each consuming SKILL.md.
 
 ### 4. Cross-link discipline — links live in `SKILL.md`, not in references.
 
-> "A cross-link must live in `SKILL.md` itself, not deep inside a reference. `SKILL.md` always loads when the skill matches; references are doc-on-demand. A buried cross-link is two hops from visibility and gets lost." — blueprint `README.md:159-163`
+> "A cross-link must live in `SKILL.md` itself, not deep inside a reference. `SKILL.md` always loads when the skill matches; references are doc-on-demand. A buried cross-link is two hops from visibility and gets lost." — blueprint README v1
 
 Sections that may contain cross-skill or cross-refs links:
 
@@ -91,7 +91,7 @@ Otherwise defer until there's real content.
 
 ### 7. Don't put cross-cutting Dart content inside the master skill's `references/`.
 
-> "[<prefix>] was originally documented as the master skill that 'owns' Freezed / codegen / strict-analyzer / imports / design-system / dependencies / release coordination — but those concerns are not master-skill-specific, they apply to anyone authoring Dart in this repo. Keeping them inside `<prefix>/references/` made `<prefix>` look like an uber-skill that has to fire on every techstack." — `production-repo-A/.claude/docs/claude-architecture.md:126`
+> "[`<prefix>`] was originally documented as the master skill that 'owns' Freezed / codegen / strict-analyzer / imports / design-system / dependencies / release coordination — but those concerns are not master-skill-specific, they apply to anyone authoring Dart in this repo. Keeping them inside `<prefix>/references/` made `<prefix>` look like an uber-skill that has to fire on every techstack." — `production-repo-A/.claude/docs/claude-architecture.md:126`
 
 If two or more skills consume the same content, lift it to `.claude/refs/` and link from each consuming SKILL.md's See also.
 
@@ -170,7 +170,7 @@ Hard rules:
 
 ### Workflow-style skills — recognised exception to the trichotomy
 
-Some skills are about **driving a tool / surface** end-to-end: browser automation (Chrome DevTools MCP, `preview_*`), a design MCP (<design-tool> / claude.design handoff), a vendored CMS submodule, a remote-deploy procedure. Their content is mostly procedural / how-to, not "what the code is shaped like" — and forcing them into the module / pattern / cheatsheet trichotomy distorts both the reference and the trichotomy.
+Some skills are about **driving a tool / surface** end-to-end: browser automation (Chrome DevTools MCP, `preview_*`), a design MCP (`<design-tool>` / claude.design handoff), a vendored CMS submodule, a remote-deploy procedure. Their content is mostly procedural / how-to, not "what the code is shaped like" — and forcing them into the module / pattern / cheatsheet trichotomy distorts both the reference and the trichotomy.
 
 **Precedent.** `browser-testing` exists as a top-level skill in all three production repos (repo-A, repo-B, repo-C). Its content is about driving the browser via MCP tools — not a user flow (no business intent), not a code-shape pattern (no Dart at all), not an inventory (it's procedural). It's a fourth shape.
 
@@ -187,8 +187,8 @@ Some skills are about **driving a tool / surface** end-to-end: browser automatio
 
 | Category | Examples | How agent decides to open |
 |---|---|---|
-| **Auto-inspectable** | `browser-testing` (web build presence), `<repo>-deployment` (docker-compose presence), `<repo>-cms` (vendored submodule presence) | Agent inspects repo for the signal, applies three-test (frequency / decision burden / recurrence). |
-| **User-driven (workflow-template)** | `<repo>-design` (<design-tool> / Figma / handoff), `<repo>-ship` (Linear / <ticketing-tool> / Jira), `<repo>-plan`, `<repo>-team` | Agent CANNOT infer from repo state. Requires explicit user-prompt — see [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
+| **Auto-inspectable** | `browser-testing` (web build presence), `<prefix>-deployment` (docker-compose presence), `<prefix>-cms` (vendored submodule presence) | Agent inspects repo for the signal, applies three-test (frequency / decision burden / recurrence). |
+| **User-driven (workflow-template)** | `<prefix>-design` (`<design-tool>` / Figma / handoff), `<prefix>-ship` (Linear / `<ticketing-tool>` / Jira), `<prefix>-plan`, `<prefix>-team` | Agent CANNOT infer from repo state. Requires explicit user-prompt — see [bootstrap-procedure.md](bootstrap-procedure.md) §"0.4 External integrations". |
 
 Both categories ship ready-to-copy bundles under [`../templates/workflow-templates/`](../templates/workflow-templates/). Bundles contain skill (where needed) + command (where needed) + a per-bundle README explaining when to open and what to substitute.
 
@@ -288,8 +288,8 @@ These come from the master skill's maturity, not from bootstrap. A primitive sis
 
 ### Description that says WHAT, not WHEN
 
-❌ `description: "This skill teaches how to work with classroom activities."`
-✅ `description: "Use when editing Flutter widgets / services / models in classroom/ or lessons/ for activity flow, assessments, or design system. Stays silent on Kotlin classroom-api and Next.js distributors."`
+❌ `description: "This skill teaches how to work with the app's domain flows."`
+✅ `description: "Use when editing Flutter widgets / services / models in app/ or admin/ for domain flows, content, or design system. Stays silent on Kotlin backend/ and Next.js landing/."`
 
 ### Routing inventory inside a SKILL.md
 
@@ -306,5 +306,5 @@ A module file with no user flow is masquerading as a module — it's probably a 
 - [enforcement-hooks.md](enforcement-hooks.md) — path nudges must match the skill's applicability exactly
 - [evolution-and-drift.md](evolution-and-drift.md) — graduation triggers, splitting / collapsing a skill, deletion criteria; refs documenting tool output, primitive skills firing wrongly
 - [architecture-doc.md](architecture-doc.md) — §"Skill split" table shape
-- Inline reference-style authoring guides: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link these from your repo's `claude-architecture.md` §3; never copy them
+- Inline reference-style authoring guides: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link these from your repo's `claude-architecture.md` §3 by plugin name or GitHub URL; never copy them
 - Inline SKILL.md template: [`../templates/claude-layer/skills/REPO-AREA/SKILL.md`](../templates/claude-layer/skills/REPO-AREA/SKILL.md)

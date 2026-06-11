@@ -17,7 +17,7 @@ more genuinely disjoint chunks** worth implementing in parallel:
   worth the coordination overhead.
 
 **Not auto-inspectable** — having multiple packages doesn't imply parallel
-maintainer fan-out is worth it. Phase 0.5 must surface this with a user
+maintainer fan-out is worth it. Phase 0.4 must surface this with a user
 prompt:
 
 > *"Do your PRs routinely split into 2+ disjoint chunks you'd want to
@@ -48,7 +48,7 @@ invokes carry the domain knowledge.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
+- `<prefix>` — repo command/agent prefix (e.g. `aap`).
 - Agent references — `<prefix>-architect`, `<prefix>-maintainer`,
   `<prefix>-reviewer`, `<prefix>-precommit-auditor`.
 - Domain auditor — `<prefix>-security-auditor` is repo-specific (example). If the
@@ -65,10 +65,10 @@ invokes carry the domain knowledge.
 
 ## Production precedent
 
-`<prefix>` is the only repo currently shipping this bundle. The five-agent
-roster (architect / security-auditor / maintainer / reviewer /
-precommit-auditor) is documented in
-[example-monorepo's `claude-architecture.md`](https://github.com<git-host>/<org>/<repo>) §Decisions.
+repo-A is the only production repo currently shipping this bundle. The
+five-agent roster (architect / security-auditor / maintainer / reviewer /
+precommit-auditor) is documented in repo-A's
+`.claude/docs/claude-architecture.md` §Decisions.
 
 ## Load-bearing pieces — keep when adapting
 
@@ -99,5 +99,5 @@ precommit-auditor) is documented in
 
 ## Strip-the-banner reminder
 
-The command file ships with a `<!-- TEMPLATE -->` banner. Remove it once
+The command file ships with a `<!-- BLUEPRINT -->` banner. Remove it once
 substitution is complete.

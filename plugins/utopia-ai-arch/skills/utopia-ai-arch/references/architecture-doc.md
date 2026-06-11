@@ -10,7 +10,7 @@ tags: architecture-doc, decision-log, rejected-alternatives, toolchain-canon, mc
 
 `.claude/docs/claude-architecture.md` is the **brain of the project layer** — a per-repo decision log that records WHY each `.claude/` choice was made, what was rejected and on what criterion, what's been rolled out, and what tooling canon binds the repo. It is the only file in the project layer whose audience is **future-you and the next contributor**, not the agent.
 
-> "Decisions live here; rationale is documented so that future-you (or a teammate) can tell a deliberate choice from an oversight, and knows what would flip the decision." — blueprint `.claude/docs/claude-architecture.md:6-8`
+> "Decisions live here; rationale is documented so that future-you (or a teammate) can tell a deliberate choice from an oversight, and knows what would flip the decision." — blueprint `docs/claude-architecture.md` template
 
 Without this doc, future-you re-litigates every decision the previous you settled. The agent roster grows by accretion. Rejected alternatives are proposed again. Per-area maintainers come back six months after being deleted. The Toolchain canon paragraph alone — one binary "FVM yes/no" choice, propagated everywhere — has paid for the doc twice over in repos that adopted it.
 
@@ -42,12 +42,12 @@ Production shape (repo-C):
 |  Foundation — utopia-hooks plugin (marketplace, ambient)      |
 |    Screen/State/View, hook catalog, async patterns, DI,       |
 |    IList/IMap/ISet, strict analyzer, lambda style.            |
-|    Repo-agnostic — knows nothing about this project.                 |
+|    Repo-agnostic — knows nothing about this project.          |
 +---------------------------------------------------------------+
                          ▲ referenced, never duplicated
 +---------------------------------------------------------------+
 |  Project — this repo's .claude/                               |
-|    Domain-specific workflows + business logic,   |
+|    Domain-specific workflows + business logic,                |
 |    ...                                                        |
 +---------------------------------------------------------------+
 ```
@@ -86,7 +86,7 @@ Table — **which reference styles each skill employs**:
 
 The columns mirror the three reference styles taxonomy. A skill with no entries in a column declares it doesn't use that style yet. Primitive skills show `(none yet — primitive)` — visible, deliberate (repo-B precedent, `production-repo-B/.claude/docs/claude-architecture.md:53`).
 
-Authoring conventions for each style are bundled inline with this skill at [`../templates/conventions/{module,pattern,cheatsheet}-style.md`](../templates/conventions/). **Link them from §3, never copy into the repo.** See §8 rejected-alternative "Move authoring conventions into `.claude/`" (repo-B, repo-C both rejected this for the same reason).
+Authoring conventions for each style are bundled inline with this skill at [`../templates/conventions/{module,pattern,cheatsheet}-style.md`](../templates/conventions/). **Link them from §3 by name (utopia-ai-arch plugin, `templates/conventions/…`) or GitHub URL — never copy into the repo, and don't hard-code a local plugin-cache path.** See §8 rejected-alternative "Move authoring conventions into `.claude/`" (repo-B, repo-C both rejected this for the same reason).
 
 ### §4 Agent roster
 
@@ -127,7 +127,7 @@ Three bullets, no prose:
 - `block` (exit 2) is switchable via `<PREFIX>_QUALITY_MODE=block`.
 ```
 
-The generated-extensions list is **per-repo**. Repo-C has `.freezed.dart`, `.g.dart`, `.config.dart`. Repo-B adds `.pb.dart`, `.pbenum.dart`, `.pbjson.dart`, `.pbserver.dart`, `.gr.dart` (protobuf, auto_route — `production-repo-B/.claude/docs/claude-architecture.md:83-85`). Repo-A blocks `.g.dart`, `.freezed.dart`. List **exactly what the repo generates** — listing extensions the repo doesn't produce is dead text, listing missing ones leaks edits past the hook.
+The generated-extensions list is **per-repo**. Repo-C has `.freezed.dart`, `.g.dart`, `.config.dart`. Repo-B adds `.pb.dart`, `.pbenum.dart`, `.pbjson.dart`, `.pbserver.dart`, `.gr.dart` (protobuf, auto_route — `production-repo-B/.claude/docs/claude-architecture.md:83-85`). Repo-A blocks the full set (`.g.dart`, `.freezed.dart`, `.gr.dart`, `.config.dart`, `.pb*.dart` — see the per-repo table in [enforcement-hooks.md](enforcement-hooks.md)). List **exactly what the repo generates** — listing extensions the repo doesn't produce is dead text, listing missing ones leaks edits past the hook.
 
 Cross-link to [enforcement-hooks.md](enforcement-hooks.md) for the contract / guards / mode env-var pattern.
 
@@ -141,7 +141,7 @@ Note ONLY additions or omissions relative to the standard 3-base (`/<prefix>-imp
 
 **If additions**, document each with its rationale. Repo-B added `/<prefix>-design`:
 
-> "Four commands: `/<prefix>-implement`, `/<prefix>-design`, `/<prefix>-audit`, `/<prefix>-audit-skills`. `/<prefix>-design` extends the `/<prefix>-implement` pipeline with a design acquisition step (<design-tool> MCP or claude.design handoff bundle) — same agents, same review loop, richer input." — `production-repo-B/.claude/docs/claude-architecture.md:90-94`
+> "Four commands: `/<prefix>-implement`, `/<prefix>-design`, `/<prefix>-audit`, `/<prefix>-audit-skills`. `/<prefix>-design` extends the `/<prefix>-implement` pipeline with a design acquisition step (`<design-tool>` MCP or claude.design handoff bundle) — same agents, same review loop, richer input." — `production-repo-B/.claude/docs/claude-architecture.md:90-94`
 
 Cross-link to [slash-commands.md](slash-commands.md).
 
@@ -162,7 +162,7 @@ Cross-link to [enforcement-hooks.md](enforcement-hooks.md).
 
 **THE most valuable section.** Every entry uses the 4-field shape (next subsection). This is what stops the layer drifting in a loop — every six months someone proposes per-area maintainers; every six months the entry shows it was tried and reverted and what the reversal criterion is.
 
-> "The Rejected alternatives section pays for itself. It's why future-you doesn't re-litigate decisions, and why someone new can tell a deliberate omission from an oversight." — blueprint `README.md:299-301`
+> "The Rejected alternatives section pays for itself. It's why future-you doesn't re-litigate decisions, and why someone new can tell a deliberate omission from an oversight." — blueprint README v1
 
 ### §9 Rollout status
 
@@ -181,7 +181,7 @@ A 7-step checkbox list mirroring the apply-the-blueprint procedure (see [bootstr
 Each line one checkbox or short phrase. Repo-C's is exemplary:
 
 ```
-1. Foundation wiring — done (`utopia-hooks@utopia-claude-skills` enabled in `.claude/settings.json`).
+1. Foundation wiring — done (`utopia-hooks@utopia-flutter-skills` enabled in `.claude/settings.json`).
 2. Skeleton — done (CLAUDE.md, `.claude/skills/<prefix>/`, `.claude/skills/<prefix>-functions/`, `refs/`, `docs/`).
 3. Enforcement — done (quality-check hook with hard block on generated + warn nudges).
 4. Agents — done (architect, maintainer, reviewer, precommit-auditor).
@@ -235,7 +235,7 @@ The reversal criterion shape varies by what flips the call. Browse these for ins
 
 The Toolchain canon is a paragraph in §4 (or wherever the doc anchors it). It is **a record, not a design choice**. There is one binary call per toolchain (FVM yes/no for Dart, nvm yes/no for Node, etc.) and the answer propagates **everywhere** — agents, slash commands, scripts, `permissions.allow`.
 
-> "Pick one form and apply it everywhere — no `cmd / fvm cmd` slashes, no per-file if/else. Either the repo uses FVM or it doesn't; the answer is binary. Bare-toolchain ambiguity (bash resolving against whatever `$PATH` exposes) has bitten teams before — this section exists to short-circuit that. No 'case for / against': it's a recorded fact, one short paragraph." — blueprint `README.md:281-290`
+> "Pick one form and apply it everywhere — no `cmd / fvm cmd` slashes, no per-file if/else. Either the repo uses FVM or it doesn't; the answer is binary. Bare-toolchain ambiguity (bash resolving against whatever `$PATH` exposes) has bitten teams before — this section exists to short-circuit that. No 'case for / against': it's a recorded fact, one short paragraph." — blueprint README v1
 
 Production shapes — both use FVM:
 
@@ -249,7 +249,7 @@ Notice the second sentence in each: it explicitly couples the toolchain canon to
 
 For Dart projects, the architecture doc documents which MCP server is **assumed installed** in this repo. The blueprint defaults to "an MCP Dart server is preferred for routine ops; bash via toolchain canon is the fallback, and is authoritative for `analyze`."
 
-> "For Dart projects, an MCP dart server (e.g. `dart-mcp`, `<prefix>-dart`) is **assumed present** and is the preferred surface for routine ops (`dart_format`, `pub`, `run_tests`). Bash via the toolchain canon (item 5 above) is the fallback, and is authoritative for `analyze` (MCP `analyze_files` is known to miss errors)." — blueprint `README.md:291-297`
+> "For Dart projects, an MCP dart server (e.g. `dart-mcp`, `<prefix>-dart`) is **assumed present** and is the preferred surface for routine ops (`dart_format`, `pub`, `run_tests`). Bash via the toolchain canon (item 5 above) is the fallback, and is authoritative for `analyze` (MCP `analyze_files` is known to miss errors)." — blueprint README v1
 
 **Rule: don't reference an MCP server that isn't installed.** Listing it in `enabledMcpjsonServers` or `permissions.allow` (without the server being there) pollutes the allowlist; quoting `mcp__<name>__<tool>` in agent prompts confuses the model.
 
@@ -264,9 +264,9 @@ Cross-link to [settings-json.md](settings-json.md) (the `enabledMcpjsonServers` 
 
 ### 1. Write this doc FIRST, before any files.
 
-During bootstrap, the architecture doc is Phase 1.5 — between the blueprint copy and the first skill / agent file. Order reversed, the doc narrates instead of decides; choices stop being choices.
+During bootstrap, the architecture doc is Phase 2 — after Gather and the skill-split design, before any file is copied. Order reversed, the doc narrates instead of decides; choices stop being choices.
 
-> "Draft `.claude/docs/claude-architecture.md`. Fill in §2 (skill split table), §3 (which reference styles each skill will use), §8 (rejected alternatives — what you considered but didn't pick), plus the §9 toolchain-canon and MCP-assumption notes — record the FVM-or-not call (or the equivalent for non-Dart toolchains) once here, then propagate the chosen form into every agent, command, script, and `permissions.allow` entry. No alternation slashes." — blueprint `README.md:392-398`
+> "Draft `.claude/docs/claude-architecture.md`. Fill in §2 (skill split table), §3 (which reference styles each skill will use), §8 (rejected alternatives — what you considered but didn't pick), plus the §9 toolchain-canon and MCP-assumption notes — record the FVM-or-not call (or the equivalent for non-Dart toolchains) once here, then propagate the chosen form into every agent, command, script, and `permissions.allow` entry. No alternation slashes." — blueprint README v1
 
 ### 2. Never delete a §"Rejected alternatives" entry.
 
@@ -286,7 +286,7 @@ These are **living tables**, not bootstrap-only. Every new skill / command / nud
 
 The architecture doc refers to **blueprint conventions** and **sibling references** — it doesn't restate them. Authoring conventions for module / pattern / cheatsheet style live in the blueprint, linked. The full no-router-skill rule lives in [skill-design.md](skill-design.md), linked. The hook contract lives in [enforcement-hooks.md](enforcement-hooks.md), linked.
 
-The architecture doc's job is to be **short** and **decision-dense**. Repo-C's is 163 lines; repo-B's is 194. If yours is growing past ~300 lines, narrative is leaking in — move it to `docs/architecture.md` at the repo root (repo-A's precedent: system topology, sequence diagrams, formal spec are repo-root docs, not Claude-layer docs).
+The architecture doc's job is to be **short** and **decision-dense**. Repo-C's is ~160 lines; repo-B's is ~190. If yours is growing past ~300 lines, narrative is leaking in — move it to `docs/architecture.md` at the repo root (repo-A's precedent: system topology, sequence diagrams, formal spec are repo-root docs, not Claude-layer docs).
 
 ## Anti-patterns
 
@@ -298,7 +298,7 @@ The doc narrates instead of decides. By the time it's drafted, the skills exist;
 
 ### Skipping a §"Rejected alternatives" entry for a deliberate omission
 
-"Standard four, no domain auditor" with no entry leaves future-you in the dark — a new proposal can't be evaluated against precedent that doesn't exist. Even "no addition needed" is a recorded decision: pre-populate per [`production-repo-C/.claude/docs/claude-architecture.md:73-75`].
+"Standard four, no domain auditor" with no entry leaves future-you in the dark — a new proposal can't be evaluated against precedent that doesn't exist. Even "no addition needed" is a recorded decision: pre-populate per `production-repo-C/.claude/docs/claude-architecture.md:73-75`.
 
 ### Rejected-alternative entry missing the `reversal criterion`
 
@@ -321,7 +321,7 @@ The order is structural. §"Rejected alternatives" comes after §"Hook scope" be
 - [enforcement-hooks.md](enforcement-hooks.md) — hook contract and mode env var referenced from §5 and §7
 - [claude-md.md](claude-md.md) — the CLAUDE.md inventory that mirrors §2 / §4 / §6
 - [settings-json.md](settings-json.md) — `enabledMcpjsonServers` and `permissions.allow` referenced from the MCP-assumption note
-- [bootstrap-procedure.md](bootstrap-procedure.md) — Phase 1.5: write the architecture doc first
+- [bootstrap-procedure.md](bootstrap-procedure.md) — Phase 2: write the architecture doc first
 - [evolution-and-drift.md](evolution-and-drift.md) — appending entries mid-project, recording reversals; MCP-listed-but-not-installed, ambiguous toolchain canon
 - Inline template: [`../templates/claude-layer/docs/claude-architecture.md`](../templates/claude-layer/docs/claude-architecture.md) — canonical 9-section spine with placeholders
-- Inline templates for the 3 reference-style authoring guides linked from §3: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link from your repo's `claude-architecture.md` §3, never copy
+- Inline templates for the 3 reference-style authoring guides linked from §3: [`../templates/conventions/module-style.md`](../templates/conventions/module-style.md), [`../templates/conventions/pattern-style.md`](../templates/conventions/pattern-style.md), [`../templates/conventions/cheatsheet-style.md`](../templates/conventions/cheatsheet-style.md) — link from your repo's `claude-architecture.md` §3 by plugin name or GitHub URL; never copy

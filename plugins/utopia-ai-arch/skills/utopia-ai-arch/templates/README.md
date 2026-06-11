@@ -20,7 +20,7 @@ templates/
 ├── CLAUDE.md                          → <repo-root>/CLAUDE.md (fill in per Phase 5)
 ├── AGENTS.md  →  CLAUDE.md            symlink (preserve as symlink when copying)
 ├── conventions/                       module / pattern / cheatsheet authoring guides — REFERENCED from `claude-architecture.md` §3, never copied
-├── claude-layer/                      copy this whole subtree into <repo-root>/.claude/, sed-replace <repo>
+├── claude-layer/                      copy into <repo-root>/.claude/ (minus refs/README.md), sed-replace <repo>
 │   ├── settings.json
 │   ├── docs/claude-architecture.md
 │   ├── refs/README.md                 discipline doc for `.claude/refs/` — REFERENCED, never copied
@@ -49,12 +49,12 @@ Across all copied files:
 | Find | Replace with | Example |
 |---|---|---|
 | `<repo>` | your project's lowercase prefix (short slug) | e.g. `aap` for the "acme-app-platform" repo |
-| `<REPO>` | the prefix uppercased (env-var prefix) | `<PREFIX>_QUALITY_MODE` (substitute `<PREFIX>` with your repo's uppercase prefix) |
+| `<REPO>` | the prefix uppercased (env-var prefix) | `AAP_QUALITY_MODE` (from `<REPO>_QUALITY_MODE`) |
 | `<project name>` | the human-readable project name | e.g. "Acme App Platform" |
 | `REPO-AREA` (in skill directory names) | concrete area name | e.g. `aap-flutter`, `aap-backend` |
 | `<repo-folder-name>` (in hook basename guard) | on-disk repo directory name | e.g. `acme-app-platform` |
 
-**Prefix ≠ repo-folder-name.** They are independent and frequently differ — a repo whose folder is `acme-app-platform` may use the prefix `aap`. The hook's `basename "$repo_root"` match MUST use the folder name, not the prefix. If you substitute the prefix by mistake, the hook silently never fires. See [`../references/enforcement-hooks.md`](../references/enforcement-hooks.md) §"Basename guard".
+**Prefix ≠ repo-folder-name.** They are independent and frequently differ — a repo whose folder is `acme-app-platform` may use the prefix `aap`. The hook's `basename "$repo_root"` match MUST use the folder name, not the prefix. If you substitute the prefix by mistake, the hook silently never fires. See [`../references/enforcement-hooks.md`](../references/enforcement-hooks.md) §"Scope guards".
 
 ## How to apply
 
@@ -69,7 +69,7 @@ Read [`../references/bootstrap-procedure.md`](../references/bootstrap-procedure.
 | 4 | **Wire `settings.json`** — `enabledPlugins: utopia-hooks@...`, `permissions.allow` (no `git push`), `hooks.PostToolUse` |
 | 5 | **Trim `CLAUDE.md`** — fill the inventory tables; tight, no deep content |
 | 6 | **Symlink `AGENTS.md → CLAUDE.md` and commit** — `ln -s CLAUDE.md AGENTS.md`; verify with `ls -la` |
-| 7 | **Validate** — trigger each hook rule with a throwaway edit, run `<prefix>_skills_drift.sh`, confirm description match fires per skill |
+| 7 | **Validate** — trigger each hook rule with a throwaway edit, run `<repo>_skills_drift.sh --all`, confirm description match fires per skill |
 
 ## What goes wrong if you skip Phase 0 or write the doc after the files
 

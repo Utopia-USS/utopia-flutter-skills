@@ -1,9 +1,11 @@
-<!-- TEMPLATE - command-only workflow. Open only if Phase 0.5 confirmed ticketing-tool integration. Substitute <prefix> and <ticketing-tool> placeholders. Strip this banner. -->
 ---
 description: Break uncommitted changes into feature-based commits, sync <ticketing-tool> (umbrella + subtasks), branch by ticket, push.
-argument-hint: "[optional context, e.g. '<TICKET-ID>' or 'migrate teacher guidance']"
+argument-hint: "[optional context, e.g. '<TICKET-ID>' or 'migrate settings page']"
 allowed-tools: Bash, Read, mcp__<ticketing-tool>
+model: inherit
 ---
+
+<!-- BLUEPRINT — adapt per-repo. Open only if Phase 0.4 confirmed ticketing-tool integration. Substitute <prefix> and <ticketing-tool> placeholders. Strip this banner after substitution. -->
 
 # /<prefix>-ship — commit breakdown + <ticketing-tool> sync + branch + push
 
@@ -73,7 +75,7 @@ If no existing umbrella:
 - Otherwise → propose creating an umbrella task. Need: title, target list / project. Ask user which list / project (and remember the answer for this session). Title should describe the feature, not the diff.
 
 The umbrella ticket determines:
-- **Branch name:** `<TICKET>-<slug-of-title>` (e.g. `<TICKET-ID>-migrate-teacher-guidance`).
+- **Branch name:** `<TICKET>-<slug-of-title>` (e.g. `<TICKET-ID>-migrate-settings-page`).
 - **Commit ticket prefix** (when a chunk doesn't have its own subtask, it falls back to the umbrella's ID).
 
 ## Phase 4 — Map chunks → `<ticketing-tool>` (PLAN ONLY)
@@ -86,20 +88,20 @@ For each significant chunk from Phase 2:
 Print the full plan in this exact shape:
 
 ```
-Umbrella: <TICKET-ID> | Migrate teacher guidance
-Branch:   <TICKET-ID>-migrate-teacher-guidance        (new — agent created umbrella)
+Umbrella: <TICKET-ID> | Migrate settings page
+Branch:   <TICKET-ID>-migrate-settings-page           (new — agent created umbrella)
                                                   (or: stay on <current> — umbrella already existed)
 Base:     <current branch HEAD>                   (or: origin/staging only if user asked for clean cut)
 
 Commits (in order):
-  1. DEV-214 | UI: refactor TeacherGuidancePage to hooks         [update existing subtask]
-     files: <repo-web-target>/lib/ui/teacher_guidance/*.dart (5 files)
-  2. DEV-NEW-A | CMS: wire CMS-fed lesson titles                 [will create subtask]
+  1. DEV-214 | UI: refactor SettingsPage to hooks                [update existing subtask]
+     files: <repo-web-target>/lib/ui/settings/*.dart (5 files)
+  2. DEV-NEW-A | CMS: wire CMS-fed page titles                   [will create subtask]
      files: <repo-web-target>/lib/services/cms_*.dart (2 files)
-  3. (folded into #1) small typo fix in TeacherGuidanceState
-     files: <repo-web-target>/lib/ui/teacher_guidance/state.dart (1 line)
+  3. (folded into #1) small typo fix in SettingsState
+     files: <repo-web-target>/lib/ui/settings/state.dart (1 line)
 
-Push:     origin/<TICKET-ID>-migrate-teacher-guidance
+Push:     origin/<TICKET-ID>-migrate-settings-page
 <ticketing-tool>:  per (sub)task → comment with commit hash + branch URL; status → "<in-review-column-name>"; assign → me
 
 Skipped (never-ship):

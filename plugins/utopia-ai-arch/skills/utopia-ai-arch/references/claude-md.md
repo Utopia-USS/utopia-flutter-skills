@@ -12,7 +12,7 @@ tags: claude-md, agents-md, symlink, inventory, routing, when-to-invoke
 
 `AGENTS.md` at the repo root is a **symlink to `CLAUDE.md`**. Same file, different filename — so non-Anthropic tools that follow the OpenAI / Codex convention (Codex, Cursor's agent surface where it asks, etc.) read the same content without a second copy to maintain.
 
-> "This file is also accessible as `AGENTS.md` (symlink) for tools that follow the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink keeps both views in sync. See the `utopia-ai-arch` skill (`templates/README.md` §11) for the rationale." — `production-repo-B/CLAUDE.md:7-9`
+> "This file is also accessible as `AGENTS.md` (symlink) for tools that follow the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink keeps both views in sync." — `production-repo-B/CLAUDE.md:6-8`
 
 `CLAUDE.md` is **an inventory and a routing map**, not a knowledge base. Deep content belongs in skill references. If you find yourself writing a paragraph in `CLAUDE.md` that explains HOW to do something, the paragraph belongs in a skill reference and the `CLAUDE.md` row belongs in the "When to Invoke" table that routes to it.
 
@@ -37,9 +37,9 @@ One paragraph: what the repo is. Then a workspace table:
 ```markdown
 | Workspace | Purpose |
 |-----------|---------|
-| `<area1>/` | Mobile app (iOS / Android) |
+| `<area-1>/` | Mobile app (iOS / Android) |
 | `admin/` | Admin web portal (Flutter web) |
-| `<area2>/` | Distribution Tower app |
+| `<area-2>/` | Companion device app |
 | ...      | ... |
 ```
 
@@ -49,7 +49,7 @@ One paragraph: what the repo is. Then a workspace table:
 
 One paragraph reminding the agent that the project layers on top of `utopia-hooks`, with the install command as a fallback for setups where the marketplace auto-prompt was bypassed:
 
-> "This repo's Claude layer is layered on top of the **utopia-hooks** plugin (marketplace, enabled in `.claude/settings.json`). Project skills assume it's installed — they do not restate hook idioms, Screen/State/View, async patterns, DI, IList/IMap/ISet, or strict-analyzer style. See [.claude/docs/claude-architecture.md](.claude/docs/claude-architecture.md) for the layer model." — `production-repo-C/CLAUDE.md:33-38`
+> "This repo's Claude layer is layered on top of the **utopia-hooks** plugin (marketplace, enabled in `.claude/settings.json`). Project skills assume it's installed — they do not restate hook idioms, Screen/State/View, async patterns, DI, IList/IMap/ISet, or strict-analyzer style. See `.claude/docs/claude-architecture.md` for the layer model." — `production-repo-C/CLAUDE.md:33-38`
 
 Optional install-command block if the auto-prompt fails (repo-A's pattern):
 
@@ -83,13 +83,13 @@ Table with three columns: `Skill | Kind | Fires on` (repo-A) or `Skill | Applica
 ```markdown
 | Skill            | Applicability                                                  | Fires on                              |
 |------------------|---------------------------------------------------------------|---------------------------------------|
-| `<prefix>`          | Flutter apps (classroom, lessons), <design-system>, activities, ... — NOT classroom-api Kotlin, NOT distributors Next.js | Flutter widget / service / model edits |
-| `<prefix>-api`      | classroom-api (Ktor gRPC, Kotlin) — NOT Flutter, NOT distributors | Kotlin edits under `<area-backend>/` |
-| `browser-testing`| Chrome MCP automation against the classroom web build         | When driving the browser via Chrome MCP |
+| `<prefix>`          | Flutter apps (`app/`, `admin/`), design system, domain flows — NOT `backend/` Kotlin, NOT `landing/` Next.js | Flutter widget / service / model edits |
+| `<prefix>-api`      | backend (Ktor gRPC, Kotlin) — NOT Flutter, NOT landing | Kotlin edits under `backend/` |
+| `browser-testing`| Chrome MCP automation against the web build                    | When driving the browser via Chrome MCP |
 | `<prefix>-design`   | Design→code from <design-tool> (MCP) or claude.design ...      | Paper MCP usage, handoff bundle       |
 ```
 
-— `production-repo-B/CLAUDE.md:41-48`. **The "Applicability" column includes the NEGATIVE scope** — it mirrors the SKILL.md frontmatter's "Applicability — NEGATIVE: NOT …" line. This is what stops the agent loading the wrong skill.
+— `production-repo-B/CLAUDE.md:48-53` (workspace names genericised). **The "Applicability" column includes the NEGATIVE scope** — it mirrors the SKILL.md frontmatter's "Applicability — NEGATIVE: NOT …" line. This is what stops the agent loading the wrong skill.
 
 ### Claude Agents
 
@@ -142,8 +142,8 @@ Short paragraph + bullet list of what each script blocks / warns / surfaces. Cro
 ```markdown
 | Situation | Skill / references that fire | Agents to involve |
 |-----------|-------------------------------|-------------------|
-| Any Dart / Flutter edit in `<area1>/` / `admin/` / `<area2>/` / `<area3>/` | **`utopia-hooks`** (always) + `<prefix>` master skill | — |
-| Add a new screen in `<area1>/` / `admin/` / `<area2>/` | **`utopia-hooks`**, `<prefix>` (→ `components.md`, `tokens.md`) | — |
+| Any Dart / Flutter edit in `<area-1>/` / `admin/` / `<area-2>/` / `<area-3>/` | **`utopia-hooks`** (always) + `<prefix>` master skill | — |
+| Add a new screen in `<area-1>/` / `admin/` / `<area-2>/` | **`utopia-hooks`**, `<prefix>` (→ `components.md`, `tokens.md`) | — |
 | Edit `<crypto-package>/`, `packages/<crypto-pkg>/`, `packages/<kem-pkg>/` | `<prefix>` (FFI binding style → `ffi-conventions.md`) + sister `<prefix>-security` (E2E audit → `e2e-encryption.md`) | `<prefix>-security-auditor` |
 | Plan any cross-package feature | — | `<prefix>-architect` via [/<prefix>-plan](.claude/commands/<prefix>-plan.md) |
 | Pre-commit gate on staged diff | — | `<prefix>-precommit-auditor` via [/<prefix>-audit](.claude/commands/<prefix>-audit.md) |
@@ -191,11 +191,11 @@ Cross-links to repo-root docs that aren't part of the Claude layer:
 - **Code samples beyond brief command lines.** A `bash` codeblock for `melos bootstrap` is fine. A 20-line Dart example illustrating a pattern is not — that's a pattern reference.
 - **Per-skill non-negotiable rules.** Those live in each `SKILL.md`. Putting them in `CLAUDE.md` makes the rule global when it isn't.
 
-> "Inventory only — descriptions live in each `SKILL.md` frontmatter." — `production-repo-C/CLAUDE.md:48`, `production-repo-B/CLAUDE.md:48`
+> "Inventory only — descriptions live in each `SKILL.md` frontmatter." — `production-repo-C/CLAUDE.md:48`, `production-repo-B/CLAUDE.md:55`
 
 ## Canonical shape skeleton
 
-The order MUST be the order shown. Production samples deviate marginally (repo-A opens with "Design Invariants" before the Repository Overview); the core spine is identical.
+The order MUST be the order shown. Production samples deviate (repo-A opens with "Design Invariants"; repo-B and repo-C omit Required Setup / Repository Overview / When to Invoke and stay minimal). The universal core across all three: topology, Foundation, the Skills / Agents / Slash commands inventories, Common Commands, Architecture decisions. The rest is repo-A-grade structure worth adding as the repo grows — When to Invoke pays for itself first.
 
 ```markdown
 # <Repo Name>
@@ -204,15 +204,15 @@ The order MUST be the order shown. Production samples deviate marginally (repo-A
 
 > This file is also accessible as `AGENTS.md` (symlink) for tools that follow
 > the OpenAI / Codex convention. Edit `CLAUDE.md`; the symlink keeps both views
-> in sync. See the `utopia-ai-arch` skill (`templates/README.md` §11) for the
-> rationale.
+> in sync. See the `utopia-ai-arch` skill (`references/claude-md.md`,
+> §"The AGENTS.md symlink") for the rationale.
 
 ## Monorepo / topology
 
 ```
-<repo>/
-├── <area-1>/    # short description (techstack)
-├── <area-2>/    # ...
+`<repo>`/
+├── `<area-1>`/    # short description (techstack)
+├── `<area-2>`/    # ...
 └── ...
 ```
 
@@ -353,25 +353,25 @@ Copies drift. Two files, two truths. Every edit to `CLAUDE.md` is a follow-up ed
 
 It's a regular file, not a symlink. `wc -l` shows `CLAUDE.md` at 248 lines, `AGENTS.md` at 246 — already two lines apart. The blueprint explicitly anticipated this drift mode:
 
-> "Maintaining duplicate files invites drift — exactly the situation repo-B currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint `README.md:329-332`
+> "Maintaining duplicate files invites drift — exactly the situation repo-B currently has, where `AGENTS.md` went stale relative to `CLAUDE.md` because they were independent copies." — blueprint README v1 (written before repo-B's fix)
 
 Repo-B fixed it by re-creating the symlink; repo-A is still in this drift state. Either case is a known anti-pattern, and the diagnosis is one `ls -la` away.
 
 ### Why symlink, not hard link
 
-> "git preserves symlinks natively (as a special blob type). After clone, the symlink re-creates itself pointing at the target. Hard links … are not preserved by git; they require a setup script and post-checkout hook to re-create locally, and a clone gets two independent files that drift." — blueprint `README.md:340-347`
+> "git preserves symlinks natively (as a special blob type). After clone, the symlink re-creates itself pointing at the target. Hard links … are not preserved by git; they require a setup script and post-checkout hook to re-create locally, and a clone gets two independent files that drift." — blueprint README v1
 
 Symlink is the simpler, git-native mechanism. Hard links sound symmetric but require a setup script and a post-checkout hook in every clone — exactly the friction that produces drift.
 
 ### Windows note
 
-> "Symlinks on Windows require Developer Mode enabled (or admin privileges) for `git checkout` to materialise them. If a contributor ends up with a plain text file containing the path string instead of a working symlink, they need to enable Developer Mode and re-run `git checkout HEAD -- AGENTS.md`." — blueprint `README.md:352-357`
+> "Symlinks on Windows require Developer Mode enabled (or admin privileges) for `git checkout` to materialise them. If a contributor ends up with a plain text file containing the path string instead of a working symlink, they need to enable Developer Mode and re-run `git checkout HEAD -- AGENTS.md`." — blueprint README v1
 
 For mixed-OS teams where this is friction, the fallback is `.claude/scripts/setup-agent-files.sh` + a `post-checkout` hook. The blueprint ships the symlink directly; add the script only if needed.
 
 ### Cursor IDE — no extra symlink
 
-Cursor reads `.claude/skills/` directly. Earlier blueprint revisions prescribed `.cursor/skills → ../.claude/skills`; **that step is retired** (blueprint `README.md:367-374`). `.cursor/mcp.json` is unrelated and stays committed where it exists.
+Cursor reads `.claude/skills/` directly. Earlier blueprint revisions prescribed `.cursor/skills → ../.claude/skills`; **that step is retired** (blueprint README v1). `.cursor/mcp.json` is unrelated and stays committed where it exists.
 
 Cross-link to [bootstrap-procedure.md](bootstrap-procedure.md) for the Phase 6 step where the symlink is created.
 
@@ -397,13 +397,13 @@ One paragraph + one install command, in the `## Foundation` section. The agent s
 
 ### 5. Keep CLAUDE.md short.
 
-Production sample line counts:
+Production sample line counts (at distillation time):
 
 | Repo | CLAUDE.md lines |
 |---|---|
-| production-repo-C | 89 |
-| production-repo-B | 145 |
-| production-repo-A | 248 |
+| production-repo-C | ~90 |
+| production-repo-B | ~150 |
+| production-repo-A | ~250 |
 
 Past ~250 lines, content has typically leaked from references. Past ~300 lines, it's almost certainly leaking. Scan for paragraphs that explain mechanisms (those move to references) and tables that mirror references (those collapse into single-row pointers).
 
@@ -441,7 +441,7 @@ The new skill exists but the routing table doesn't mention it. Auto-routing fall
 
 ### Common Commands table with commands that don't actually work in this repo
 
-`melos bootstrap` in a repo without melos. `fvm dart` in a repo without FVM. `mcp__<repo>-dart__*` in a repo where the MCP isn't installed. **Fix:** every command in the table is run-verified before landing the edit; cross-check against §"Toolchain canon" and §"MCP assumption" in the architecture doc.
+`melos bootstrap` in a repo without melos. `fvm dart` in a repo without FVM. `mcp__<prefix>-dart__*` in a repo where the MCP isn't installed. **Fix:** every command in the table is run-verified before landing the edit; cross-check against §"Toolchain canon" and §"MCP assumption" in the architecture doc.
 
 ### Long CLAUDE.md (>~300 lines)
 
