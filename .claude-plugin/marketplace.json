@@ -6,14 +6,14 @@
     "url": "https://utopiasoft.io"
   },
   "metadata": {
-    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware — hooks-based state management, project architecture scaffolding, and BLoC migration.",
-    "version": "0.3.0"
+    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware - hooks-based state management, project architecture scaffolding, BLoC migration, and admin/CMS panels.",
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "utopia-hooks",
-      "description": "👾 Flutter state management with utopia_hooks. Screen/State/View pattern, hook catalog, global state, and enforcement of conventions via PostToolUse checks.",
-      "version": "0.2.5",
+      "description": "👾 Flutter state management with utopia_hooks. Screen/State/View pattern, hook catalog, global state, async/pagination patterns, app bootstrap, global error handling, navigation conventions, hook-state testing, utopia_cli integration (describe / add screen / doctor / MCP), and enforcement of conventions via SessionStart project detection + PostToolUse checks.",
+      "version": "0.4.0",
       "source": "./plugins/utopia-hooks",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
       "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-hooks",
@@ -24,8 +24,8 @@
     },
     {
       "name": "utopia-ai-arch",
-      "description": "👾 Create and maintain the Claude Code .claude/ layer (agents, skills, slash commands, hooks, refs, architecture log) for Utopia Flutter projects. Encodes the project-claude-layer blueprint plus invariants distilled from production implementations.",
-      "version": "0.1.0",
+      "description": "👾 Create and maintain the Claude Code .claude/ layer (agents, skills, slash commands, enforcement hooks, settings.json, refs, claude-architecture.md decision log) for Utopia Flutter projects. Encodes the project-claude-layer blueprint plus invariants distilled from production implementations. Use when bootstrapping a repo's AI architecture, adding a skill/agent/command/hook script, recording a rejected alternative, auditing for drift, or diagnosing why the agent keeps forgetting a project convention.",
+      "version": "0.2.0",
       "source": "./plugins/utopia-ai-arch",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
       "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-ai-arch",
@@ -41,6 +41,18 @@
       "source": "./plugins/utopia-hooks-migrate-bloc",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
       "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-hooks-migrate-bloc",
+      "author": {
+        "name": "UtopiaSoftware",
+        "email": "hello@utopiasoft.io"
+      }
+    },
+    {
+      "name": "utopia-cms",
+      "description": "👾 Flutter CMS / admin panels with utopia_cms. CmsWidget shell, CmsTablePage, CmsDelegate (Firebase / Supabase / Hasura / GraphQL), CmsEntry catalog, filters, custom actions, management sections. PostToolUse hook flags the hand-rolled DataTable + service + state-class anti-pattern.",
+      "version": "0.2.0",
+      "source": "./plugins/utopia-cms",
+      "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+      "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-cms",
       "author": {
         "name": "UtopiaSoftware",
         "email": "hello@utopiasoft.io"

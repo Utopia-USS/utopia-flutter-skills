@@ -1,0 +1,32 @@
+{
+  "name": "utopia-flutter-skills",
+  "interface": {
+    "displayName": "Utopia Flutter Skills"
+  },
+  "plugins": [
+    {
+      "name": "utopia-hooks",
+      "source": {
+        "source": "local",
+        "path": "./plugins/utopia-hooks"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "utopia-cms",
+      "source": {
+        "source": "local",
+        "path": "./plugins/utopia-cms"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
