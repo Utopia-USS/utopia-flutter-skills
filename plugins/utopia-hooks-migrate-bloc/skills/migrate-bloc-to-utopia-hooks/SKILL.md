@@ -117,11 +117,11 @@ class CounterScreenState {
 }
 
 CounterScreenState useCounterScreenState() {
-  final count = useState(0);
+  final countState = useState(0);
   return CounterScreenState(
-    count: count.value,
-    onIncrement: () => count.value++,
-    onDecrement: () => count.value--,
+    count: countState.value,
+    onIncrement: () => countState.value++,
+    onDecrement: () => countState.value--,
   );
 }
 
@@ -231,8 +231,8 @@ These are the most common mistakes when migrating. Every single one must be abse
 // ❌ NEVER: copyWith() in hooks — this is BLoC thinking, not hooks thinking
 state.value = state.value.copyWith(isLoading: true);
 // ✅ INSTEAD: one useState per mutable field
-final isLoading = useState(false);
-isLoading.value = true;
+final isLoadingState = useState(false);
+isLoadingState.value = true;
 
 // ❌ NEVER: Equatable on state classes — hooks don't need equality checks
 class MyState extends Equatable {
@@ -293,8 +293,8 @@ class HomeScreen extends HookWidget {
 // ❌ NEVER: manual stream subscriptions via useState<StreamSubscription?>
 // WHY: manual lifecycle management (forget cancel → leak), wastes a state slot,
 //      no error handling strategy — useStreamSubscription does all of this automatically
-final subscription = useState<StreamSubscription?>(null);
-useEffect(() { subscription.value = stream.listen(...); return () => subscription.value?.cancel(); }, []);
+final subscriptionState = useState<StreamSubscription?>(null);
+useEffect(() { subscriptionState.value = stream.listen(...); return () => subscriptionState.value?.cancel(); }, []);
 // ✅ INSTEAD: useStreamSubscription for side effects per event (auto-disposed)
 useStreamSubscription(stream, (event) async => handleEvent(event));
 // ✅ OR: useMemoizedStream / useMemoizedStreamData for reading latest value

@@ -177,35 +177,27 @@ CmsDateEntry({
 
 Stores `DateTime`. The edit field is `CmsDatePicker`. `toJson` is `DateTime.toString()` (space-separated, e.g. `2026-05-28 00:00:00.000` - not the ISO-8601 'T' form); `fromJson` is `DateTime.parse`, which accepts both.
 
-**Known limitation (v0.2.3):** the stock edit field does not refresh after picking - `CmsDatePicker` renders through `CmsTextField`, which seeds `useFieldState(initialValue: ...)` on first build only, so the picked date never shows up in the field. And `toJson` emits `DateTime.toString()`, which breaks backends expecting strict ISO-8601 or date-only keys. Workaround: a drop-in custom entry that derives its visible text from the framework-provided `value`:
+**Known limitation (v0.2.3):** the stock `CmsDateEntry` does not refresh after picking. Use a custom entry extending `CmsEntry<DateTime?>` instead:
 
 ```dart
 class DateEntry extends CmsEntry<DateTime?> {
-  // key / label / modifier / flex + buildPreview as usual...
+  // key / label / modifier / flex / buildPreview as in any CmsEntry - elided here.
+  // Only the two members the workaround changes are shown:
 
   @override
-  Widget buildEditField({required BuildContext context, required DateTime? value, required void Function(DateTime?) onChanged}) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) onChanged(picked);          // rebuild -> the Text below shows the fresh value
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(labelText: fixedLabelRequired),
-        child: Text(value != null ? _format(value) : 'Pick a date'),
-      ),
-    );
-  }
+  Widget buildEditField({required BuildContext context, required DateTime? value, required void Function(DateTime?) onChanged}) =>
+      InkWell(
+        onTap: () async {
+          final picked = await showDatePicker(context: context, initialDate: value ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100));
+          if (picked != null) onChanged(picked);   // value drives the Text below - no stale seed
+        },
+        child: InputDecorator(decoration: InputDecoration(labelText: fixedLabelRequired), child: Text(value != null ? _fmt(value) : 'Pick a date')),
+      );
 
   @override
-  String? toJson(DateTime? value) => value == null ? null : _format(value);   // 'YYYY-MM-DD', NOT value.toString()
+  Object? toJson(DateTime? value) => value == null ? null : _fmt(value);   // 'YYYY-MM-DD', not value.toString()
 
-  static String _format(DateTime d) => d.toIso8601String().substring(0, 10);
+  static String _fmt(DateTime d) => d.toIso8601String().substring(0, 10);
 }
 ```
 

@@ -284,14 +284,10 @@ PageControllerWrapper(
 )
 ```
 
-If you manage the controller by hand instead, you take on everything the wrapper does for
-you: create it with `useMemoized(PageController.new, [], (it) => it.dispose())` (the
-dispose callback is mandatory - leaking controllers is the classic bug), rebuild with
-`useListenable(controller)`, guard reads with `controller.hasClients` (`controller.page`
-is null before the `PageView` attaches), and expose `int get index` on the State so the
-View never reads the raw controller. Use swipe only when it's the intended UX; `PageView`
-mounts pages lazily as they scroll into view - if pages have expensive state you want
-preserved, prefer `IndexedStack`.
+Use swipe only when it's the intended UX; `PageView` mounts pages lazily as they scroll
+into view - if pages have expensive state you want preserved, prefer `IndexedStack`.
+If you must manage the controller by hand, you re-own dispose, `hasClients` guards, and
+listenable rebuilds.
 
 **Material tabs (`TabBarView`):** use `TabController` (or the `TabControllerWrapper` helper
 from utopia_hooks) when you want `TabBar`'s indicator animation and gesture integration.

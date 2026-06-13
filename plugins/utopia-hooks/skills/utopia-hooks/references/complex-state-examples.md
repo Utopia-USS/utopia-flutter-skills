@@ -44,9 +44,9 @@ SearchScreenState useSearchScreenState({
   required void Function() moveBack,
   required void Function(ItemId) navigateToItem,
 }) {
-  final searchField = useFieldState();
+  final searchState = useFieldState();
   final debounced = useDebounced(
-    searchField.value,
+    searchState.value,
     duration: const Duration(milliseconds: 300),
   );
 
@@ -57,7 +57,7 @@ SearchScreenState useSearchScreenState({
   final processState = useSearchProcessState(fetchState: fetchState);
 
   return SearchScreenState(
-    searchField: searchField,
+    searchField: searchState,
     contacts: processState.contacts,
     newUsers: processState.newUsers,
     onCancel: moveBack,
@@ -69,18 +69,18 @@ SearchScreenState useSearchScreenState({
 SearchFetchState useSearchFetchState({required String query}) {
   final repo = useInjected<ItemRepository>();
 
-  final contacts = useAutoComputedState(
+  final contactsState = useAutoComputedState(
     () => repo.fetchContacts(query: query),
     keys: [query],
   );
-  final users = useAutoComputedState(
+  final usersState = useAutoComputedState(
     () => repo.fetchUsers(query: query),
     keys: [query],
   );
 
   return SearchFetchState(
-    contacts: contacts.valueOrNull,
-    users: users.valueOrNull,
+    contacts: contactsState.valueOrNull,
+    users: usersState.valueOrNull,
   );
 }
 
@@ -167,20 +167,20 @@ DashboardInsightsState useDashboardInsightsState() {
 
 // Sub-hook B: area-with-state - owns the filter-panel UI state
 DashboardFilterState useDashboardFilterState({required DashboardInsightsState insights}) {
-  final selectedCategory = useState<CategoryId?>(null);
-  final comparisonMode = useState<ComparisonMode>(ComparisonMode.previous);
+  final selectedCategoryState = useState<CategoryId?>(null);
+  final comparisonModeState = useState<ComparisonMode>(ComparisonMode.previous);
 
   final filteredReports = useMemoized(
     () => insights.reports?.where((r) {
-      if (selectedCategory.value == null) return true;
-      return r.categoryId == selectedCategory.value;
+      if (selectedCategoryState.value == null) return true;
+      return r.categoryId == selectedCategoryState.value;
     }).toIList(),
-    [insights.reports, selectedCategory.value],
+    [insights.reports, selectedCategoryState.value],
   );
 
   return DashboardFilterState(
-    selectedCategory: selectedCategory,
-    comparisonMode: comparisonMode,
+    selectedCategory: selectedCategoryState,
+    comparisonMode: comparisonModeState,
     filteredReports: filteredReports,
   );
 }
@@ -218,12 +218,12 @@ FeedScreenState useFeedScreenState({
   required ActivityId activityId,
 }) {
   final client = useInjected<ApiClient>();
-  final commentField = useMentionFieldState();
-  final addSubmit = useSubmitState();
-  final likeSubmit = useSubmitState();
+  final commentState = useMentionFieldState();
+  final addSubmitState = useSubmitState();
+  final likeSubmitState = useSubmitState();
 
   // Paginated state at parent - owns the authoritative list
-  final reactions = usePaginatedComputedState<Reaction, String?>(
+  final reactionsState = usePaginatedComputedState<Reaction, String?>(
     initialCursor: null,
     (token) async {
       final response = await client.fetchReactions(
@@ -237,15 +237,15 @@ FeedScreenState useFeedScreenState({
   );
 
   // Override layers - overlaid at render, cleared on refresh
-  final edits = useState<IMap<ReactionId, Reaction>>(const IMap.empty());
-  final prepended = useState<IList<Reaction>>(const IList.empty());
+  final editsState = useState<IMap<ReactionId, Reaction>>(const IMap.empty());
+  final prependedState = useState<IList<Reaction>>(const IList.empty());
 
   final visible = useMemoized(
     () => [
-      ...prepended.value,
-      ...(reactions.items ?? const <Reaction>[]).map((r) => edits.value[r.id] ?? r),
+      ...prependedState.value,
+      ...(reactionsState.items ?? const <Reaction>[]).map((r) => editsState.value[r.id] ?? r),
     ].toIList(),
-    [reactions.items, edits.value, prepended.value],
+    [reactionsState.items, editsState.value, prependedState.value],
   );
 
   // Optimistic like - patch overlay first, roll back on failure
@@ -255,30 +255,30 @@ FeedScreenState useFeedScreenState({
       likeCount: reaction.likeCount + (isLiked ? -1 : 1),
       ownChildren: isLiked ? null : {'like': [_stubLike()]},
     );
-    likeSubmit.runSimple<void, Never>(
-      beforeSubmit: () => edits.modify((it) => it.add(reaction.id, patched)),
+    likeSubmitState.runSimple<void, Never>(
+      beforeSubmit: () => editsState.modify((it) => it.add(reaction.id, patched)),
       submit: () => client.toggleReaction(reaction),
-      afterSubmit: (_) => edits.modify((it) => it.remove(reaction.id)),
-      afterError: () => edits.modify((it) => it.remove(reaction.id)),
+      afterSubmit: (_) => editsState.modify((it) => it.remove(reaction.id)),
+      afterError: () => editsState.modify((it) => it.remove(reaction.id)),
     );
   }
 
   // Optimistic add - prepend into overlay, settle on server confirmation
-  void onSubmitComment() => addSubmit.runSimple<void, Never>(
+  void onSubmitComment() => addSubmitState.runSimple<void, Never>(
     submit: () async {
-      final text = commentField.controller.text;
+      final text = commentState.controller.text;
       if (text.isEmpty) return;
       final result = await client.addReaction(activityId, text);
-      prepended.modify((it) => it.add(result));
-      commentField.controller.clear();
+      prependedState.modify((it) => it.add(result));
+      commentState.controller.clear();
     },
   );
 
   return FeedScreenState(
-    reactions: reactions,
+    reactions: reactionsState,
     visibleReactions: visible,
-    commentField: commentField,
-    addCommentInProgress: addSubmit.inProgress,
+    commentField: commentState,
+    addCommentInProgress: addSubmitState.inProgress,
     onToggleLike: onToggleLike,
     onSubmitComment: onSubmitComment,
   );
@@ -287,7 +287,7 @@ FeedScreenState useFeedScreenState({
 
 **Characteristics:**
 - Parent owns pagination via `usePaginatedComputedState<T, C>` - cursor, loadMore, refresh, debounce, deduplication all handled
-- Per-item mutations patch a **separate override layer** (`edits`, `prepended`), never the paginated buffer directly - `items` is read-only on purpose
+- Per-item mutations patch a **separate override layer** (`editsState`, `prependedState`), never the paginated buffer directly - `items` is read-only on purpose
 - Overlay + buffer are combined in a memoised `visibleReactions` the View renders
 - On failure, overlay is rolled back (`afterError`); on success, kept or cleared depending on whether the next refresh will include the change
 - Items are dumb `StatelessWidget`s with no per-item hook
@@ -320,13 +320,13 @@ SectionScreenState useSectionScreenState({required SectionId sectionId}) {
   );
 
   // Shared resolved cache - each item feeds back when its async completes
-  final resolvedCache = useState<IMap<ItemId, ItemDetail>>(const IMap.empty());
+  final resolvedCacheState = useState<IMap<ItemId, ItemDetail>>(const IMap.empty());
 
   return SectionScreenState(
     itemRefs: itemRefs,
-    resolvedCache: resolvedCache.value,
+    resolvedCache: resolvedCacheState.value,
     onItemResolved: (id, data) =>
-        resolvedCache.value = resolvedCache.value.add(id, data),
+        resolvedCacheState.value = resolvedCacheState.value.add(id, data),
   );
 }
 
@@ -444,6 +444,7 @@ TransferScreenState useTransferScreenState({
   final sessionSvc = useInjected<SessionService>();
   final packageSvc = useInjected<PackageService>();
   final kexState = useProvided<KexState>();
+  final appReporter = useInjected<AppReporter>();
 
   final submitState = useSubmitState();
   final stepState = useState(TransferStep.scanQr);
@@ -494,7 +495,9 @@ TransferScreenState useTransferScreenState({
     try {
       payloadState.value = QrPayload.fromBytes(base64Decode(raw));
       return true;
-    } catch (_) {
+    } catch (e) {
+      // Expected (garbled QR): warn so it stays observable, never swallow it bare.
+      appReporter.warning("QR payload parse failed", e: e);
       return false;
     }
   }
@@ -519,12 +522,9 @@ TransferScreenState useTransferScreenState({
 ```
 
 **Characteristics:**
-- One big `useSubmitState` wraps the entire flow
-- `stepState` enum is just a progress indicator - it doesn't gate anything; the `processTransfer` function does
-- Steps are set manually at each transition (`stepState.value = ...`) - honest about the imperative nature
-- Cleanup via `afterError: abortFlow` (not `try/finally`)
-- `skipIfInProgress: true` naturally prevents double-tap re-entry
-- Services (`sessionSvc`, `packageSvc`, `kexState`) are all resolved at hook start via `useInjected` / `useProvided`
+- One big `useSubmitState` wraps the entire flow; `skipIfInProgress: true` prevents double-tap re-entry
+- `stepState` enum is just a UI progress label set manually at each transition (`stepState.value = ...`) - it gates nothing; `processTransfer` does. Honest about the imperative nature
+- Cleanup via `afterError: abortFlow` (not `try/finally`); services resolved at hook start via `useInjected` / `useProvided`
 
 **When to use this shape:** a user-triggered flow with inherently sequential steps. Splitting into sub-hooks would fragment the sequence across unrelated lifecycles and lose the natural "try/afterError" recovery path. Keep the sequence in one function, use enum for UI-facing step label.
 

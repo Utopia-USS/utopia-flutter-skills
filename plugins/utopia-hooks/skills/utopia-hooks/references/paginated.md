@@ -16,21 +16,21 @@ search, and on-end pagination. Pair it with `PaginatedComputedStateWrapper` for 
 
 **Incorrect (hand-rolled pagination):**
 ```dart
-final items = useState<List<User>?>(null);
-final cursor = useState<String?>(null);
-final hasMore = useState(true);
-final isLoading = useState(false);
+final itemsState = useState<List<User>?>(null);
+final cursorState = useState<String?>(null);
+final hasMoreState = useState(true);
+final isLoadingState = useState(false);
 
 Future<void> loadMore() async {
-  if (isLoading.value || !hasMore.value) return;
-  isLoading.value = true;
+  if (isLoadingState.value || !hasMoreState.value) return;
+  isLoadingState.value = true;
   try {
-    final page = await api.getUsers(pageToken: cursor.value);
-    items.value = [...?items.value, ...page.items];
-    cursor.value = page.nextPageToken;
-    hasMore.value = page.nextPageToken != null;
+    final page = await api.getUsers(pageToken: cursorState.value);
+    itemsState.value = [...?itemsState.value, ...page.items];
+    cursorState.value = page.nextPageToken;
+    hasMoreState.value = page.nextPageToken != null;
   } finally {
-    isLoading.value = false;
+    isLoadingState.value = false;
   }
 }
 
@@ -39,15 +39,15 @@ useEffect(() { loadMore(); return null; }, []);
 
 **Correct (`usePaginatedComputedState`):**
 ```dart
-final users = usePaginatedComputedState<User, String?>(
+final usersState = usePaginatedComputedState<User, String?>(
   initialCursor: null,
   (token) async {
     final response = await api.getUsers(pageToken: token);
     return PaginatedPage(items: response.items, nextCursor: response.nextPageToken);
   },
 );
-// users.items / users.isLoading / users.hasMore / users.error
-// users.loadMore() / users.refresh() / users.clear()
+// usersState.items / usersState.isLoading / usersState.hasMore / usersState.error
+// usersState.loadMore() / usersState.refresh() / usersState.clear()
 ```
 
 ---
@@ -161,7 +161,7 @@ The contract is **weaker than `useAutoComputedState`'s** (where `shouldCompute: 
 - Manual `loadMore()` / `refresh()` calls are **never** gated - they run regardless of `shouldCompute`.
 
 ```dart
-final users = usePaginatedComputedState<User, int>(
+final usersState = usePaginatedComputedState<User, int>(
   initialCursor: 0,
   (offset) async => _fetchPage(offset),
   shouldCompute: authState.isInitialized && organizationId != null,
@@ -177,7 +177,7 @@ final users = usePaginatedComputedState<User, int>(
 Any change to `keys` triggers `refresh()` from `initialCursor` (only while `shouldCompute` is `true`). Items **stay visible** during the reload (no flicker) - they are replaced by the first page of the new load. Use this exactly like `useAutoComputedState`'s `keys`.
 
 ```dart
-final messages = usePaginatedComputedState<Message, String?>(
+final messagesState = usePaginatedComputedState<Message, String?>(
   initialCursor: null,
   (token) async => api.messages(chatId: chatId, pageToken: token),
   keys: [chatId],   // switching chat refreshes from page 1
@@ -189,10 +189,10 @@ final messages = usePaginatedComputedState<Message, String?>(
 For paginated search. Only affects the first-page load triggered by `keys` / initial mount - subsequent `loadMore()` calls are immediate.
 
 ```dart
-final searchField = useFieldState();
-final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
+final searchState = useFieldState();
+final query = useDebounced(searchState.value, duration: const Duration(milliseconds: 300));
 
-final results = usePaginatedComputedState<Result, int>(
+final resultsState = usePaginatedComputedState<Result, int>(
   initialCursor: 0,
   (offset) async => api.search(query: query, offset: offset),
   keys: [query],
@@ -207,7 +207,7 @@ final results = usePaginatedComputedState<Result, int>(
 Optional identifier extractor. Items whose key matches any already-collected item are dropped before being appended. Useful when adjacent pages overlap due to concurrent server-side writes or when `nextCursor` is inclusive.
 
 ```dart
-final reactions = usePaginatedComputedState<Reaction, String?>(
+final reactionsState = usePaginatedComputedState<Reaction, String?>(
   initialCursor: null,
   (token) async => api.reactions(activityId: id, pageToken: token),
   deduplicateBy: (r) => r.id,
@@ -358,10 +358,10 @@ FeedScreenState useFeedScreenState({
   required void Function(PostId) navigateToPost,
 }) {
   final api = useInjected<FeedApi>();
-  final searchField = useFieldState();
-  final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
+  final searchState = useFieldState();
+  final query = useDebounced(searchState.value, duration: const Duration(milliseconds: 300));
 
-  final posts = usePaginatedComputedState<Post, String?>(
+  final postsState = usePaginatedComputedState<Post, String?>(
     initialCursor: null,
     (token) async {
       final response = await api.feed(query: query, pageToken: token);
@@ -372,8 +372,8 @@ FeedScreenState useFeedScreenState({
   );
 
   return FeedScreenState(
-    posts: posts,
-    searchField: searchField,
+    posts: postsState,
+    searchField: searchState,
     onPostTapped: navigateToPost,
   );
 }
@@ -387,24 +387,24 @@ FeedScreenState useFeedScreenState({
 
 ```dart
 // State hook
-final posts = usePaginatedComputedState<Post, String?>(/* ... */);
-final deletedIds = useState<ISet<PostId>>(const ISet.empty());
-final draftEdits = useState<IMap<PostId, Post>>(const IMap.empty());
-final deleteSubmit = useSubmitState();
+final postsState = usePaginatedComputedState<Post, String?>(/* ... */);
+final deletedIdsState = useState<ISet<PostId>>(const ISet.empty());
+final draftEditsState = useState<IMap<PostId, Post>>(const IMap.empty());
+final deleteSubmitState = useSubmitState();
 
 final visiblePosts = useMemoized(
-  () => posts.items
-      ?.where((p) => !deletedIds.value.contains(p.id))
-      .map((p) => draftEdits.value[p.id] ?? p)
+  () => postsState.items
+      ?.where((p) => !deletedIdsState.value.contains(p.id))
+      .map((p) => draftEditsState.value[p.id] ?? p)
       .toIList(),
-  [posts.items, deletedIds.value, draftEdits.value],
+  [postsState.items, deletedIdsState.value, draftEditsState.value],
 );
 
-void deletePost(PostId id) => deleteSubmit.runSimple<void, Never>(
-  beforeSubmit: () => deletedIds.modify((it) => it.add(id)),
+void deletePost(PostId id) => deleteSubmitState.runSimple<void, Never>(
+  beforeSubmit: () => deletedIdsState.modify((it) => it.add(id)),
   submit: () async => api.deletePost(id),
   // On failure, roll back:
-  afterError: () => deletedIds.modify((it) => it.remove(id)),
+  afterError: () => deletedIdsState.modify((it) => it.remove(id)),
 );
 ```
 
@@ -426,7 +426,7 @@ class FeedState {
 FeedState useFeedState() {
   final api = useInjected<FeedApi>();
 
-  final posts = usePaginatedComputedState<Post, String?>(
+  final postsState = usePaginatedComputedState<Post, String?>(
     initialCursor: null,
     (token) async {
       final response = await api.feed(pageToken: token);
@@ -434,7 +434,7 @@ FeedState useFeedState() {
     },
   );
 
-  return FeedState(posts: posts);
+  return FeedState(posts: postsState);
 }
 
 // Registered in _providers:  FeedState: useFeedState,
@@ -453,8 +453,8 @@ Sometimes a screen needs its **own** paginated state only under a condition (an 
 ```dart
 final feed = useProvided<FeedState>();
 final api = useInjected<FeedApi>();
-final searchField = useFieldState();
-final query = useDebounced(searchField.value, duration: const Duration(milliseconds: 300));
+final searchState = useFieldState();
+final query = useDebounced(searchState.value, duration: const Duration(milliseconds: 300));
 
 final searchResults = useIf(
   query.isNotEmpty,
@@ -485,7 +485,7 @@ Notes:
 
 ```dart
 // Older pages: plain backward pagination (newest -> oldest).
-final history = usePaginatedComputedState<Message, DateTime?>(
+final historyState = usePaginatedComputedState<Message, DateTime?>(
   initialCursor: null,
   (before) async {
     final batch = await api.messagesBefore(roomId, before: before, limit: 50);
@@ -499,8 +499,8 @@ final live = useMemoizedStream(() => api.watchMessages(roomId), keys: [roomId]);
 
 // Merge at render time, deduplicated by id.
 final messages = useMemoized(
-  () => [...?live.data, ...?history.items].distinctBy((m) => m.id).toList(),
-  [live.data, history.items],
+  () => [...?live.data, ...?historyState.items].distinctBy((m) => m.id).toList(),
+  [live.data, historyState.items],
 );
 ```
 

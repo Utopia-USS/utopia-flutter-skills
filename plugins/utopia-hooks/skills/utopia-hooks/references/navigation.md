@@ -150,8 +150,8 @@ LoginScreenState useLoginScreenState({
   final auth = useProvided<AuthState>();
   final service = useInjected<AuthService>();
   final submitState = useSubmitState();
-  final emailField = useFieldState();
-  final passwordField = useFieldState();
+  final emailState = useFieldState();
+  final passwordState = useFieldState();
 
   // Navigate when the login lands in global state - regardless of which flow set it
   // (this form, a social-login callback, a deep-link token, session restore).
@@ -161,7 +161,7 @@ LoginScreenState useLoginScreenState({
   }, [auth.isLoggedIn]);
 
   void onLoginPressed() => submitState.runSimple<void, Never>(
-        submit: () async => service.login(emailField.value, passwordField.value),
+        submit: () async => service.login(emailState.value, passwordState.value),
         // No navigation here - the effect above owns it.
       );
   // ...
@@ -197,24 +197,20 @@ void useStatusRedirectState({
               ? LandingScreen.route
               : MainScreen.route;
 
-  // Latch: navigate once per distinct target, not on every rebuild while the
-  // route transition (which itself rebuilds) is in flight.
-  final lastTarget = useState<String?>(null, listen: false);
-
-  useEffect(() {
-    if (target == null || target == lastTarget.value) return null;
-    lastTarget.value = target;
-    navigateAndReset(target);
-    return null;
-  }, [target]);
+  // Fire once per distinct target, not on every rebuild while the route
+  // transition (which itself rebuilds) is in flight.
+  useValueChanged<String?, void>(target, (_, __) {
+    if (target != null) navigateAndReset(target);
+  });
 }
 ```
 
-- The latch is the load-bearing part. A plain `isNavigating` bool works for a boot-only
-  one-shot; remembering the last navigated target generalizes it to mid-session redirects
-  (boot lands on `main`, sign-out later flips the target to `landing`, and it fires again).
-  Do not try to await the navigation future instead: `pushNamed`-style calls complete
-  when the pushed route is *popped*, not when the transition ends.
+- `useValueChanged` is the load-bearing part: its callback runs only when `target` differs
+  from the previous build, so each distinct target navigates exactly once. The null skip
+  keeps the still-booting state from navigating. This generalizes the boot-only one-shot to
+  mid-session redirects (boot lands on `main`, sign-out later flips the target to `landing`,
+  and it fires again). Do not try to await the navigation future instead: `pushNamed`-style
+  calls complete when the pushed route is *popped*, not when the transition ends.
 - The reset-style push (`pushNamedAndRemoveUntil(route, (_) => false)`) clears the stack,
   so a signed-out user cannot back-navigate into authenticated screens.
 - This hook **replaces** the splash decision tree - run one or the other, never both, or
@@ -270,13 +266,13 @@ class RoomScreenState {
 }
 
 RoomScreenState useRoomScreenState({required RoomId roomId}) {
-  final event = useState<ManageMembersEvent?>(null);
+  final eventState = useState<ManageMembersEvent?>(null);
   // ...
   return RoomScreenState(
-    manageMembersEvent: event.value,
-    clearManageMembersEvent: () => event.value = null,
+    manageMembersEvent: eventState.value,
+    clearManageMembersEvent: () => eventState.value = null,
     onManageMembersTapped: () =>
-        event.value = ManageMembersEvent(roomId: roomId, onRemoveMember: removeMember),
+        eventState.value = ManageMembersEvent(roomId: roomId, onRemoveMember: removeMember),
   );
 }
 ```

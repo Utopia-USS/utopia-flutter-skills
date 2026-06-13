@@ -64,18 +64,7 @@ return CmsWidget(theme: theme, items: [...]);
 
 ## Structure
 
-```dart
-CmsThemeData({
-  required CmsThemeColors      colors,
-  required CmsThemeTextStyles  textStyles,
-  required BorderRadius        borderRadius,
-  required EdgeInsets          fieldContentPadding,
-  required double              pageTopPadding,
-  required List<BoxShadow>     menuShadow,
-  required BorderRadius        menuRadius,
-  required double              shortButtonWidth,
-})
-```
+`CmsThemeData` groups its fields into `CmsThemeColors` and `CmsThemeTextStyles`:
 
 ### `CmsThemeColors`
 
@@ -240,23 +229,23 @@ Auth screens live outside `CmsWidget`, but the exported widgets (`CmsTextField`,
 the panel with zero extra styling (the root `Provider<CmsThemeData>` covers them):
 
 ```dart
-final email = useState('');
-final password = useState('');
-final obscured = useState(true);
+final emailState = useState('');
+final passwordState = useState('');
+final obscuredState = useState(true);
 
 CmsTextField(
   label: const Text('E-mail'),
-  value: email.value,
-  onChanged: (it) => email.value = it ?? '',
+  value: emailState.value,
+  onChanged: (it) => emailState.value = it ?? '',
 ),
 CmsTextField(
   label: const Text('Password'),
-  value: password.value,
-  onChanged: (it) => password.value = it ?? '',
-  obscureText: obscured.value,
+  value: passwordState.value,
+  onChanged: (it) => passwordState.value = it ?? '',
+  obscureText: obscuredState.value,
   suffix: IconButton(
-    icon: Icon(obscured.value ? Icons.visibility : Icons.visibility_off),
-    onPressed: obscured.toggle,
+    icon: Icon(obscuredState.value ? Icons.visibility : Icons.visibility_off),
+    onPressed: obscuredState.toggle,
   ),
 ),
 CmsButton(

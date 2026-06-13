@@ -219,9 +219,9 @@ without needing a separate callback.
 
 ```dart
 // In State hook - expose mutable field
-final selectedFilter = useState(FilterType.all);
+final selectedFilterState = useState(FilterType.all);
 return DashboardState(
-  filter: selectedFilter,  // MutableValue<FilterType>
+  filter: selectedFilterState,  // MutableValue<FilterType>
   items: filteredItems,
 );
 
@@ -313,19 +313,19 @@ class ChatState extends HasInitialized {
 
 ChatState useChatState() {
   final chatService = useInjected<ChatService>();
-  final activated = useState(false);
+  final activatedState = useState(false);
 
   // Nothing connects until some screen calls initializeChat()
   final roomsState = useAutoComputedState(
     () => chatService.connectAndLoadRooms(),
-    shouldCompute: activated.value,
-    keys: [activated.value],
+    shouldCompute: activatedState.value,
+    keys: [activatedState.value],
   );
 
   return ChatState(
     isInitialized: roomsState.valueOrNull != null,
     rooms: roomsState.valueOrNull,
-    initializeChat: () => activated.value = true,
+    initializeChat: () => activatedState.value = true,
   );
 }
 

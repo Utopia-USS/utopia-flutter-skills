@@ -147,26 +147,7 @@ class AppFirestoreDelegate extends CmsFirebaseDelegate {
 }
 ```
 
-`CmsFilter` -> Firestore `Query` translation at a glance:
-
-| `CmsFilter` | Firestore | Notes |
-|---|---|---|
-| `all()` | no-op | |
-| `equals` | `.where(f, isEqualTo: v)` | |
-| `notEquals` | `.where(f, isNotEqualTo: v)` | excludes docs missing the field |
-| `greaterOrEq` / `lesserOrEq` | `isGreaterThanOrEqualTo` / `isLessThanOrEqualTo` | |
-| `inList` | `.where(f, whereIn: values)` | value-count limit applies |
-| `and` | chain `.where(…)` calls | may prompt for a composite index |
-| `containsString` | prefix-range trick (above) | no real substring search |
-| `or` | not generally expressible | degrade loudly or post-filter |
-| `not` | not expressible | degrade loudly |
-
-On the `or`/`not` stance: throwing `UnsupportedError` beats returning wrong rows
-in an admin tool. Beware that the stock search and date filter entries emit
-`CmsFilterOr` when given **multiple** `filterKeys` - on Firebase give each filter
-entry a single key, or replace the throw with an in-memory post-filter if the
-collection is small. Compound `where` + `orderBy` combos often need a composite
-index - Firestore then throws at runtime with a create-index link.
+Two Firestore-specific gotchas: `or`/`not` are not expressible, so the code above throws `UnsupportedError` - throwing beats silently returning wrong rows; replace with an in-memory post-filter only when the collection is small (and give search/date entries a single `filterKey` to avoid emitting `CmsFilterOr`). Compound `where` + `orderBy` combos may require a composite index - Firestore throws at runtime with a create-index link. For the full `CmsFilter` algebra see [filters.md](filters.md).
 
 No `archivedFilter` here (unlike Supabase/Hasura). For soft delete, override
 `delete()` to flip a flag via `update()`, and AND a
