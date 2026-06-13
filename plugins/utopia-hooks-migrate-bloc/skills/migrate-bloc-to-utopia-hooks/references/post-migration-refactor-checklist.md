@@ -107,9 +107,9 @@ CommentsScreenState useCommentsState({
   // ...
 }) {
   final fetch = useCommentsFetchState(...);       // no navigation param
-  final parentNavSubmit = useSubmitState();
+  final parentNavSubmitState = useSubmitState();
 
-  Future<void> loadParentThread() => parentNavSubmit.runSimple<void, Never>(
+  Future<void> loadParentThread() => parentNavSubmitState.runSimple<void, Never>(
     submit: () async {
       final parent = await hnRepo.fetchItem(id: fetch.item.parent);
       if (parent != null) onNavigateToItem(parent);
@@ -185,25 +185,25 @@ grep -n 'useState<\(CommentsOrder\|FetchMode\|SortMode\|FilterType\)>' <sub_hook
 ```dart
 // ❌ Before — config lives in sub-hook
 FetchState useCommentsFetchState(...) {
-  final order = useState(CommentsOrder.natural);
+  final orderState = useState(CommentsOrder.natural);
 
   void updateOrder(CommentsOrder o) {
-    if (o == order.value) return;
-    order.value = o;
+    if (o == orderState.value) return;
+    orderState.value = o;
     subscription?.cancel();
     refetch();  // manual re-trigger
   }
 
-  return FetchState(order: order.value, updateOrder: updateOrder, /* ... */);
+  return FetchState(order: orderState.value, updateOrder: updateOrder, /* ... */);
 }
 
 // ✅ After — config at aggregator, sub-hook takes snapshot
 ScreenState useScreenState(...) {
-  final order = useState(defaultOrder);
-  final fetch = useCommentsFetchState(order: order.value, /* ... */);  // reactive key
+  final orderState = useState(defaultOrder);
+  final fetch = useCommentsFetchState(order: orderState.value, /* ... */);  // reactive key
   return ScreenState(
-    order: order.value,
-    onOrderChanged: (o) => order.value = o,  // one-liner
+    order: orderState.value,
+    onOrderChanged: (o) => orderState.value = o,  // one-liner
     /* ... */
   );
 }
@@ -238,9 +238,9 @@ grep -nE 'Map<int, GlobalKey|Map<\w+, AnimationController|Map<\w+, FocusNode|Map
 ```dart
 // ❌ Before — scroll sub-hook owns Map<int, GlobalKey>
 CommentsScrollState useCommentsScrollState() {
-  final globalKeys = useState(<int, GlobalKey>{});
-  void registerKey(int id, GlobalKey k) => globalKeys.value[id] = k;
-  return CommentsScrollState(globalKeys: globalKeys.value, registerKey: registerKey);
+  final globalKeysState = useState(<int, GlobalKey>{});
+  void registerKey(int id, GlobalKey k) => globalKeysState.value[id] = k;
+  return CommentsScrollState(globalKeys: globalKeysState.value, registerKey: registerKey);
 }
 
 // ✅ After — CommentTile owns its key
@@ -272,18 +272,18 @@ grep -nE 'useSubmitState.*loadMore|useSubmitState.*expand|useSubmitState.*fetch\
 ```dart
 // ❌ Before — single shared inProgress in sub-hook
 FetchState useCommentsFetchState(...) {
-  final loadMoreSubmit = useSubmitState();  // shared for ALL comments
-  Future<void> loadMore(Comment c) => loadMoreSubmit.runSimple(submit: () => /* ... */);
-  return FetchState(loadMore: loadMore, isLoadingMore: loadMoreSubmit.inProgress);
+  final loadMoreSubmitState = useSubmitState();  // shared for ALL comments
+  Future<void> loadMore(Comment c) => loadMoreSubmitState.runSimple(submit: () => /* ... */);
+  return FetchState(loadMore: loadMore, isLoadingMore: loadMoreSubmitState.inProgress);
 }
 
 // ✅ After — per-tile submit state
 class CommentTile extends HookWidget {
   Widget build(BuildContext context) {
-    final loadMore = useSubmitState();
+    final loadMoreState = useSubmitState();
     return LoadMoreButton(
-      onTap: () => loadMore.runSimple(submit: () => state.loadMoreFor(comment)),
-      isLoading: loadMore.inProgress,
+      onTap: () => loadMoreState.runSimple(submit: () => state.loadMoreFor(comment)),
+      isLoading: loadMoreState.inProgress,
     );
   }
 }
@@ -326,19 +326,19 @@ Visual cue: a `MutableValue<T>` that is **updated every time** other state chang
 
 **Fix:**
 ```dart
-// ❌ Before — idMap mirrors comments; updated on every setComments
-final comments = useState<List<Comment>>([]);
-final idMap = useState<Map<int, Comment>>({});
+// ❌ Before — idMapState mirrors commentsState; updated on every setComments
+final commentsState = useState<List<Comment>>([]);
+final idMapState = useState<Map<int, Comment>>({});
 void setComments(List<Comment> c) {
-  comments.value = c;
-  idMap.value = { for (final cmt in c) cmt.id: cmt };  // always derived
+  commentsState.value = c;
+  idMapState.value = { for (final cmt in c) cmt.id: cmt };  // always derived
 }
 
 // ✅ After — idMap is memoized
-final comments = useState<List<Comment>>([]);
+final commentsState = useState<List<Comment>>([]);
 final idMap = useMemoized(
-  () => { for (final c in comments.value) c.id: c },
-  [comments.value],
+  () => { for (final c in commentsState.value) c.id: c },
+  [commentsState.value],
 );
 ```
 
@@ -587,7 +587,7 @@ Examples:
   refactor(comments): filter.keywords → reactive useMemoized in aggregator
   refactor(comments): GlobalKey ownership to widget-level hook in CommentTile
   refactor(comments): idMap + maxLevel as useMemoized, not MutableValue
-  refactor(comments): loadMore inProgress via widget-level useSubmitState in CommentTile
+  refactor(comments): loadMoreState inProgress via widget-level useSubmitState in CommentTile
 ```
 
 ---

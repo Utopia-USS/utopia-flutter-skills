@@ -3,32 +3,28 @@ name: utopia-hooks
 description: >
   Flutter state management with utopia_hooks. Applies when writing Flutter screens,
   adding shared app state, handling async operations, building paginated / infinite-scroll
-  lists, injecting services, or migrating away from StatefulWidget. Covers the
-  Screen/State/View pattern, hook catalog, global state registration, useSubmitState,
-  useAutoComputedState, usePaginatedComputedState + PaginatedComputedStateWrapper,
-  and dependency injection.
-license: MIT
+  lists, composing tab / bottom-nav / multi-page shells, sequencing app startup and
+  bootstrap, handling global and retryable errors, building form fields (useFieldState,
+  TextEditingControllerWrapper), unit-testing hook states (SimpleHookContext), injecting
+  services, or migrating away from StatefulWidget. Covers the Screen/State/View pattern,
+  the hook catalog, global state registration, async / paginated / submit hooks,
+  navigation conventions, and dependency injection.
+license: BSD-2-Clause
 metadata:
   author: UtopiaSoftware
-  tags: flutter, dart, utopia_hooks, state-management, hooks, pagination, infinite-scroll
+  tags: flutter, dart, utopia_hooks, state-management, hooks, pagination, infinite-scroll, navigation, bootstrap, error-handling, testing, forms
 ---
 
-# utopia_hooks — Flutter State Management
+# utopia_hooks - Flutter State Management
 
 ## Overview
 
 Holistic state management for Flutter using hooks. Every screen follows the
 **Screen → State → View** tripartite pattern. Shared app state lives in
-**StateClass + hook + `_providers`**. All logic belongs in hooks — never in widgets.
+**StateClass + hook + `_providers`**. All logic belongs in hooks - never in widgets.
 
-## Skill Format
-
-Each reference is a self-contained skill page tuned to its topic:
-
-- **Frontmatter** — title, impact rating, tags
-- **Quick Pattern** — ❌ Incorrect → ✅ Correct Dart for immediate pattern matching (most references)
-- **Body** — rules, options, worked examples, common pitfalls, or decision trees depending on what the topic needs (e.g. Use-Case Index + numbered sections in `hooks-reference.md`; five worked shapes in `complex-state-examples.md`)
-- **Impact ratings** — CRITICAL (always apply), HIGH (significant correctness/quality gain), MEDIUM (worthwhile improvement)
+`Crazy*` widgets in examples (`CrazyButton`, `CrazyTextField`, …) are stand-ins for your
+app's design system - substitute your own components or Material equivalents.
 
 ## When to Apply
 
@@ -38,67 +34,65 @@ Reference these guidelines when:
 - Adding shared app-wide state (auth, settings, data caches, …)
 - Handling async operations, form submissions, or loading states
 - Building paginated / infinite-scroll lists, feeds, paginated search, or chat history
+- Composing a tab / bottom-nav / multi-page shell screen
+- Sequencing app startup (splash, SDK init, ordered providers) or wiring global error handling
+- Declaring routes or navigating in reaction to state changes
 - Injecting a service into a screen or registering a new dependency
-- Reviewing Flutter code — looking for logic in View, widgets in State, or raw `setState` patterns
+- Unit-testing a hook state in isolation
+- Reviewing Flutter code - looking for logic in View, widgets in State, or raw `setState` patterns
 - Migrating from `StatefulWidget` (for BLoC/Cubit migration, use the dedicated `utopia-hooks-migrate-bloc` plugin)
 
 ## Priority-Ordered Guidelines
 
-| Priority | Category                                | Impact   | Reference |
-|----------|-----------------------------------------|----------|-----------|
-| 1        | Screen architecture (Screen/State/View) | CRITICAL | [screen-state-view.md][screen-state-view] |
-| 2        | Hook catalog & correct usage          | CRITICAL | [hooks-reference.md][hooks-reference] |
-| 3        | Async patterns (download / upload)    | HIGH     | [async-patterns.md][async-patterns] |
-| 4        | Paginated lists & infinite scroll     | HIGH     | [paginated.md][paginated] |
-| 5        | Flutter code conventions              | HIGH     | [flutter-conventions.md][flutter-conventions] |
-| 6        | Global shared state                   | HIGH     | [global-state.md][global-state] |
-| 7        | Dependency injection & services       | MEDIUM   | [di-services.md][di-services] |
-| 8        | Composable & widget-level hooks       | MEDIUM   | [composable-hooks.md][composable-hooks] |
-| 9        | Testing hooks in isolation            | MEDIUM   | [testing.md][testing] |
-| 10       | Complex state — reference shapes      | HIGH     | [complex-state-examples.md][complex-state-examples] |
-| 11       | Multi-page shell (tabs / nav / sub-pages) | HIGH | [multi-page-shell.md][multi-page-shell] |
+Full documentation with code examples in [references/][references].
+Impact ratings: CRITICAL (always apply), HIGH (significant correctness/quality gain), MEDIUM (worthwhile improvement).
 
-## Quick Reference — Top Patterns
+| Priority | File | Impact | Description |
+|----------|------|--------|-------------|
+| 1 | [screen-state-view.md][screen-state-view] | CRITICAL | 3-file screen pattern: Screen, State class + hook, View; lightweight tier; dialogs with results |
+| 2 | [hooks-reference.md][hooks-reference] | CRITICAL | Full hook catalog: `useState`, `useMemoized`, `useEffect`, `useProvided`, `useInjected`, `useIf`, `useMap`, computed states, wrappers |
+| 3 | [global-state.md][global-state] | CRITICAL | App-wide state: StateClass, `HasInitialized`, `MutableValue`, `_providers` registration, global-state idioms |
+| 4 | [async-patterns.md][async-patterns] | HIGH | `useSubmitState`, `useAutoComputedState`, `useMemoizedStream`, retryable errors, lifecycle effects, sticky values |
+| 5 | [paginated.md][paginated] | HIGH | `usePaginatedComputedState` + `PaginatedComputedStateWrapper`: cursor/page/token schemes, loadMore, refresh, debounce, dedup, optimistic overlay |
+| 6 | [app-bootstrap.md][app-bootstrap] | HIGH | Ordered `_providers`, `HasInitialized` chains, combined initialization state, splash gating, SDK init races, retryable bootstrap |
+| 7 | [error-handling.md][error-handling] | HIGH | Where let-it-crash errors land: app-root catcher (zone + `FlutterError.onError`), error stream + root dialog, `Retryable` retry, typed errors to field errors |
+| 8 | [navigation.md][navigation] | HIGH | Route declaration conventions, typed args, reactive navigation effects, status-driven redirects, screen-as-sheet/dialog with typed results, one-shot event fields |
+| 9 | [multi-page-shell.md][multi-page-shell] | HIGH | Shell-with-N-pages composition: shell is Screen/State/View, each inner page is Screen/State/View; enum/index, IndexedStack/PageView/TabBarView, local/global index |
+| 10 | [complex-state-examples.md][complex-state-examples] | HIGH | Five anonymised reference shapes for complex state (pipeline / dashboard / parent-owned list / per-item widget-level / multi-step flow) |
+| 11 | [composable-hooks.md][composable-hooks] | HIGH | Widget-level hooks, composed hook state, screen hook decomposition, per-item state archetypes |
+| 12 | [flutter-conventions.md][flutter-conventions] | HIGH | IList/IMap/ISet, `it` lambdas, strict analyzer, widget extraction, spacing, generated code, TextEditingController |
+| 13 | [testing.md][testing] | HIGH | Unit testing hooks with SimpleHookContext and SimpleHookProviderContainer - no widget tree needed; mocking injected services |
+| 14 | [di-services.md][di-services] | MEDIUM | utopia_injector, `useInjected`, DI bridge hooks, service types, get_it fallback |
+| 15 | [utopia-cli.md][utopia-cli] | MEDIUM | utopia_cli agent surfaces: project inspection (`describe`), screen scaffolding (`add screen --json`), repo audit (`doctor`), `hooks analyze` variants, MCP server setup |
 
-A pointer-paragraph for the four most-common entry points. For everything else, jump straight to the References table below. Do not extrapolate from the summaries.
+## Quick Reference - Top Patterns
+
+A pointer-paragraph for the four most-common entry points. For everything else, jump
+straight to the guidelines table above. Do not extrapolate from the summaries.
 
 ### Screen architecture → [screen-state-view.md][screen-state-view]
 
-Every screen = **3 files**: `feature_screen.dart` (`HookWidget`, pure wiring — builds nav callbacks from `BuildContext`, calls exactly one `useXScreenState(...)`), `state/feature_screen_state.dart` (immutable State class + hook with all logic), `view/feature_screen_view.dart` (`StatelessWidget`, View receives only `state`).
+Every screen = **3 files**: `feature_screen.dart` (`HookWidget`, pure wiring - builds nav callbacks from `BuildContext`, calls exactly one `useXScreenState(...)`), `state/feature_screen_state.dart` (immutable State class + hook with all logic), `view/feature_screen_view.dart` (`StatelessWidget`, View receives only `state`).
 
 ### Global state registration → [global-state.md][global-state]
 
 State class (often extends `HasInitialized`) + `useXState()` hook + entry in `_providers` map at app root. Consume with `useProvided<XState>()` inside any state hook. `ValueProvider` for static/already-computed values.
 
-### Async — download / upload / stream → [async-patterns.md][async-patterns]
+### Async - download / upload / stream → [async-patterns.md][async-patterns]
 
-- **Download** (read, one-shot) → `useAutoComputedState` — auto-fetches, re-runs on `keys` change, `shouldCompute` gates prerequisites
-- **Upload** (write) → `useSubmitState` — user-triggered; blocks duplicates; let errors crash by default; `toButtonState()` for UI
-- **Stream** (reactive) → `useMemoizedStream` — subscribes continuously, re-subscribes on `keys` change
+- **Download** (read, one-shot) → `useAutoComputedState` - auto-fetches, re-runs on `keys` change, `shouldCompute` gates prerequisites
+- **Upload** (write) → `useSubmitState` - user-triggered; tracks in-flight runs but does NOT block duplicate calls (the three guards are in [async-patterns.md][async-patterns]); let errors crash by default
+- **Stream** (reactive) → `useMemoizedStream` - subscribes continuously, re-subscribes on `keys` change
 
 ### Paginated lists → [paginated.md][paginated]
 
-Any cursor-based list — feed, search results, chat history — uses `usePaginatedComputedState` + `PaginatedComputedStateWrapper` (scroll listener + pull-to-refresh). Never hand-roll `useState<List<T>>` + `hasMore` + `cursor`. Cursor is opaque (`int` for offset/page, `String?` for token). Optimistic mutations go in a local override layer, not into `items`.
-
-## References
-
-Full documentation with code examples in [references/][references]:
-
-| File | Impact | Description |
-|------|--------|-------------|
-| [screen-state-view.md][screen-state-view] | CRITICAL | 3-file screen pattern: Screen, State class + hook, View |
-| [hooks-reference.md][hooks-reference] | CRITICAL | Full hook catalog: `useState`, `useMemoized`, `useEffect`, `useProvided`, `useInjected`, `useIf`, `useMap`, `useComputedState` |
-| [global-state.md][global-state] | CRITICAL | App-wide state: StateClass, `HasInitialized`, `MutableValue`, `_providers` registration |
-| [async-patterns.md][async-patterns] | HIGH | `useSubmitState`, `useAutoComputedState`, `useMemoizedStream`, loading guards |
-| [paginated.md][paginated] | HIGH | `usePaginatedComputedState` + `PaginatedComputedStateWrapper`: cursor/page/token schemes, loadMore, refresh, debounce, dedup, optimistic overlay |
-| [composable-hooks.md][composable-hooks] | HIGH | Widget-level hooks, composed hook state, screen hook decomposition, per-item state (three archetypes) |
-| [complex-state-examples.md][complex-state-examples] | HIGH | Five anonymised reference shapes for complex state (pipeline / dashboard / parent-owned list / per-item widget-level / multi-step flow) — what good looks like |
-| [multi-page-shell.md][multi-page-shell] | HIGH | Shell-with-N-pages composition: shell is Screen/State/View, each inner page is Screen/State/View. Spectrum of impls (enum/index, IndexedStack/PageView/TabBarView, local/global index) |
-| [testing.md][testing] | HIGH | Unit testing hooks with SimpleHookContext and SimpleHookProviderContainer — no widget tree needed |
-| [flutter-conventions.md][flutter-conventions] | HIGH | IList/IMap/ISet, `it` lambdas, strict analyzer, widget extraction, spacing, generated code, TextEditingController |
-| [di-services.md][di-services] | MEDIUM | DI bridge hook, useInjected pattern, service types (Firebase/Api/Data) |
+Any cursor-based list - feed, search results, chat history - uses `usePaginatedComputedState` + `PaginatedComputedStateWrapper` (scroll listener + pull-to-refresh). Never hand-roll `useState<List<T>>` + `hasMore` + `cursor`. Cursor is opaque (`int` for offset/page, `String?` for token). Optimistic mutations go in a local override layer, not into `items`.
 
 ## Searching References
+
+All paths below are relative to the skill root (the directory containing this SKILL.md).
+From elsewhere, use the absolute form, e.g.
+`grep -rl "useSubmitState" /path/to/plugins/utopia-hooks/skills/utopia-hooks/references/`.
 
 ```bash
 # Async / data-loading hooks
@@ -125,11 +119,28 @@ grep -rl "HasInitialized" references/
 grep -rl "MutableValue" references/
 grep -rl "useProvided" references/
 grep -rl "useInjected" references/
+
+# Bootstrap / errors / navigation
+grep -rl "Retryable" references/
+grep -rl "HasInitialized.all" references/
+grep -rl "useCombinedInitializationState" references/
+grep -rl "buildRoute" references/
 ```
 
-## Dart Tooling — Prefer Dart MCP
+## Validation - utopia_cli Quality Gate
 
-When analyzing, testing, formatting, or fixing Dart code, prefer Dart MCP tools over their bash equivalents. MCP returns structured results (typed diagnostics, test summaries) and picks up the active SDK — including fvm-pinned versions — automatically.
+The canonical utopia_hooks convention analyzer lives in `utopia_cli`, not in this skill's
+shell scripts - Claude, Codex, CI, and pre-commit all run the same rules. The plugin's
+PostToolUse hook validates every Dart edit via `utopia hooks analyze --hook-json`; for
+manual / batch / changed-file / CI variants, repo-wide `utopia doctor` audits, project
+inspection (`utopia describe`), scaffolding (`utopia add screen --json`), and the
+`utopia mcp` server, see [utopia-cli.md][utopia-cli].
+
+## Dart Tooling - Prefer Dart MCP
+
+When analyzing, testing, formatting, or fixing Dart code, prefer Dart MCP tools over their
+bash equivalents - they return structured results and pick up the active SDK (including
+fvm-pinned versions) automatically.
 
 | Task                | Dart MCP (preferred) | Bash fallback                       |
 |---------------------|----------------------|-------------------------------------|
@@ -139,38 +150,31 @@ When analyzing, testing, formatting, or fixing Dart code, prefer Dart MCP tools 
 | Apply dart fixes    | `dart_fix`           | `dart fix --apply`                  |
 | Pub operations      | `pub`                | `dart pub get` / `flutter pub add`  |
 
-Use bash **only** when:
-
-- CI pipeline or pre-commit hook (shell-only context — e.g. `dart format --output=none --set-exit-if-changed .`)
-- No MCP equivalent: `build_runner`, `melos`, `flutter build`, `ffigen`, `docker build`
-- Dart MCP not configured in the current session
-
-### Setup (once)
-
-If `claude mcp list` doesn't show `dart`, pick a scope:
-
-```bash
-# User scope — recommended for dev tools; works across all your repos
-claude mcp add -s user dart -- fvm dart mcp-server
-
-# Project scope — writes .mcp.json; shared with team via git
-claude mcp add -s project dart -- fvm dart mcp-server
-
-# Local scope — this project, your machine only
-claude mcp add -s local dart -- fvm dart mcp-server
-```
-
-If the target repo doesn't use fvm, drop it: `claude mcp add -s user dart -- dart mcp-server`.
+Use bash only in shell-only contexts (CI, pre-commit hooks) or when no MCP equivalent
+exists (`build_runner`, `melos`, `flutter build`, `ffigen`). Setup: if `claude mcp list`
+doesn't show `dart`, run `claude mcp add -s user dart -- fvm dart mcp-server`
+(drop `fvm` if the repo doesn't use it).
 
 ## Problem → Skill Mapping
 
 | Problem                                                                     | Start With |
 |-----------------------------------------------------------------------------|------------|
-| Adding a new screen                                                         | [screen-state-view.md][screen-state-view] |
+| Adding a new screen                                                         | [utopia-cli.md][utopia-cli] (`utopia add screen --json`) → [screen-state-view.md][screen-state-view] |
+| What screens/routes/global states already exist in this project?            | [utopia-cli.md][utopia-cli] (`utopia describe`) |
+| Repo-wide convention audit / CI gate                                        | [utopia-cli.md][utopia-cli] (`utopia doctor`) |
 | Logic is leaking into the View                                              | [screen-state-view.md][screen-state-view] |
 | Widget imports in a State class                                             | [screen-state-view.md][screen-state-view] |
 | App-wide state (auth, config, data)                                         | [global-state.md][global-state] |
 | Screen not reacting to state changes                                        | [global-state.md][global-state] → [hooks-reference.md][hooks-reference] |
+| App startup / splash / boot sequencing                                      | [app-bootstrap.md][app-bootstrap] |
+| Global states that depend on other global states                            | [app-bootstrap.md][app-bootstrap] |
+| Firebase/SDK not initialized race                                           | [app-bootstrap.md][app-bootstrap] |
+| Where do uncaught submit/compute errors go?                                 | [error-handling.md][error-handling] |
+| Retry dialog for failed operations                                          | [error-handling.md][error-handling] |
+| Map backend errors to form field messages                                   | [error-handling.md][error-handling] |
+| Declaring routes / typed navigation                                         | [navigation.md][navigation] |
+| Navigate in reaction to global state (post-login redirect)                  | [navigation.md][navigation] |
+| Screen hosted in bottom sheet / dialog returning a result                   | [navigation.md][navigation] |
 | Form submission with loading/error                                          | [async-patterns.md][async-patterns] |
 | Form with validation (multi-field, submit gating)                           | [async-patterns.md][async-patterns] |
 | Async data with loading spinner                                             | [async-patterns.md][async-patterns] |
@@ -195,7 +199,7 @@ If the target repo doesn't use fvm, drop it: `claude mcp add -s user dart -- dar
 | Replacing StatefulWidget                                                    | [screen-state-view.md][screen-state-view] + [hooks-reference.md][hooks-reference] |
 | State hook is too large (>300 lines, >10 useState)                          | [composable-hooks.md][composable-hooks] (screen hook decomposition, Pattern 3) |
 | Per-item state (list tile with expand / async / drafts)                     | [composable-hooks.md][composable-hooks] (per-item state archetypes) |
-| Complex multi-domain or multi-step screen state — what should it look like? | [complex-state-examples.md][complex-state-examples] |
+| Complex multi-domain or multi-step screen state - what should it look like? | [complex-state-examples.md][complex-state-examples] |
 | Screen with bottom nav / tabs / sub-pages the user switches between                | [multi-page-shell.md][multi-page-shell] |
 | Inner tab/page is a monolithic HookWidget with inline logic                         | [multi-page-shell.md][multi-page-shell] |
 | Bottom nav / tab index needs to survive deep links or cross-screen jumps            | [multi-page-shell.md][multi-page-shell] + [global-state.md][global-state] |
@@ -206,51 +210,67 @@ If the target repo doesn't use fvm, drop it: `claude mcp add -s user dart -- dar
 [global-state]: references/global-state.md
 [async-patterns]: references/async-patterns.md
 [paginated]: references/paginated.md
+[app-bootstrap]: references/app-bootstrap.md
+[error-handling]: references/error-handling.md
+[navigation]: references/navigation.md
 [composable-hooks]: references/composable-hooks.md
 [complex-state-examples]: references/complex-state-examples.md
 [testing]: references/testing.md
 [flutter-conventions]: references/flutter-conventions.md
 [di-services]: references/di-services.md
 [multi-page-shell]: references/multi-page-shell.md
+[utopia-cli]: references/utopia-cli.md
 
 ## Non-Negotiable Rules
 
-- **View never calls hooks** — no `useState`, `useProvided`, `useInjected` in `*_view.dart`. View is always `StatelessWidget`.
-- **View constructor takes ONLY `state`** — no extra `onBack`, `onNavigate`, or other parameters. All callbacks are fields on the State class.
-- **Screen = pure wiring** — Screen's `build()` reads `BuildContext` (for navigation/dialogs/args) and calls exactly one hook: `useXScreenState(...)`. Screen must NOT call `useInjected`, `useProvided`, `useEffect`, `useState`, or any other hook.
-- **Navigation flows Screen → State → View as callbacks** — never `useProvided<NavigatorKey>` or `useInjected<AppRouter>`. State hook receives navigation as `void Function()` / `Future<T?> Function()` parameters.
-- **State never imports widgets** — no Flutter widget imports in `*_screen_state.dart`
-- **`useProvided` / `useInjected` only in screen state hooks** — not in Screen, not in View, not passed down as parameters
-- **No mutable collections in State classes** — always `IList`/`IMap`/`ISet`, never `List`/`Map`/`Set`, including static data
-- **No manual loading state** — never use `useState<bool>` + `try/catch/finally` for data loading. Always `useAutoComputedState`.
-- **No hand-rolled pagination** — never use `useState<List<T>>` + `hasMore` + `cursor` for paginated lists. Always `usePaginatedComputedState` + `PaginatedComputedStateWrapper`. See [paginated.md][paginated].
-- **Prefer `useMemoized` over `useEffect`** for derived state — effects cascade; memoized values don't
-- **One State class per screen** — all screen data in one place, not scattered `useState` calls across the widget tree
-- **Never wrap `TextEditingController` in `useMemoized` + `useListenable`** — always `useFieldState` in the state hook + `TextEditingControllerWrapper` in the View. See [flutter-conventions.md][flutter-conventions].
-- **View files ≤ ~300 lines** — extract complex widgets to `widget/` folder, using widget-level hook pattern from [composable-hooks.md](references/composable-hooks.md) when they have own state
-- **Screen files ≤ ~100 lines (soft redflag)** — Screen is pure wiring; if over ~100 it almost always holds Scaffold/layout chrome (belongs in View) or business logic (belongs in state hook). Typical Screen is 30–80 lines. See [screen-state-view.md](references/screen-state-view.md).
-- **Global state hooks ≤ ~300 lines** — same threshold as screen state hooks. If over, the global is spanning multiple domains; split into separate globals (one per domain in `_providers`), or extract pure helpers/derivations to services. See [global-state.md](references/global-state.md).
+- **View never calls hooks** - no `useState`, `useProvided`, `useInjected` in `*_view.dart`. View is always `StatelessWidget`.
+- **View constructor takes ONLY `state`** - no extra `onBack`, `onNavigate`, or other parameters. All callbacks are fields on the State class.
+- **Screen = pure wiring** - Screen's `build()` reads `BuildContext` (for navigation/dialogs/args) and calls exactly one hook: `useXScreenState(...)`. Screen must NOT call `useInjected`, `useProvided`, `useEffect`, `useState`, or any other hook (single exception: one `useEffect` whose only job is consuming one-shot event fields - see [navigation.md][navigation]).
+- **Navigation flows Screen → State → View as callbacks** - never `useProvided<NavigatorKey>` or `useInjected<AppRouter>`. State hook receives navigation as `void Function()` / `Future<T?> Function()` parameters. See [navigation.md][navigation].
+- **State never imports widgets** - no Flutter widget imports in `*_screen_state.dart`
+- **`useProvided` / `useInjected` only in screen state hooks** - not in Screen, not in View, not passed down as parameters
+- **No mutable collections in State classes** - always `IList`/`IMap`/`ISet`, never `List`/`Map`/`Set`, including static data
+- **No manual loading state** - never use `useState<bool>` + `try/catch/finally` for data loading. Always `useAutoComputedState`.
+- **No hand-rolled pagination** - never use `useState<List<T>>` + `hasMore` + `cursor` for paginated lists. Always `usePaginatedComputedState` + `PaginatedComputedStateWrapper`. See [paginated.md][paginated].
+- **Never construct `ButtonState` by hand for submit-backed buttons** - always `submitState.toButtonState(onTap: ...)` or `useSubmitButtonState` (only the latter guards re-entrant taps - see [async-patterns.md][async-patterns]).
+- **Prefer `useMemoized` over `useEffect`** for derived state - effects cascade; memoized values don't
+- **One State class per screen** - all screen data in one place, not scattered `useState` calls across the widget tree
+- **Never wrap `TextEditingController` in `useMemoized` + `useListenable`** - always `useFieldState` in the state hook + `TextEditingControllerWrapper` in the View. See [flutter-conventions.md][flutter-conventions].
+- **View files ≤ ~300 lines** - extract complex widgets to `widget/` folder, using widget-level hook pattern from [composable-hooks.md][composable-hooks] when they have own state
+- **Screen files ≤ ~100 lines (soft redflag)** - Screen is pure wiring; if over ~100 it almost always holds Scaffold/layout chrome (belongs in View) or business logic (belongs in state hook). Typical Screen is 30-80 lines. See [screen-state-view.md][screen-state-view].
+- **Global state hooks ≤ ~300 lines** - same threshold as screen state hooks. If over, the global is spanning multiple domains; split into separate globals (one per domain in `_providers`), or extract pure helpers/derivations to services. See [global-state.md][global-state].
+
+**The one sanctioned exception - the lightweight tier.** A trivial, self-contained dialog
+or component (roughly 30 lines, no navigation fan-out) may be a single-file `HookWidget`
+calling `useInjected` / `useSubmitState` directly in `build`. The moment it grows - second
+action, derived state, navigation, anything that smells like logic - promote it to the
+full Screen/State/View split. Three files stays the default for every screen.
+See [screen-state-view.md][screen-state-view] (lightweight tier).
 
 ## Self-Audit Checklist
 
-After generating a screen, verify:
+After generating a screen, run down this list. Each item is a one-line check for a rule
+above (or a reference pattern) - see the rule for the full rationale and fix:
 
-1. Does the View constructor take anything beyond `state`? → Move it to the State class
-2. Does the Screen call any hook other than `useXScreenState(...)` (e.g., `useInjected`, `useProvided`, `useEffect`)? → Move to state hook
-3. Are there `useState<bool>(true)` / `useState<T?>(null)` for loading/error? → Use `useAutoComputedState`
-4. Are there mutable `List<T>`, `Map<K,V>`, `Set<T>` in the State class? → Use `IList`/`IMap`/`ISet`
-5. Are there more than 2 `useSubmitState()` in one hook? → Group mutually exclusive actions
-6. Is any view file > 300 lines? → Extract widgets to `widget/` folder
-7. Does the View extend `HookWidget`? → Must be `StatelessWidget`
-8. Is any state hook > ~300 lines or > ~10 useState? → Decompose into sub-hooks (see [composable-hooks.md][composable-hooks] Pattern 3)
-9. Any `useProvided<NavigatorKey>` / `useInjected<AppRouter>` / `useMemoized(TextEditingController.new)`? → All three are forbidden; see [screen-state-view.md][screen-state-view] and [flutter-conventions.md][flutter-conventions]
-10. Paginated list built from `useState<List<T>>` + `hasMore` + `cursor` + manual `useEffect` load? → Use `usePaginatedComputedState` + `PaginatedComputedStateWrapper`. See [paginated.md][paginated]
-11. Is any screen file > ~100 lines? → Screen is pure wiring; soft redflag. Look for Scaffold/layout chrome (move to View) or business logic (move to state hook). See [screen-state-view.md][screen-state-view]
-12. Any `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected`? → Mis-classified View. Rename to `view/x_screen_view.dart`, convert to `StatelessWidget`, hoist hooks to state hook. See [screen-state-view.md][screen-state-view] Common Pitfalls
-13. Any global state hook > ~300 lines? → Split into multiple globals (one per domain in `_providers`), or extract pure helpers to services. See [global-state.md][global-state]
-14. Does the `*_screen_state.dart` file import `package:flutter/material.dart` or `package:flutter/widgets.dart` for anything beyond `Color` / `Duration` / domain types? → State must not import widgets. Move widget code to View. See [screen-state-view.md][screen-state-view]
-15. Any derived value computed with `useEffect` + `useState` instead of `useMemoized`? → Effects cascade; memoized values don't. Prefer `useMemoized` for derived state. See [hooks-reference.md][hooks-reference]
-16. Two or more `*ScreenState` classes for the same screen, or scattered `useState` calls across the View? → One State class per screen — all screen data in one place. See [screen-state-view.md][screen-state-view]
+1. View constructor takes anything beyond `state`? → "View constructor takes ONLY `state`"
+2. Screen calls any hook other than `useXScreenState(...)`? → "Screen = pure wiring" (exception: one `useEffect` consuming one-shot event fields - see [navigation.md][navigation])
+3. View extends `HookWidget` or calls hooks? → "View never calls hooks"
+4. `useState<bool>(true)` / `useState<T?>(null)` for loading/error? → "No manual loading state"
+5. Mutable `List`/`Map`/`Set` in the State class? → "No mutable collections in State classes"
+6. `useState<List<T>>` + `hasMore` + `cursor` + manual load effect? → "No hand-rolled pagination"
+7. Hand-built `ButtonState(...)` next to a submit state? → "Never construct `ButtonState` by hand"
+8. `useProvided<NavigatorKey>` / `useInjected<AppRouter>` in a state hook? → "Navigation flows Screen → State → View as callbacks"
+9. `useXScreenState(...)` signature accepts `BuildContext`? → same rule; replace with typed callbacks built in the Screen
+10. `useMemoized(TextEditingController.new)` + `useListenable`? → "Never wrap `TextEditingController`"
+11. Derived value via `useEffect` + `useState`? → "Prefer `useMemoized` over `useEffect`"
+12. Two or more `*ScreenState` classes for one screen, or scattered `useState` in the View? → "One State class per screen"
+13. Widget imports in `*_screen_state.dart` beyond `Color` / `Duration` / domain types? → "State never imports widgets"
+14. View file > ~300 lines? → "View files ≤ ~300 lines"
+15. Screen file > ~100 lines? → "Screen files ≤ ~100 lines (soft redflag)"
+16. State hook > ~300 lines or > ~10 `useState`? → decompose; [composable-hooks.md][composable-hooks] Pattern 3
+17. Global state hook > ~300 lines? → "Global state hooks ≤ ~300 lines"
+18. More than 2 `useSubmitState()` in one hook? → group mutually exclusive actions; [async-patterns.md][async-patterns]
+19. `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected`? → mis-classified View; rename to `view/x_screen_view.dart`, see [screen-state-view.md][screen-state-view] Common Pitfalls
 
 ## Attribution
 

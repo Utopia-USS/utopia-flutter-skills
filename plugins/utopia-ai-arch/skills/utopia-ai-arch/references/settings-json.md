@@ -43,9 +43,6 @@ Everything else (model defaults, theme, UI prefs) lives elsewhere. `settings.jso
   "enabledPlugins": {
     "utopia-hooks@utopia-flutter-skills": true
   },
-  "enabledMcpjsonServers": [
-    "<prefix>-dart"
-  ],
   "permissions": {
     "allow": [
       "Bash(git status:*)",
@@ -60,11 +57,7 @@ Everything else (model defaults, theme, UI prefs) lives elsewhere. `settings.jso
       "Bash(git stash:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
-      "Bash(gh pr diff:*)",
-      "Bash(fvm dart:*)",
-      "Bash(fvm flutter:*)",
-      "Bash(melos bootstrap:*)",
-      "Bash(melos run:*)"
+      "Bash(gh pr diff:*)"
     ]
   },
   "hooks": {
@@ -87,7 +80,9 @@ Everything else (model defaults, theme, UI prefs) lives elsewhere. `settings.jso
 }
 ```
 
-Note: the blueprint and existing repos use both `utopia-flutter-skills` and `utopia-claude-skills` as marketplace names — the repo URL is what matters; the key is just a local name. Pick one and use it consistently. (repo-A uses `utopia-flutter-skills`; repo-B and repo-C use `utopia-claude-skills`. Either works.)
+Note: the blueprint and existing repos use both `utopia-flutter-skills` and `utopia-claude-skills` as marketplace names — the repo URL is what matters; the key is just a local name. Pick one and use it consistently. (repo-A uses `utopia-flutter-skills`; repo-B and repo-C use `utopia-claude-skills`. Either works — but when a marketplace repo is renamed, `source.repo` must be updated too; repo-B still points at the pre-rename URL, which only keeps working through GitHub's rename redirect.)
+
+This canonical block matches the inline template at [`../templates/claude-layer/settings.json`](../templates/claude-layer/settings.json) exactly. Dart/Flutter toolchain permissions (fvm / melos) and `enabledMcpjsonServers` are per-repo extensions — see §"Extensions for Dart / Flutter repos" and §"MCP server declaration" below; never declare an MCP server that isn't installed.
 
 ## Plugin scope choice — project is the default for the foundation
 
@@ -99,7 +94,7 @@ Claude Code recognises three scopes for plugin enablement. Pick deliberately:
 | **user** | `~/.claude/settings.json` | You want it everywhere across all your repos, regardless of project declarations. |
 | **local** | `.claude/settings.local.json` (gitignored) | You're trying it out in this repo without committing the choice. |
 
-> "The blueprint defaults to `project` scope for the foundation because the codebase *assumes* the foundation is present — agent skills cross-link into it, hook conventions are taught only there. Making that requirement repo-declared rather than per-contributor folklore is the whole point." — blueprint `README.md:549-553`
+> "The blueprint defaults to `project` scope for the foundation because the codebase *assumes* the foundation is present — agent skills cross-link into it, hook conventions are taught only there. Making that requirement repo-declared rather than per-contributor folklore is the whole point." — blueprint README v1
 
 **Why project scope for `utopia-hooks`.** A Utopia Flutter repo without the foundation loaded is missing context the skills assume — every project SKILL.md cross-links into `utopia-hooks:references/*.md`, and the foundation hook enforces idioms the project hook deliberately skips. Per-contributor folklore ("did you remember to install utopia-hooks?") fails silently. Project-scope declaration means the CLI prompts to trust and install on first repo open.
 
@@ -241,7 +236,7 @@ When the MCP server **is** installed, list its specific tools in `permissions.al
 "mcp__<prefix>-dart__resolve_workspace_symbol"
 ```
 
-Source: `production-repo-A/.claude/settings.json:56-62` and `production-repo-B/.claude/settings.json:44-49`.
+Source: repo-A and repo-B `.claude/settings.json`.
 
 Per-tool granularity (not `mcp__<prefix>-dart__*`) is the convention — explicit beats wildcard, and a new tool added upstream shouldn't auto-elevate without review.
 
@@ -292,6 +287,8 @@ The script path is repo-relative under `.claude/scripts/`. The bash invocation r
 ### Multiple hooks under one matcher
 
 Both scripts under one `matcher` block means both fire on every matching tool call. Each guards its own scope independently (`quality_check` short-circuits on non-`.dart`; `skills_drift` short-circuits on non-`.md`-under-`.claude`).
+
+Production variance: repo-A wires both scripts; repo-B and repo-C wire only `quality_check` and run the drift scan via `/<prefix>-audit-skills` instead. Wiring both is the blueprint default — the drift script's hook mode costs one silent `exit 0` on out-of-scope edits.
 
 ### SessionStart hook (when justified)
 

@@ -9,16 +9,16 @@ is no body of background knowledge to extract into a skill.
 Open this bundle when the team has external ticketing with required
 commit-message conventions:
 
-- **Linear**, **<ticketing-tool>**, or **Jira** (or equivalent) is the source of
+- **Linear**, **`<ticketing-tool>`**, or **Jira** (or equivalent) is the source of
   truth for work items, and
 - Commits or branches carry a ticket reference in a required format (e.g.
   `<TICKET-ID> | description` or `feat(LIN-1234): description` or
   `branch-name = TICKET-slug`).
 
-**Not auto-inspectable.** Phase 0.5 must surface this with a user prompt:
+**Not auto-inspectable.** Phase 0.4 must surface this with a user prompt:
 
 > *"Do you use a ticketing tool with commit-message or branch-naming
-> conventions? Which one — Linear / <ticketing-tool> / Jira / other?"*
+> conventions? Which one — Linear / `<ticketing-tool>` / Jira / other?"*
 
 If the answer is no (commits are free-form and the team doesn't sync state
 back to a ticket tracker), reject this bundle.
@@ -43,18 +43,18 @@ No skill — there is no general body of knowledge here. The command body
 
 ## Substitution checklist
 
-- `<prefix>` — repo command prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
-- `<ticketing-tool>` — Linear / <ticketing-tool> / Jira / etc. Appears in:
-  - frontmatter `allowed-tools` (`mcp__clickup` → `mcp__<ticketing-tool>`)
+- `<prefix>` — repo command prefix (e.g. `aap`).
+- `<ticketing-tool>` — Linear / Jira / ClickUp-class tools. Appears in:
+  - frontmatter `allowed-tools` (`mcp__<ticketing-tool>` stays a placeholder until substitution, e.g. `mcp__linear`)
   - one-time setup snippet (the MCP add command)
   - "Custom Task IDs" / ticket-ID format note
-  - all Phase 3-5 references to "<ticketing-tool>"
-- Ticket-ID format example — `<TICKET-ID>` is <ticketing-tool>'s custom-task-ID format.
+  - all Phase 3-5 references to "`<ticketing-tool>`"
+- Ticket-ID format example — `<TICKET-ID>` is `<ticketing-tool>`'s custom-task-ID format.
   Swap for the team's format:
   - **Linear**: `LIN-1234` (or whatever the team prefix is — `ENG-`,
     `WEB-`, …).
   - **Jira**: `PROJ-1234`.
-  - **<ticketing-tool>**: `<TICKET-ID>` or whatever custom-task-ID prefix the workspace
+  - **`<ticketing-tool>`**: `<TICKET-ID>` or whatever custom-task-ID prefix the workspace
     uses.
 - Status names in Phase 5 — "testing" is the source-repo column. Swap for the
   team's "in review", "ready for QA", or similar.
@@ -64,8 +64,8 @@ No skill — there is no general body of knowledge here. The command body
 
 ## Production precedent
 
-`acme` is the only repo currently shipping this bundle. <ticketing-tool> is the
-ticketing tool there.
+repo-B is the only production repo currently shipping this bundle; its
+ticketing tool drives the commit format described above.
 
 ## Load-bearing pieces — keep when adapting
 
@@ -93,5 +93,5 @@ ticketing tool there.
 
 ## Strip-the-banner reminder
 
-The command file ships with a `<!-- TEMPLATE -->` banner. Remove it once
+The command file ships with a `<!-- BLUEPRINT -->` banner. Remove it once
 substitution is complete.

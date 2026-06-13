@@ -1,8 +1,11 @@
-<!-- TEMPLATE - command-only workflow. Open only if Phase 0.5 confirmed routine cross-package planning need. Substitute <prefix>. Strip this banner. -->
 ---
 description: Plan a feature with the architect, consulting domain skills by area. Invoke with /<prefix>-plan <feature request> to produce a scoped plan without writing code.
-argument-hint: [feature request]
+argument-hint: "[feature request]"
+allowed-tools: Task, Read, Glob, Grep
+model: inherit
 ---
+
+<!-- BLUEPRINT — adapt per-repo. Open only if Phase 0.4 confirmed routine cross-package planning need. Substitute <prefix>. Strip this banner after substitution. -->
 
 Plan this work without writing code: $ARGUMENTS
 
@@ -11,7 +14,7 @@ Plan this work without writing code: $ARGUMENTS
 1. Delegate to `<prefix>-architect` for planning. The architect already
    preloads the repo's master skill (conventions, design system, domain
    stack, release playbook) and `utopia-hooks`; it references sister
-   skills by area in its plan (see the agent's Collaboration Rules table).
+   skills by area in its plan (see the agent's Hand-offs section).
 2. Bring in any domain auditor agents the repo defines (e.g.
    `<prefix>-security-auditor`) for a threat-model / domain-specific pass
    if the change touches their surface. Drop this step if the repo has no

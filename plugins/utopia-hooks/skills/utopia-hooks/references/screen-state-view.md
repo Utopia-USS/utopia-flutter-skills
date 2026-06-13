@@ -9,11 +9,11 @@ tags: architecture, screen, pattern, widget, hooks, navigation
 Every screen in a utopia_hooks app consists of exactly three files: Screen, State, and View.
 This separation ensures logic never bleeds into UI and UI never bleeds into logic.
 
-- **Screen** — `HookWidget`, pure coordinator. Reads `BuildContext`, builds navigation/dialog
+- **Screen** - `HookWidget`, pure coordinator. Reads `BuildContext`, builds navigation/dialog
   callbacks, calls exactly one hook (`useXScreenState`), returns the View.
-- **State** — plain data class + hook function. All logic, services, async, and derived values
+- **State** - plain data class + hook function. All logic, services, async, and derived values
   live in the hook. No widgets, no `BuildContext`.
-- **View** — `StatelessWidget`, pure UI. Receives `state` and nothing else. No hooks.
+- **View** - `StatelessWidget`, pure UI. Receives `state` and nothing else. No hooks.
 
 ## Quick Pattern
 
@@ -24,12 +24,12 @@ class TasksScreen extends HookWidget {
   Widget build(BuildContext context) {
     final tasks = useProvided<TasksState>().tasks;
     final service = useInjected<TaskService>();
-    final isLoading = useState(false);
+    final isLoadingState = useState(false);
 
     Future<void> deleteTask(TaskId id) async {
-      isLoading.value = true;
+      isLoadingState.value = true;
       await service.delete(id);
-      isLoading.value = false;
+      isLoadingState.value = false;
     }
 
     return ListView(
@@ -113,12 +113,120 @@ class TasksScreenView extends StatelessWidget {
 }
 ```
 
+> **Note:** `Crazy*` widgets (`CrazyLoader`, `CrazyPage`, `CrazySquashButton`, ...) are
+> stand-ins for your app's design system. Substitute your own components or Material
+> equivalents (`CircularProgressIndicator`, `Scaffold`, `ElevatedButton`, ...).
+
 ## When to Use
 
 - Building any new screen or route
 - Adding a feature to an existing screen
 - Reviewing code for architecture violations
 - Replacing a `StatefulWidget` with hooks
+
+## The Lightweight Tier - when 3 files are overkill
+
+The triple is the default, not a tax on every widget. A **trivial, self-contained component** -
+a confirm dialog, a one-action info sheet - may be a single-file `HookWidget` that calls
+`useInjected` / `useSubmitState` directly in `build()`, as long as it stays around 30 lines of
+logic and has no navigation fan-out (nothing beyond popping itself). The same tier covers
+**render-nothing screens** (a boot splash whose hook returns `void` and whose build returns
+`SizedBox.shrink()` - see [app-bootstrap.md](./app-bootstrap.md)):
+
+```dart
+class DeleteItemDialog extends HookWidget {
+  final ItemId itemId;
+  const DeleteItemDialog._({required this.itemId});
+
+  static Future<bool?> show(BuildContext context, {required ItemId itemId}) =>
+      showDialog<bool>(context: context, builder: (_) => DeleteItemDialog._(itemId: itemId));
+
+  @override
+  Widget build(BuildContext context) {
+    final service = useInjected<ItemService>();
+    final submitState = useSubmitState();
+
+    void confirm() => submitState.runSimple<void, Never>(
+          submit: () async => service.delete(itemId),
+          afterSubmit: (_) => Navigator.of(context).pop(true),
+        );
+
+    return AlertDialog(
+      title: const Text('Delete item?'),
+      content: const Text('This cannot be undone.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+        TextButton(onPressed: submitState.inProgress ? null : confirm, child: const Text('Delete')),
+      ],
+    );
+  }
+}
+```
+
+This is sanctioned, not a violation: the widget IS the Screen layer here. It owns
+`BuildContext` and pops itself, so calling `useInjected` / `useSubmitState` in `build()`
+does not smuggle UI concerns into a state hook - there is no state hook yet. (Note the
+manual `inProgress` guard on the button: `useSubmitState.run` does not block duplicate
+calls by itself.)
+
+**Promote to the full Screen/State/View triple as soon as any of these appear:**
+
+- Navigation fan-out: the component opens other dialogs/sheets or pushes routes (beyond popping itself)
+- More than one async flow, or any derived/computed state (`useAutoComputedState`, `useMap`, ...)
+- Form fields with validation or error mapping
+- `build()` exceeds roughly 30 lines of logic, or you want to unit-test the behaviour
+
+Promotion is mechanical: the existing widget becomes the Screen (it keeps `show()` and
+builds the `Navigator.pop`-based callbacks), logic moves into `useXDialogState`, UI moves
+into the View.
+
+## Dialogs with Results
+
+Dialogs and sheets follow one convention regardless of tier:
+
+- **Private constructor + static `show()`.** The widget cannot be constructed directly;
+  the only entry point is `static Future<R?> show(BuildContext context, ...)` wrapping
+  `showDialog` / `showModalBottomSheet`. Callers never call `showDialog` themselves.
+- **Typed result via `Navigator.pop`.** `show()` returns `Future<R?>`: a typed payload on
+  success, an explicit sentinel (e.g. `false`) where "cancelled" must be distinguishable,
+  `null` when dismissed by tapping outside.
+
+```dart
+class EditNameDialog extends HookWidget {
+  final String initialName;
+  const EditNameDialog._({required this.initialName});
+
+  static Future<String?> show(BuildContext context, {required String initialName}) =>
+      showDialog<String>(
+        context: context,
+        builder: (_) => EditNameDialog._(initialName: initialName),
+      );
+
+  // ...completes with Navigator.of(context).pop(newName)
+}
+
+// Caller - a Screen building a callback for its state hook:
+// editName: () => EditNameDialog.show(context, initialName: name),
+```
+
+- **Complex dialogs get the full State/View treatment.** Past the lightweight-tier limits,
+  the dialog widget plays the Screen role: pure wiring, one `useXDialogState(...)` call,
+  returns `XDialogView(state: state)`. The typed result still flows through callbacks built
+  in the dialog's `build()` (`close: (result) => Navigator.of(context).pop(result)`).
+- **Dialogs receive other dialogs as typed callbacks.** A dialog's state hook never opens
+  another dialog itself; the dialog widget (the wiring layer) builds `showX` callbacks from
+  its `BuildContext`, exactly like a Screen does:
+
+```dart
+@override
+Widget build(BuildContext context) {
+  final state = useEditProfileDialogState(
+    confirmDiscard: () => ConfirmDiscardDialog.show(context),  // dialog-as-callback
+    close: (result) => Navigator.of(context).pop(result),
+  );
+  return EditProfileDialogView(state: state);
+}
+```
 
 ## File Naming
 
@@ -133,20 +241,20 @@ class TasksScreenView extends StatelessWidget {
 The Screen is a coordinator, not a logic host. Its `build()` may:
 
 - Read from `BuildContext`: `Navigator.of(context)`, `context.push(...)`, `MediaQuery.of(context)`,
-  `context.routeArgs<T>()` (utopia_arch), `context.navigator` (utopia_arch), `XDialog.show(context)`
+  `ModalRoute.of(context)!.settings.arguments as XArgs`, `XDialog.show(context)`
 - Call **exactly one hook**: `useXScreenState(...)` with navigation/dialog callbacks built inline
-- Return `XScreenView(state: state)` — nothing else
+- Return `XScreenView(state: state)` - nothing else
 
 The Screen **must not** call:
 
-- `useInjected<T>()` — services belong in the state hook
-- `useProvided<T>()` — global state belongs in the state hook (including `useProvided<NavigatorKey>` — see below)
-- `useEffect`, `useStreamSubscription`, `useAutoComputedState`, `useSubmitState` — effects belong in the state hook
-- `useState`, `useMemoized` — local state belongs in the state hook
+- `useInjected<T>()` - services belong in the state hook
+- `useProvided<T>()` - global state belongs in the state hook (including `useProvided<NavigatorKey>` - see below)
+- `useEffect`, `useStreamSubscription`, `useAutoComputedState`, `useSubmitState` - effects belong in the state hook (single exception: a `useEffect` whose only job is consuming one-shot event fields - see [navigation.md](./navigation.md))
+- `useState`, `useMemoized` - local state belongs in the state hook
 
 Everything the Screen needs (services, state, effects) is encapsulated by the single `useXScreenState(...)` call.
 
-A well-formed Screen file is typically 30–80 lines. **Past ~100 lines is a soft redflag** — the Screen is likely hosting Scaffold/Stack/layout chrome (belongs in View) or assembling widget trees beyond `return XScreenView(state: state)`. Callback-heavy screens with many dialog/menu builders may hover around 100–120 without anything wrong; past that, decompose.
+A well-formed Screen file is typically 30–80 lines. **Past ~100 lines is a soft redflag** - the Screen is likely hosting Scaffold/Stack/layout chrome (belongs in View) or assembling widget trees beyond `return XScreenView(state: state)`. Callback-heavy screens with many dialog/menu builders may hover around 100–120 without anything wrong; past that, decompose.
 
 ### Navigation flows Screen → State → View as callbacks
 
@@ -154,7 +262,7 @@ Navigation is built **in the Screen** from `BuildContext` and passed to the stat
 parameters. The state hook stores them as fields on the State class. The View calls them.
 
 ```dart
-// ✅ CORRECT — Screen builds nav from context, hook receives callbacks
+// ✅ CORRECT - Screen builds nav from context, hook receives callbacks
 class HabitDetailsScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
@@ -175,7 +283,7 @@ HabitDetailsScreenState useHabitDetailsScreenState({
 ```
 
 ```dart
-// ❌ FORBIDDEN — injecting navigation into the state hook
+// ❌ FORBIDDEN - injecting navigation into the state hook
 HabitDetailsScreenState useHabitDetailsScreenState({required Habit habit}) {
   final navigatorKey = useProvided<NavigatorKey>();   // ❌ NEVER
   final router = useInjected<AppRouter>();             // ❌ NEVER
@@ -183,26 +291,47 @@ HabitDetailsScreenState useHabitDetailsScreenState({required Habit habit}) {
 }
 ```
 
-**Never use `useProvided<NavigatorKey>` or `useInjected<AppRouter>` anywhere.** The state hook
-receives navigation as `void Function()` / `Future<T?> Function()` parameters. The Screen closes
-over `BuildContext` from `build()` and builds those callbacks.
+```dart
+// ❌ FORBIDDEN - passing BuildContext into the state hook
+HabitDetailsScreenState useHabitDetailsScreenState({
+  required Habit habit,
+  required BuildContext context,                       // ❌ NEVER
+}) {
+  void onEditPressed() => EditHabitDialog.show(context);                  // ❌ hook is doing dialog wiring
+  void onPaywallPressed() => Navigator.of(context).pushNamed('/paywall'); // ❌ hook is doing navigation
+  // ...
+}
+```
+
+Passing `BuildContext` is the same anti-pattern wearing a thinner disguise: it lets the hook
+call `XDialog.show(context, ...)` or `Navigator.of(context)` internally, which is exactly the
+dialog/navigation wiring the Screen owns. It looks cheap (one parameter instead of three
+callbacks) but pulls UI surfaces into the hook and makes it untestable without a widget tree.
+
+**Never use `useProvided<NavigatorKey>`, `useInjected<AppRouter>`, or `BuildContext` parameters
+in the state hook.** The state hook receives navigation as `void Function()` / `Future<T?> Function()`
+parameters. The Screen closes over `BuildContext` from `build()` and builds those callbacks.
+
+This file owns the callback rule; everything built on top of it - route declaration
+conventions (`static route` + `buildRoute`, typed args), reactive navigation effects,
+status-driven redirects, screens hosted as sheets/dialogs - lives in [navigation.md](./navigation.md).
 
 ## Widget Callback Policy
 
 When a sub-widget exposes callbacks (`onTap`, `onFontSizeTap`, `onSendTapped`, `onEdit`), classify
 each callback before wiring it:
 
-1. **Business callback** — triggers state logic, async work, navigation, or mutates domain data.
+1. **Business callback** - triggers state logic, async work, navigation, or mutates domain data.
    → Must be a **field on the `State` class**. The state hook builds it (opening dialogs via the
    Screen-injected callback if needed). View passes it through: `MorePopupMenu(onLoginTapped: state.onLoginTapped)`.
-2. **Widget-internal callback** — affects only the sub-widget's own local UI state (expand/collapse,
+2. **Widget-internal callback** - affects only the sub-widget's own local UI state (expand/collapse,
    focus, hover, per-tile animation).
    → Belongs in a **widget-level hook** on the sub-widget itself. See [composable-hooks.md](./composable-hooks.md) Pattern 1.
 
 **Never build business callbacks as closures in the View.**
 
 ```dart
-// ❌ Closure in View — couples View to service and BuildContext
+// ❌ Closure in View - couples View to service and BuildContext
 class ItemScreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReplyBox(
@@ -217,7 +346,7 @@ class ItemScreenView extends StatelessWidget {
   }
 }
 
-// ✅ Callback is a field on State — View passes it through
+// ✅ Callback is a field on State - View passes it through
 class ItemScreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReplyBox(onSendTapped: state.onSendReply);
@@ -225,17 +354,17 @@ class ItemScreenView extends StatelessWidget {
 }
 ```
 
-### The same rule applies to the Screen file — no top-level `_onXTapped(context, ...)` helpers
+### The same rule applies to the Screen file - no top-level `_onXTapped(context, ...)` helpers
 
 The "closures in View" prohibition has a mirror in the Screen file: **do not write top-level
 private functions in the Screen file that accept `BuildContext` + state objects and orchestrate
-dialogs/sheets/navigation.** They are business callbacks wearing a disguise — relocation debt
+dialogs/sheets/navigation.** They are business callbacks wearing a disguise - relocation debt
 parked at file scope.
 
 Symptom shape:
 
 ```dart
-// ❌ Forbidden — Screen file with 9 top-level helpers
+// ❌ Forbidden - Screen file with 9 top-level helpers
 class ItemScreen extends HookWidget {
   Widget build(BuildContext context) {
     final state = useItemScreenState(/* ... */);
@@ -284,9 +413,9 @@ This compiles, passes the exit-gate greps, and is completely wrong. The `_onMore
 reads global state (`authState`, `favState`), opens a modal, and dispatches to more helpers.
 **That is the state hook's job.** Keeping it at file scope in the Screen file means:
 
-- The state hook doesn't expose `onMoreTapped` — the View asks the Screen to build it each `build()`.
+- The state hook doesn't expose `onMoreTapped` - the View asks the Screen to build it each `build()`.
 - Tests for `onMoreTapped` behaviour have to go through the Screen + a fake BuildContext, not the hook.
-- Any future widget that wants the same action re-imports the helper — spread through the subtree.
+- Any future widget that wants the same action re-imports the helper - spread through the subtree.
 
 **Fix:** the Screen injects small, typed **UI primitives** (`showLoginDialog`, `showFlagDialog`,
 `showMoreSheet`, `navigateToItem`, `showSnackBar`). The state hook composes the business
@@ -294,13 +423,13 @@ callbacks (`onMoreTapped`, `onFlagTapped`, ...) using those primitives **plus st
 owns** (`authState`, `favState` obtained via `useProvided` inside the hook).
 
 ```dart
-// ✅ Correct — Screen is ~80 LoC, no top-level helpers
+// ✅ Correct - Screen is ~80 LoC, no top-level helpers
 class ItemScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final state = useItemScreenState(
       item: item,
-      // Thin primitives — each one just opens a UI surface and returns a result.
+      // Thin primitives - each one just opens a UI surface and returns a result.
       // The hook composes onMoreTapped/onFlagTapped/etc. from these.
       showLoginDialog: () => showDialog<void>(
         context: context,
@@ -326,7 +455,7 @@ class ItemScreen extends HookWidget {
   }
 }
 
-// In useItemScreenState — the hook composes actions from primitives + its own state:
+// In useItemScreenState - the hook composes actions from primitives + its own state:
 ItemScreenState useItemScreenState({
   required Item item,
   required Future<void> Function() showLoginDialog,
@@ -370,7 +499,7 @@ ItemScreenState useItemScreenState({
 Over that, audit for top-level helpers. A Screen at 400+ LoC with 5+ private helpers is the
 unambiguous symptom of this anti-pattern.
 
-**Quick grep** (signatures may span multiple lines — match any top-level `_fn(` first, then inspect each hit):
+**Quick grep** (signatures may span multiple lines - match any top-level `_fn(` first, then inspect each hit):
 ```bash
 grep -nE '^(Future<[^>]+>|void|bool|int|\w+) _[a-z]\w*\(' <screen_file>
 ```
@@ -380,7 +509,7 @@ If that returns more than a handful of results and each captures `BuildContext` 
 
 ## Step-by-Step: Creating a new screen
 
-### 1. State class — define your data contract
+### 1. State class - define your data contract
 
 ```dart
 class ProductScreenState {
@@ -388,10 +517,10 @@ class ProductScreenState {
   final Product? product;           // null = loading
   final bool isSaving;
 
-  // Mutable fields (user-editable) — View reads AND writes
+  // Mutable fields (user-editable) - View reads AND writes
   final MutableFieldState nameField;
 
-  // Callbacks — View calls these, Screen provides implementations
+  // Callbacks - View calls these, Screen provides implementations
   final void Function() onSavePressed;
   final void Function() onDeletePressed;
 
@@ -410,16 +539,28 @@ class ProductScreenState {
 Rules for the State class:
 - **Immutable data** fields (final, no setters)
 - **`MutableValue<T>` / `MutableFieldState`** for fields the View needs to read AND update
-- **`void Function()` callbacks** for user actions — navigation/dialogs passed from Screen
+- **`void Function()` callbacks** for user actions - navigation/dialogs passed from Screen
 - No widget imports, no `BuildContext`, no Flutter dependencies
 - **No global-state re-export.** State must NOT hold a cross-screen global (e.g. `AuthState authState`, `SettingsState settingsState`) as a field. Re-exporting the whole global forces every field read on the View to rebuild the entire subtree when any unrelated field of that global changes, defeating `useProvided`'s granular reactivity. Instead:
   - Project selectively: expose the specific primitives the View needs (`final bool isLoggedIn;` instead of `final AuthState authState;`).
   - OR have the consuming widget call `useProvided<AuthState>()` in its own widget-level hook, so it rebuilds independently of the screen state.
-  Sub-hook states from the same screen's `state/` folder (composition pattern, see [composable-hooks.md][composable-hooks]) are NOT re-exports and MAY be held as fields — they're the point of the aggregator. The rule targets cross-screen globals only.
+  Sub-hook states from the same screen's `state/` folder (composition pattern, see [composable-hooks.md][composable-hooks]) are NOT re-exports and MAY be held as fields - they're the point of the aggregator. The rule targets cross-screen globals only.
 
 [composable-hooks]: composable-hooks.md
 
-### 2. State hook — implement logic
+**Two-way binding convention:** for dumb selections with no logic behind them (dropdowns,
+toggles, segmented controls), the State may expose a `MutableValue<T>` field directly - the
+View reads `.value` and writes `.value`:
+
+```dart
+final MutableValue<bool> notificationsEnabled;   // View: state.notificationsEnabled.value = it
+final MutableValue<SortOrder> sortOrder;
+```
+
+Reserve `void Function()` callbacks for actions that carry logic (validation, async work,
+navigation). `MutableFieldState` is the same convention specialised for text fields.
+
+### 2. State hook - implement logic
 
 ```dart
 ProductScreenState useProductScreenState({
@@ -431,34 +572,36 @@ ProductScreenState useProductScreenState({
   final service = useInjected<ProductService>();
 
   // Local state
-  final nameField = useFieldState();
-  final product = useAutoComputedState(() => service.load(productId));
+  final nameState = useFieldState();
+  final productState = useAutoComputedState(() => service.load(productId));
   final saveState = useSubmitState();
 
-  // Sync name field when product loads
+  // Sync name field when product loads.
+  // productState.value is ComputedStateValue<Product>, not Product - bind valueOrNull first.
   useEffect(() {
-    if (product.valueOrNull != null) nameField.value = product.value.name;
+    final p = productState.valueOrNull;
+    if (p != null) nameState.value = p.name;
     return null;
-  }, [product.valueOrNull?.name]);
+  }, [productState.valueOrNull?.name]);
 
   void save() => saveState.runSimple<void, AppError>(
-    submit: () async => service.update(productId, name: nameField.value),
+    submit: () async => service.update(productId, name: nameState.value),
     afterSubmit: (_) => navigateBack(),
     mapError: (e) => e is AppError ? e : null,
     afterKnownError: (e) => showErrorSnackbar('Failed to save: ${e.message}'),
   );
 
   return ProductScreenState(
-    product: product.valueOrNull,
+    product: productState.valueOrNull,
     isSaving: saveState.inProgress,
-    nameField: nameField,
+    nameField: nameState,
     onSavePressed: save,
     onDeletePressed: () {/* ... */},
   );
 }
 ```
 
-### 3. Screen — wire navigation and dialogs
+### 3. Screen - wire navigation and dialogs
 
 ```dart
 @RoutePage()
@@ -478,7 +621,7 @@ class ProductScreen extends HookWidget {
 }
 ```
 
-### 4. View — pure UI
+### 4. View - pure UI
 
 ```dart
 class ProductScreenView extends StatelessWidget {
@@ -520,28 +663,30 @@ class ProductScreenView extends StatelessWidget {
 
 View rules:
 - `extends StatelessWidget`
-- Receives `final XScreenState state` — nothing else
+- Receives `final XScreenState state` - nothing else
 - No hooks, no `useProvided`, no `useInjected`
 - No `BuildContext` for business logic (only for UI utilities like `MediaQuery`)
 - Private `_buildXxx` helper methods for long `build()` methods
-- Business callbacks are fields on `state` — never built inline as closures
+- Business callbacks are fields on `state` - never built inline as closures
 
 ## Common Pitfalls
 
-- **`useProvided` / `useInjected` in View** — View receives everything it needs via State; it never reaches for global dependencies
-- **Widget imports in State class** — if `state/feature_screen_state.dart` imports `package:flutter/material.dart` for anything other than `Color`, it's a red flag
-- **Navigation logic in State hook** — navigation callbacks are injected from Screen, not called directly
-- **`useProvided<NavigatorKey>` / `useInjected<AppRouter>`** — never. Navigation is a callback, not an injected dependency
-- **Multiple hooks in Screen** — Screen calls `useXScreenState` once. Anything else belongs in the state hook
-- **Business callbacks built as View closures** — closures in View couple UI to services; callbacks go on the State class
-- **Shared State class across screens** — each screen has its own State class; don't reuse across routes
-- **Mis-classified View in `widgets/`** — `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected` is almost always a View under a different name (classic: `widgets/main_view.dart`). Fix: rename to `view/x_screen_view.dart`, convert to `StatelessWidget`, hoist hooks up to the state hook. Don't wrap — consolidate.
+- **`useProvided` / `useInjected` in View** - View receives everything it needs via State; it never reaches for global dependencies
+- **Widget imports in State class** - if `state/feature_screen_state.dart` imports `package:flutter/material.dart` for anything other than `Color`, it's a red flag
+- **Navigation logic in State hook** - navigation callbacks are injected from Screen, not called directly
+- **`useProvided<NavigatorKey>` / `useInjected<AppRouter>`** - never. Navigation is a callback, not an injected dependency
+- **`BuildContext` as a hook parameter** - symptom of the Screen punting dialog/navigation wiring into the hook (`useXScreenState({required BuildContext context})` followed by `XDialog.show(context, ...)` or `Navigator.of(context).push(...)` inside the hook). Build typed callbacks (`showLoginDialog`, `navigateToX`) in the Screen instead. The "one parameter vs three callbacks" trade is the wrong frame: the callbacks are the contract the hook is supposed to expose
+- **Multiple hooks in Screen** - Screen calls `useXScreenState` once. Anything else belongs in the state hook
+- **Business callbacks built as View closures** - closures in View couple UI to services; callbacks go on the State class
+- **Shared State class across screens** - each screen has its own State class; don't reuse across routes
+- **Mis-classified View in `widgets/`** - `widgets/*.dart` extending `HookWidget` and calling `useProvided`/`useInjected` is almost always a View under a different name (classic: `widgets/main_view.dart`). Fix: rename to `view/x_screen_view.dart`, convert to `StatelessWidget`, hoist hooks up to the state hook. Don't wrap - consolidate.
 
 ## Related Skills
 
-- [hooks-reference.md](./hooks-reference.md) — useState, useMemoized, useEffect inside the State hook
-- [global-state.md](./global-state.md) — useProvided to access app-wide state
-- [async-patterns.md](./async-patterns.md) — useSubmitState, useAutoComputedState in the State hook
-- [di-services.md](./di-services.md) — useInjected to access services
-- [composable-hooks.md](./composable-hooks.md) — widget-level hooks for local sub-widget state
-- [flutter-conventions.md](./flutter-conventions.md) — TextEditingController/FocusNode canonical wrappers
+- [hooks-reference.md](./hooks-reference.md) - useState, useMemoized, useEffect inside the State hook
+- [navigation.md](./navigation.md) - route declaration, reactive navigation effects, screen-as-sheet/dialog
+- [global-state.md](./global-state.md) - useProvided to access app-wide state
+- [async-patterns.md](./async-patterns.md) - useSubmitState, useAutoComputedState in the State hook
+- [di-services.md](./di-services.md) - useInjected to access services
+- [composable-hooks.md](./composable-hooks.md) - widget-level hooks for local sub-widget state
+- [flutter-conventions.md](./flutter-conventions.md) - TextEditingController/FocusNode canonical wrappers

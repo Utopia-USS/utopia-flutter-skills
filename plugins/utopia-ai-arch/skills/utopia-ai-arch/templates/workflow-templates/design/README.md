@@ -10,14 +10,14 @@ the command references the skill, and the skill references the command.
 Open this bundle only when the team has a real design-tool integration in
 their workflow:
 
-- **<design-tool> MCP** is configured and used by designers, or
+- **`<design-tool>` MCP** is configured and used by designers, or
 - **claude.design** handoff bundles (`.claude-handoff/` directory,
   `PROMPT.md`) are part of the design-to-code handoff, or
 - **Figma** export → markdown / tokens bundle is part of the workflow.
 
-**Not auto-inspectable.** Phase 0.5 must surface this with a user prompt:
+**Not auto-inspectable.** Phase 0.4 must surface this with a user prompt:
 
-> *"Do you use a design tool with an agent integration — <design-tool>,
+> *"Do you use a design tool with an agent integration — `<design-tool>`,
 > claude.design handoff bundles, or a Figma export bundle?"*
 
 If the answer is no (designs arrive as PNGs / Slack screenshots / Figma
@@ -38,7 +38,7 @@ nothing to load.
 Two co-installed files:
 
 - `skill/<prefix>-design/SKILL.md` — **how to consume designs**. Acquisition
-  workflows for <design-tool> (`get_jsx`, `get_tree_summary`,
+  workflows for `<design-tool>` (`get_jsx`, `get_tree_summary`,
   `get_screenshot`) and claude.design (handoff bundle structure). Defers
   component selection to the master skill and state patterns to
   `utopia-hooks`.
@@ -50,21 +50,28 @@ The two are co-installed — neither makes sense alone.
 
 ## Substitution checklist
 
-- `<prefix>` — repo command/agent prefix (`<prefix>`, `<prefix>`, `<prefix>`, …).
+- `<prefix>` — repo command/agent prefix (e.g. `aap`).
   Appears in:
   - skill name (`<prefix>-design`)
   - command name (`/<prefix>-design`)
   - agent references (`<prefix>-architect`, `<prefix>-maintainer`,
     `<prefix>-reviewer`)
   - any cross-skill references in the body
-- Master skill name — wherever the skill body refers to the master skill
-  by name (e.g. `acme` → `<master-skill-name>`).
-- Design-system references — `the project component catalogue` is repo-specific (example); replace with
-  the team's design-system name (`AppKit`, `<repo>-ui`, etc.).
+- Master skill name — the skill and command bodies refer to the
+  "`<prefix>` master skill"; if your master skill slug differs from the
+  bare prefix (e.g. `aap-flutter`), adjust those mentions.
+- `<design-tool>` + the `paper` / `mcp__paper__*` names — the acquisition
+  flow ships with paper.design MCP tool names (`get_basic_info`,
+  `get_tree_summary`, `get_screenshot`, `get_jsx`) and the literal `paper`
+  argument; replace with your design MCP's server and tool names if the
+  team uses a different one.
+- Design-system references — the design-system name used in examples is
+  repo-specific - replace with the team's design-system name (`AppKit`,
+  `<prefix>-ui`, etc.).
 
 ## Production precedent
 
-`acme` is the only repo currently shipping this bundle. The command and
+repo-B is the only production repo shipping this bundle. The command and
 skill are tightly coupled: the command's Step 0 acquisition mirrors the
 skill's Design Sources section verbatim, and the skill's Translation
 Workflow is what the maintainer executes inside the command's loop.
@@ -88,5 +95,5 @@ Workflow is what the maintainer executes inside the command's loop.
 
 ## Strip-the-banner reminder
 
-Both files ship with `<!-- TEMPLATE -->` banners. Remove them once
-substitution is complete.
+Both files ship with `<!-- BLUEPRINT -->` banners below the frontmatter.
+Remove them once substitution is complete.

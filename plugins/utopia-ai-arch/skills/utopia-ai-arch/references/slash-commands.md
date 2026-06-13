@@ -10,9 +10,9 @@ tags: slash-commands, orchestration, implement, audit, retry-cap, fresh-context,
 
 Slash commands under `.claude/commands/` are **multi-step orchestrators**, not aliases to single agents. Every Utopia project ships exactly three base commands — `/<prefix>-implement`, `/<prefix>-audit`, `/<prefix>-audit-skills` — and adds project-specific commands only when a recurring workflow has genuine multi-step orchestration (plan-only, parallel fan-out, design pipeline, ticketing-coupled ship). A slash command wrapping a single agent invocation adds nothing — direct agent invocation auto-loads the agent via `description:` matching with subagent isolation for free.
 
-> "Slash commands are added **only** when a workflow is multi-step orchestration (e.g. code↔review loop). Slash commands are not aliases to single agents — description matching auto-loads agents when relevance is clear." — blueprint `README.md:81-84`
+> "Slash commands are added **only** when a workflow is multi-step orchestration (e.g. code↔review loop). Slash commands are not aliases to single agents — description matching auto-loads agents when relevance is clear." — blueprint README v1
 
-> "Plain agent-aliases (`/<repo>-plan` → architect) are not added. Description matching auto-loads the architect when the user asks for a plan; the slash adds a layer for no benefit." — blueprint `README.md:234-237`
+> "Plain agent-aliases (`/<repo>-plan` → architect) are not added. Description matching auto-loads the architect when the user asks for a plan; the slash adds a layer for no benefit." — blueprint README v1
 
 ## When this applies
 
@@ -37,13 +37,13 @@ model: inherit
 ---
 ```
 
-**Loop shape** — verbatim from the blueprint (`REPO-implement.md:14-32`):
+**Loop shape** — per the blueprint template (`REPO-implement.md`):
 
-1. **Plan (optional).** If the user passes `--plan-first` or the scope is a free-form description, delegate to `<prefix>-architect`. **Stop and wait** for user approval before step 2.
+1. **Plan (optional).** If the user passes `--plan-first` or the scope is a free-form description, delegate to `<prefix>-architect`. **Stop and wait** for user approval before step 2. (The STOP is a blueprint addition — the production implement commands proceed without one; plans are cheap to approve, redos aren't.)
 2. **Baseline.** Capture analyzer / test baseline so the reviewer's exit gate is "zero NEW issues in `files_touched` vs baseline", not "zero absolute". Skip with `--no-analyze-baseline`.
 3. **Implement.** Delegate to `<prefix>-maintainer` with the plan and the affected-skill list.
 4. **Review.** Delegate the resulting diff to `<prefix>-reviewer` — **fresh context** (see below).
-5. **Loop.** If `BLOCKER` / `SHOULD-FIX`, send classified list back to the maintainer; repeat 3-5 until clean. **Retry cap = 2.** NITs may be left for the user.
+5. **Loop.** If any `BLOCKER` (or a new analyzer issue vs baseline), send the BLOCKERs back to the maintainer; repeat 3-5 until clean. **Retry cap = 2.** WARNs and NITs are advisory — surface to the user, don't retry on them.
 6. **Hand off.** Do NOT commit. Summarise per-area changes, what was actually run, open NITs.
 
 **Non-negotiables** — present verbatim in every production implement command:
@@ -53,7 +53,7 @@ model: inherit
 > 3. **Reviewer runs on fresh context.** When invoking `<prefix>-reviewer`, pass only `files_touched` + `proposed_commit_message` + `baseline_analyze`. Withhold the maintainer's self-report, reasoning, and warnings — independence is the reviewer's only superpower.
 > 4. **Retry cap: 2.** Maintainer runs, reviewer fails → maintainer retries once with the fix list → reviewer runs again. If it still fails, stop and hand the two failing reports to the user. Do NOT loop further.
 > 5. **Scope stays constant across retries.** Retry is for fixing the maintainer's mistakes against the existing scope — not for expanding scope.
-> — `<prefix>-implement.md:17-30` (replicated verbatim in `<prefix>-implement.md:16-29`)
+> — `production-repo-B/.claude/commands/<prefix>-implement.md:16-29` (replicated verbatim in `production-repo-C/.claude/commands/<prefix>-implement.md:16-29`)
 
 ### `/<prefix>-audit` — pre-commit gate
 
@@ -62,24 +62,26 @@ model: inherit
 description: Pre-commit audit of staged changes for commit-readiness. Read-only.
 argument-hint: "[optional scope note, e.g. 'only <area> changes']"
 allowed-tools: Task
+model: inherit
 ---
 ```
 
 **One-shot.** No loop. Launches `<prefix>-precommit-auditor` against `git diff --staged` (or an explicit refspec). Surfaces output verbatim. Does NOT auto-fix.
 
-> "Use the Task tool to launch the `<repo>-precommit-auditor` subagent with the staged diff (`git diff --staged`). Surface its output verbatim. Do not auto-fix." — blueprint `REPO-audit.md:9-11`
+> "Use the Task tool to launch the `<repo>-precommit-auditor` subagent with the staged diff (`git diff --staged`). Surface its output verbatim. Do not auto-fix." — blueprint `REPO-audit.md`
 
 This is what gates a commit. The reviewer in `/<prefix>-implement` checks correctness and conventions; the auditor here checks commit-readiness — staged-diff hygiene, debug artifacts, codegen consistency, doc drift. Disjoint scopes; do not collapse them.
 
-> "**Do not modify the diff.** This command is read-only. The user fixes; we re-audit." — `<prefix>-audit.md:50-52`
+> "**Do not modify the diff.** This command is read-only. The user fixes; we re-audit." — `production-repo-A/.claude/commands/<prefix>-audit.md:50-52`
 
 ### `/<prefix>-audit-skills` — drift scan
 
 ```yaml
 ---
-description: Drift scan over `.claude/**/*.md` and `CLAUDE.md` — finds dead markdown links, orphan references, and stale frontmatter. Optionally proposes repairs.
-argument-hint: ["fix" to propose repairs; omit for report-only]
+description: Drift scan over `.claude/**/*.md` and `CLAUDE.md` — reports dead markdown links. Optionally proposes repairs.
+argument-hint: "[fix] - propose repairs interactively; omit for report-only"
 allowed-tools: Bash, Read, Edit
+model: inherit
 ---
 ```
 
@@ -88,11 +90,11 @@ allowed-tools: Bash, Read, Edit
 - **Report-only** (no `$ARGUMENTS`) — runs `<prefix>_skills_drift.sh --all`, prints stderr verbatim, exits.
 - **Repair** (`$ARGUMENTS = fix`) — for each finding, propose a concrete repair (file + line + replacement) and **ASK before applying**. Do not batch-apply.
 
-> "If `$ARGUMENTS` is `fix`: for each finding, propose a concrete repair (file + line + replacement) and ask before applying. Do not batch-apply." — blueprint `REPO-audit-skills.md:11-13`
+> "If `$ARGUMENTS` is `fix`: for each finding, propose a concrete repair (file + line + replacement) and ask before applying. Do not batch-apply." — blueprint `REPO-audit-skills.md`
 
 The repair workflow has discipline: read the line, search for the likely new location (glob by basename; `git log --diff-filter=D` to disambiguate rename vs delete), propose the edit, apply only after user confirms. See [enforcement-hooks.md](enforcement-hooks.md) for the script's contract.
 
-> "Never rewrite a reference silently — always show the diff first." — `<prefix>-audit-skills.md:33`
+> "Never rewrite a reference silently — always show the diff first." — `production-repo-A/.claude/commands/<prefix>-audit-skills.md:33`
 
 ## The implement-loop in detail
 
@@ -159,9 +161,9 @@ The maintainer's self-report has two audiences: **the main orchestrator** (for h
 
 This is the single most-cited rule across production implement commands. It exists because the reviewer's value is independence — if the reviewer reads the maintainer's reasoning, the review collapses to approval-by-narration.
 
-> "Reviewer runs on fresh context. When invoking `<prefix>-reviewer`, pass only `files_touched` + `proposed_commit_message` + `baseline_analyze`. Withhold the maintainer's self-report, reasoning, and warnings — **independence is the reviewer's only superpower**." — `<prefix>-implement.md:20-24`
+> "Reviewer runs on fresh context. When invoking `<prefix>-reviewer`, pass only `files_touched` + `proposed_commit_message` + `baseline_analyze`. Withhold the maintainer's self-report, reasoning, and warnings — **independence is the reviewer's only superpower**." — `production-repo-B/.claude/commands/<prefix>-implement.md:21-24`
 
-The reviewer prompt (verbatim from `<prefix>-implement.md:213-231`, replicated in `<prefix>-implement.md:208-228`):
+The reviewer prompt (verbatim from `production-repo-B/.claude/commands/<prefix>-implement.md:213-231`, replicated in `production-repo-C/.claude/commands/<prefix>-implement.md:208-228`):
 
 ```
 Review the following change set against the <prefix> + utopia-hooks skill
@@ -185,7 +187,7 @@ WARNs and NITs are advisory.
 
 Note what's absent: no scope description, no plan, no maintainer reasoning, no "the maintainer says this is fine because X". The reviewer reads the diff cold and makes its own call.
 
-**The maintainer cooperates with this discipline.** From the maintainer-side rule (`<prefix>-maintainer.md:222-227`):
+**The maintainer cooperates with this discipline.** From the maintainer-side rule (`production-repo-B/.claude/agents/<prefix>-maintainer.md:222-227`):
 
 > "If you find yourself writing 'the reviewer should be OK with this because X', that X belongs in the code or in a warning, not as a hint to the reviewer. When `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch, not from your reasoning."
 
@@ -193,11 +195,11 @@ Note what's absent: no scope description, no plan, no maintainer reasoning, no "
 
 Retry is for fixing the maintainer's mistakes against the **existing scope**. It is NOT for expanding scope or accommodating "oh while I'm here let me also fix X".
 
-> "Retry cap: 2. Maintainer runs, reviewer fails → maintainer retries once with the fix list → reviewer runs again. If it still fails, stop and hand the two failing reports to the user. Do NOT loop further." — `<prefix>-implement.md:25-27`
+> "Retry cap: 2. Maintainer runs, reviewer fails → maintainer retries once with the fix list → reviewer runs again. If it still fails, stop and hand the two failing reports to the user. Do NOT loop further." — `production-repo-B/.claude/commands/<prefix>-implement.md:25-27`
 
-> "Scope stays constant across retries. Retry is for fixing the maintainer's mistakes against the existing scope — not for expanding scope." — `<prefix>-implement.md:28-30`
+> "Scope stays constant across retries. Retry is for fixing the maintainer's mistakes against the existing scope — not for expanding scope." — `production-repo-B/.claude/commands/<prefix>-implement.md:28-30`
 
-The retry prompt enforces this (`<prefix>-implement.md:191-209`):
+The retry prompt enforces this (`production-repo-B/.claude/commands/<prefix>-implement.md:191-209`):
 
 ```
 The reviewer flagged issues with your previous implementation. Apply the
@@ -221,7 +223,7 @@ fresh self-report.
 
 **Why the cap is exactly 2** — if two careful attempts haven't resolved it, the scope is wrong or the rule is ambiguous, and a human needs to make the call. A third round is the orchestrator papering over a problem it can't fix.
 
-> "Reviewer double-fails → hand off to user with both reports. Do NOT attempt a third round — if two careful attempts didn't resolve it, the scope is wrong or the rule is ambiguous, and that needs a human." — `<prefix>-implement.md:253-255`
+> "Reviewer double-fails → hand off to user with both reports. Do NOT attempt a third round — if two careful attempts didn't resolve it, the scope is wrong or the rule is ambiguous, and that needs a human." — `production-repo-B/.claude/commands/<prefix>-implement.md:253-255`
 
 **Analyzer bounce is not a retry.** If the maintainer reports a non-clean unjustified analyzer, bounce back once before involving the reviewer. This does not consume a retry — it's the maintainer not meeting its own hand-off contract.
 
@@ -231,11 +233,11 @@ Default is **three**. Add a fourth only when a recurring workflow has genuine mu
 
 **Each command below has a ready-to-copy template** under [`../templates/workflow-templates/<bundle>/`](../templates/workflow-templates/). The bundle contains the command body + any paired skill + a per-bundle README explaining when to open and what to substitute. Don't write a project-specific command from scratch — copy the template, sed `<prefix>`, adjust the body for your team's specifics.
 
-| Command | Template bundle | Paired with skill? | User-prompt required (Phase 0.5) |
+| Command | Template bundle | Paired with skill? | User-prompt required (Phase 0.4) |
 |---|---|---|---|
 | `/<prefix>-plan` | `workflow-templates/plan/` | No | "Routine cross-package PRs?" |
 | `/<prefix>-team` | `workflow-templates/team/` | No | "PRs split into 2+ disjoint chunks routinely?" |
-| `/<prefix>-design` | `workflow-templates/design/` | **Yes** — `<prefix>-design/SKILL.md` co-installed | "Design-tool integration (<design-tool> / Figma / handoff)?" |
+| `/<prefix>-design` | `workflow-templates/design/` | **Yes** — `<prefix>-design/SKILL.md` co-installed | "Design-tool integration (`<design-tool>` / Figma / handoff)?" |
 | `/<prefix>-ship` | `workflow-templates/ship/` | No | "Ticketing tool with commit conventions?" |
 
 ### `/<prefix>-plan` — planning-only flow
@@ -244,9 +246,9 @@ Default is **three**. Add a fourth only when a recurring workflow has genuine mu
 
 **Precedent (added):** repo-A's `/<prefix>-plan` — cross-package planning involving E2E crypto + Supabase RLS + app UI + native FFI bindings is frequent enough that a dedicated "plan and stop" command pays for itself. Brings in `<prefix>-security-auditor` for threat-model passes routinely.
 
-> "Delegate to `<prefix>-architect` for planning. … Bring in `<prefix>-security-auditor` for a threat-model pass if the change touches auth, crypto, key management, native crypto FFI, key-exchange primitives, or row-level security." — `<prefix>-plan.md:10-18`
+> "Delegate to `<prefix>-architect` for planning. … Bring in `<prefix>-security-auditor` for a threat-model pass if the change touches auth, crypto, key management, native crypto FFI, key-exchange primitives, or row-level security." — `production-repo-A/.claude/commands/<prefix>-plan.md:10-18`
 
-**Rejected (not added):** repo-B and repo-C — single-area plan-then-implement is the dominant shape; `/<prefix>-implement --plan-first` covers it. The blueprint explicitly avoids `/plan` aliases (blueprint `README.md:234-237`).
+**Rejected (not added):** repo-B and repo-C — single-area plan-then-implement is the dominant shape; `/<prefix>-implement --plan-first` covers it. The blueprint explicitly avoids `/plan` aliases (blueprint README v1).
 
 **Reversal criterion.** Cross-cutting plan-only requests become routine; the orchestrator wants security / domain auditors to run pre-implementation; users keep typing `--plan-first` and forgetting the implement step.
 
@@ -256,11 +258,11 @@ Default is **three**. Add a fourth only when a recurring workflow has genuine mu
 
 **Precedent (added):** repo-A's `/<prefix>-team` — Phone (Flutter) + crypto (Dart + FFI) + backend (Supabase RLS / Edge) are genuinely disjoint surfaces and large enough cross-cutting features are common.
 
-> "**Parallelism.** If the architect's task split has ≥2 genuinely disjoint chunks AND wall-clock matters, batch multiple `Agent` calls to `<prefix>-maintainer` in a single assistant message so they run concurrently. One call per chunk, each with a scoped prompt naming its files and the relevant domain skills." — `<prefix>-team.md:32`
+> "**Parallelism.** If the architect's task split has ≥2 genuinely disjoint chunks AND wall-clock matters, batch multiple `Agent` calls to `<prefix>-maintainer` in a single assistant message so they run concurrently. One call per chunk, each with a scoped prompt naming its files and the relevant domain skills." — `production-repo-A/.claude/commands/<prefix>-team.md:32`
 
 **Critical:** parallel fan-out happens via **batched calls to `<prefix>-maintainer`**, not via per-area maintainers. Per-area maintainers were tried in repo-A and reverted — see [agent-roster.md](agent-roster.md) "Do NOT add per-area maintainers".
 
-> "Per-area maintainers (`<prefix>-area1-maintainer`, `<prefix>-area3-maintainer`, …) were tried and dropped — one cross-area `<prefix>-maintainer` covers the surface; if the architect splits into disjoint chunks, batch parallel `Agent` calls to that maintainer." — `<prefix>-team.md:23`
+> "Per-area maintainers (`<prefix>-area1-maintainer`, `<prefix>-area3-maintainer`, …) were tried and dropped — one cross-area `<prefix>-maintainer` covers the surface; if the architect splits into disjoint chunks, batch parallel `Agent` calls to that maintainer." — `production-repo-A/.claude/commands/<prefix>-team.md:23`
 
 **Rejected (not added):** repo-B and repo-C — typical work is ticket-scoped and single-area. Parallelism payoff triggers on a small fraction of tasks; the orchestration cost of a second command is paid on every turn. `/<prefix>-implement` covers them.
 
@@ -268,15 +270,15 @@ Default is **three**. Add a fourth only when a recurring workflow has genuine mu
 
 **Add when** the team has a design tool integration that **materially affects the planning input**:
 
-- <design-tool> MCP installed and used
+- `<design-tool>` MCP installed and used
 - claude.design handoff bundles routinely produced
 - Figma export pipeline feeding into Claude
 
 Without such an integration, this command is empty — `/<prefix>-implement` with a "build this UI" scope works as well.
 
-**Precedent (added):** repo-B's `/<prefix>-design` — <design-tool> is the team's design tool of record; handoff bundles come in via `.claude-handoff/`.
+**Precedent (added):** repo-B's `/<prefix>-design` — `<design-tool>` is the team's design tool of record; handoff bundles come in via `.claude-handoff/`.
 
-> "Acquire design from `$ARGUMENTS`: `paper` → use <design-tool> MCP tools; `handoff <path>` → read handoff bundle; (empty) → auto-detect: try `get_basic_info` (paper MCP available?), check for `.claude-handoff/` directory, ask user if neither found." — `<prefix>-design.md:29-35`
+> "Acquire design from `$ARGUMENTS`: `paper` → use `<design-tool>` MCP tools; `handoff <path>` → read handoff bundle; (empty) → auto-detect: try `get_basic_info` (paper MCP available?), check for `.claude-handoff/` directory, ask user if neither found." — `production-repo-B/.claude/commands/<prefix>-design.md:29-35`
 
 The acquisition step (Step 0) compiles a design brief that becomes the architect's input. The rest of the flow mirrors `/<prefix>-implement` — same non-negotiables, same retry cap, same fresh-context reviewer.
 
@@ -284,15 +286,15 @@ The acquisition step (Step 0) compiles a design brief that becomes the architect
 
 ### `/<prefix>-ship` — commit/sync/push pipeline
 
-**Add when** the team has an external ticketing integration (Linear / <ticketing-tool> / Jira) that demands strict commit-message format, branch naming, or per-commit status sync, AND the team values an interactive plan-before-execute breakdown.
+**Add when** the team has an external ticketing integration (Linear / `<ticketing-tool>` / Jira) that demands strict commit-message format, branch naming, or per-commit status sync, AND the team values an interactive plan-before-execute breakdown.
 
-**Precedent (added):** repo-B's `/<prefix>-ship` — <ticketing-tool> MCP integration with custom task IDs (`<TICKET-ID>`, `<TICKET-ID>`), commit format `<TICKET> | <description>`, umbrella/subtask hierarchy.
+**Precedent (added):** repo-B's `/<prefix>-ship` — `<ticketing-tool>` MCP integration with custom short task IDs (e.g. `ACME-12`), commit format `<TICKET> | <description>`, umbrella/subtask hierarchy.
 
-> "**Custom Task IDs** (e.g. `<TICKET-ID>`). Workspace uses them — use that format in commit messages and branches, never the long internal ID. **Commit format:** `<TICKET> | <human description>`. **One umbrella, N subtasks, ONE branch.**" — `<prefix>-ship.md:21-23`
+> "**Custom Task IDs** (e.g. `<TICKET-ID>`). Workspace uses them — use that format in commit messages and branches, never the long internal ID. **Commit format:** `<TICKET> | <human description>`. **One umbrella, N subtasks, ONE branch.**" — `production-repo-B/.claude/commands/<prefix>-ship.md:21-23`
 
 `/<prefix>-ship` has a mandatory STOP between Phase 4 (plan) and Phase 5 (execute) — the user must say "ok"/"go"/"ship" to proceed. It's the only base-or-extension command that **does** push to remote — because it's the user's deliberate commit-and-push gesture, not an orchestration side effect.
 
-> "**Never commit or push without explicit user approval** — there is a mandatory STOP between Phase 4 (plan) and Phase 5 (execute). User must say 'ok' / 'go' / 'ship' to proceed." — `<prefix>-ship.md:20`
+> "**Never commit or push without explicit user approval** — there is a mandatory STOP between Phase 4 (plan) and Phase 5 (execute). User must say 'ok' / 'go' / 'ship' to proceed." — `production-repo-B/.claude/commands/<prefix>-ship.md:20`
 
 **Rejected (not added):** repo-A and repo-C — no external ticketing tool that demands strict commit format; `git commit` directly works.
 
@@ -347,7 +349,7 @@ Raw arguments: `$ARGUMENTS`
 
 ❌ `/<prefix>-implement` that ends with `git commit -m "$commit_message_draft"`.
 
-> "Never commit. The loop ends with a hand-off to the user, who decides whether to run `/<prefix>-audit` and then commit. Never push. Period." — `<prefix>-implement.md:17-19`
+> "Never commit. The loop ends with a hand-off to the user, who decides whether to run `/<prefix>-audit` and then commit. Never push. Period." — `production-repo-B/.claude/commands/<prefix>-implement.md:18-20`
 
 The user decides when to commit; `/<prefix>-audit` is the gate. The only command that does commit/push is `/<prefix>-ship` — and it has a mandatory STOP gate before doing so.
 
@@ -357,21 +359,21 @@ The user decides when to commit; `/<prefix>-audit` is the gate. The only command
 
 ### Allowing retry to expand scope
 
-❌ Retry prompt that says "fix the BLOCKERS and feel free to clean up adjacent code". Scope-creep on retry produces a moving target the reviewer can't pin down. The retry prompt MUST include "Do NOT widen scope beyond the original request" and pass only the reviewer's BLOCKERS verbatim (`<prefix>-implement.md:28-30`).
+❌ Retry prompt that says "fix the BLOCKERS and feel free to clean up adjacent code". Scope-creep on retry produces a moving target the reviewer can't pin down. The retry prompt MUST include "Do NOT widen scope beyond the original request" and pass only the reviewer's BLOCKERS verbatim (`production-repo-B/.claude/commands/<prefix>-implement.md:28-30`).
 
 ### Project-specific command added without a recurring workflow
 
-❌ `/<prefix>-design` in a repo with no <design-tool> / Figma; `/<prefix>-ship` with no Linear / <ticketing-tool> / Jira; `/<prefix>-team` where cross-cutting work spanning ≥3 areas happens once a quarter.
+❌ `/<prefix>-design` in a repo with no `<design-tool>` / Figma; `/<prefix>-ship` with no Linear / `<ticketing-tool>` / Jira; `/<prefix>-team` where cross-cutting work spanning ≥3 areas happens once a quarter.
 
 Slash command sprawl pays maintenance for no recurring benefit. The justification lives in `claude-architecture.md` §"Slash commands". If you can't write it, the command shouldn't exist.
 
 ### Over-broad `allowed-tools`
 
-❌ `allowed-tools: Task, Read, Edit, Write, MultiEdit, Bash, Glob, Grep` on `/<prefix>-audit`. The audit command needs only `Task`. Listing `Edit` / `Write` / `MultiEdit` gives the orchestrator latitude to "fix things on the way" — which is the auto-fix anti-pattern the audit explicitly forbids (`<prefix>-audit.md:50-52`). Match `allowed-tools` to actual needs.
+❌ `allowed-tools: Task, Read, Edit, Write, MultiEdit, Bash, Glob, Grep` on `/<prefix>-audit`. The audit command needs only `Task`. Listing `Edit` / `Write` / `MultiEdit` gives the orchestrator latitude to "fix things on the way" — which is the auto-fix anti-pattern the audit explicitly forbids (`production-repo-A/.claude/commands/<prefix>-audit.md:50-52`). Match `allowed-tools` to actual needs.
 
 ### Multiple parallel writers
 
-❌ Spinning up `general-purpose` write-capable subagents alongside the maintainer for "throughput". The maintainer is the only writer in the roster on purpose; ad-hoc subagents lack preloaded skills and pay context warm-up on each invocation. For parallelism, batch multiple `Agent` calls to **`<prefix>-maintainer`** in a single assistant message — disjoint chunks, one call each (`<prefix>-implement.md:53-54`).
+❌ Spinning up `general-purpose` write-capable subagents alongside the maintainer for "throughput". The maintainer is the only writer in the roster on purpose; ad-hoc subagents lack preloaded skills and pay context warm-up on each invocation. For parallelism, batch multiple `Agent` calls to **`<prefix>-maintainer`** in a single assistant message — disjoint chunks, one call each (`production-repo-A/.claude/commands/<prefix>-team.md:32`).
 
 ## See also
 

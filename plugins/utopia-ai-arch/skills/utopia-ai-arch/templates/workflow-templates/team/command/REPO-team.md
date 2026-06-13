@@ -1,10 +1,20 @@
-<!-- TEMPLATE - command-only workflow. Open only if Phase 0.5 confirmed routine parallel-implementation need. Substitute <prefix>. If your repo has a domain auditor, adjust the gate step. Strip this banner. -->
 ---
 description: Coordinate cross-cutting work spanning multiple ownership areas. Architect plans; (optional domain auditor) gates sensitive surface; maintainer implements (or batched maintainers if disjoint chunks); reviewer audits; precommit-auditor gates commit. Invoke with /<prefix>-team <task>.
-argument-hint: [feature or task]
+argument-hint: "[feature or task]"
+allowed-tools: Task, Read, Bash, Glob, Grep
+model: inherit
 ---
 
+<!-- BLUEPRINT — adapt per-repo. Open only if Phase 0.4 confirmed routine parallel-implementation need. Substitute <prefix>. If your repo has a domain auditor, adjust the gate steps and the roster row; otherwise delete both. Strip this banner after substitution. -->
+
 Work on this cross-cutting task: $ARGUMENTS
+
+## Non-negotiables (read these first)
+
+- **Never commit.** The protocol ends at the pre-commit audit; the user
+  types the final commit.
+- **Never push.** Period.
+- **Plan → STOP → user approval** before any maintainer fires (step 1).
 
 ## Decision Rule
 
@@ -20,10 +30,10 @@ Work on this cross-cutting task: $ARGUMENTS
 | [`<prefix>-architect`](../agents/<prefix>-architect.md) | Plans, splits work, identifies which skills should fire where | no |
 | [`<prefix>-domain-auditor`](../agents/<prefix>-domain-auditor.md) *(if defined)* | Pre-implementation domain check + post-implementation audit on sensitive surface | no |
 | [`<prefix>-maintainer`](../agents/<prefix>-maintainer.md) | Implements each plan chunk; runs codegen + analyze + tests; reports per-chunk | **yes** |
-| [`<prefix>-reviewer`](../agents/<prefix>-reviewer.md) | Post-implementation review (BLOCKER / SHOULD-FIX / NIT classification) | no |
+| [`<prefix>-reviewer`](../agents/<prefix>-reviewer.md) | Post-implementation review (BLOCKER / WARN / NIT classification) | no |
 | [`<prefix>-precommit-auditor`](../agents/<prefix>-precommit-auditor.md) | Final commit-readiness gate via [/<prefix>-audit](<prefix>-audit.md) | no |
 
-If the repo defines per-area maintainers, the production precedent (a production repo)
+If the repo defines per-area maintainers, the production precedent (repo-A)
 dropped them in favour of a single cross-area `<prefix>-maintainer` —
 parallelism comes from batching multiple calls to that one maintainer,
 not from splitting the agent definition. See the repo's
@@ -60,8 +70,8 @@ not from splitting the agent definition. See the repo's
    correctness, regressions, test coverage, and contract drift.
    Reviewer runs on **fresh context** — pass only `files_touched`, the
    proposed commit message, and the baseline analyze. Output:
-   BLOCKER / SHOULD-FIX / NIT.
-   - `BLOCKER` or `SHOULD-FIX` → loop back to step 3, maintainer fixes
+   BLOCKER / WARN / NIT.
+   - `BLOCKER` or `WARN` → loop back to step 3, maintainer fixes
      exactly those findings.
    - `NIT` only → continue. Retry cap: two maintainer attempts per
      chunk before stopping and surfacing to the user.

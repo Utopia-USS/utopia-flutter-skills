@@ -1,4 +1,3 @@
-<!-- TEMPLATE - workflow-style skill. Open this skill only if Phase 0.5 confirmed web target exists. Substitute <repo-web-target> tokens. Strip this banner after substitution. -->
 ---
 name: browser-testing
 description: >
@@ -13,10 +12,13 @@ description: >
   after navigation).
 ---
 
+<!-- BLUEPRINT — adapt per-repo. Workflow-style skill. Open this skill only if Phase 0 inspection confirmed a web target exists. Substitute <repo-web-target> tokens. Strip this banner after substitution. -->
+
 # Browser testing
 
-Workflow-style skill. Format intentionally diverges from the foundation
-module / pattern / cheatsheet trichotomy — this content is organised around
+Workflow-style skill. Format intentionally diverges from the
+module / pattern / cheatsheet trichotomy (skill-design.md's taxonomy for
+project reference docs) — this content is organised around
 **Modes / Tools / Steps / Recovery**, because the value is in the runtime
 quirks and tool sequencing, not in a layered knowledge map.
 
@@ -56,6 +58,8 @@ From repo root (adjust the entry point per the team's `lib/main*.dart`
 convention):
 
 ```bash
+# `fvm` prefix: keep only if the repo's toolchain canon is FVM=yes
+# (bootstrap-procedure.md §0.7); use bare `flutter` otherwise.
 cd <repo-web-target> && fvm flutter run \
   -d chrome \
   -t lib/main.dart \
