@@ -8,11 +8,11 @@ tags: bootstrap, blueprint-apply, new-repo, validation, gather, skill-split, cla
 
 ## What this is
 
-The step-by-step procedure for **creating** a project's `.claude/` layer from scratch — gather → decide → draft architecture → copy shapes → wire → trim → symlink → validate. Distilled from the blueprint's 7-step "How to apply" procedure (blueprint `README.md:377-433`) augmented with the gather phase (what you collect before touching any file) and the validation checklist (the greps that catch silent bootstrap mistakes).
+The step-by-step procedure for **creating** a project's `.claude/` layer from scratch — gather → decide → draft architecture → copy shapes → wire → trim → symlink → validate. Distilled from the blueprint's 7-step "How to apply" procedure (blueprint README v1) augmented with the gather phase (what you collect before touching any file) and the validation checklist (the greps that catch silent bootstrap mistakes).
 
 This is **not `cp -r`**. The blueprint is a model — you read it, design the skill split for your repo, then copy *file shapes* and substitute placeholders. Mechanical copying doesn't substitute for the architectural decision of how to slice your repo.
 
-> "This is not a `cp -r`. The blueprint is a model; applying it is a short architectural exercise plus mechanical copying of file shapes." — blueprint `README.md:378-379`
+> "This is not a `cp -r`. The blueprint is a model; applying it is a short architectural exercise plus mechanical copying of file shapes." — blueprint README v1
 
 ## When this applies
 
@@ -73,25 +73,25 @@ Determines what skill applicability scopes look like and whether to open primiti
 |-------|----------|-------------------|
 | Flutter/Dart with FVM | most Utopia apps | Foundation hook (utopia-hooks) fires; project skill carries domain |
 | Flutter/Dart **without** FVM | (rare) | Toolchain canon paragraph reflects bare `dart`/`flutter` |
-| Kotlin/Ktor backend | repo-A's classroom-api precedent | Separate skill; no foundation hook |
+| Kotlin/Ktor backend | repo-B's backend precedent | Separate skill; no foundation hook |
 | TypeScript/Next.js | landing sites, marketing | Separate skill; no foundation hook |
 | TypeScript/Node Cloud Functions | Firebase, Vercel | Separate (often primitive) skill |
 | Deno / other runtimes | Supabase Edge, Cloudflare Workers | Separate skill |
 
 ### 0.4 External integrations — USER-PROMPT REQUIRED (not auto-inspectable)
 
-**These integrations cannot be reliably determined from repo state.** A team can be on Linear without a `.linear-config` in the repo; they can plan to use <design-tool> without the MCP installed yet; they can have routine cross-package PRs without anything recording that fact. **Ask the user explicitly** with the prompts below. The answers gate which `templates/workflow-templates/<bundle>/` to copy.
+**These integrations cannot be reliably determined from repo state.** A team can be on Linear without a `.linear-config` in the repo; they can plan to use `<design-tool>` without the MCP installed yet; they can have routine cross-package PRs without anything recording that fact. **Ask the user explicitly** with the prompts below. The answers gate which `templates/workflow-templates/<bundle>/` to copy.
 
 #### Required user prompts
 
 ```text
 1. Design tool integration?
-   (<design-tool> MCP / Figma export / claude.design handoff bundle / none)
+   (a design MCP / Figma export / claude.design handoff bundle / none)
    → Affects: opening `<prefix>-design` (skill + command pair)
    → Template: workflow-templates/design/
 
 2. Ticketing tool with commit-message conventions?
-   (Linear / <ticketing-tool> / Jira / none / unstructured)
+   (Linear / Jira / ClickUp-class / none / unstructured)
    → Affects: opening `/<prefix>-ship` command
    → Template: workflow-templates/ship/
 
@@ -127,10 +127,10 @@ A small table per affirmative user-prompt answer mapping to a template bundle to
 
 List MCPs **actually installed** for this repo or user-globally:
 
-- Dart MCP (`dart-mcp`, project-named like `<prefix>-dart`, `<prefix>-dart`)
+- Dart MCP (`dart-mcp`, or project-named like `<prefix>-dart`)
 - Chrome DevTools / browser-testing MCP
-- <design-tool> MCP
-- <ticketing-tool> / Linear MCP
+- A design MCP (paper.design-class)
+- A ticketing MCP (Linear / Jira / ClickUp-class)
 - Sentry MCP
 - Custom project MCPs
 
@@ -153,7 +153,7 @@ Determines:
 
 ### 0.7 Toolchain canon (FVM yes/no — binary)
 
-> "Pick one form and apply it everywhere — no `cmd / fvm cmd` slashes, no per-file if/else. Either the repo uses FVM or it doesn't; the answer is binary. Bare-toolchain ambiguity (bash resolving against whatever `$PATH` exposes) has bitten teams before — this section exists to short-circuit that." — blueprint `README.md:283-289`
+> "Pick one form and apply it everywhere — no `cmd / fvm cmd` slashes, no per-file if/else. Either the repo uses FVM or it doesn't; the answer is binary. Bare-toolchain ambiguity (bash resolving against whatever `$PATH` exposes) has bitten teams before — this section exists to short-circuit that." — blueprint README v1
 
 **Detection checklist (do all four — single-check inference is the wave-2 smoke regression):**
 
@@ -193,7 +193,7 @@ For each candidate skill, write:
 
 If you can't write the negative scope, the skill is trying to be a router — split or merge until each has a real boundary.
 
-> "If you can't write the negative scope, the skill is trying to be a router — split or merge until each skill has a real boundary." — blueprint `README.md:388-390`
+> "If you can't write the negative scope, the skill is trying to be a router — split or merge until each skill has a real boundary." — blueprint README v1
 
 ### Decide primitive sister skills
 
@@ -240,7 +240,7 @@ Plus two paragraphs threaded into the spine (not separate numbered sections — 
 - **Toolchain canon** — one paragraph: FVM yes/no decision, applied everywhere. Record as fact, not a chosen design.
 - **MCP assumption** — for Dart projects: which MCP server (if any) is assumed installed; fallback command; `analyze` authoritative source called out (MCP `analyze_files` may miss errors). For repos with no MCP, this is a one-sentence explicit non-assumption.
 
-> "The Rejected alternatives section pays for itself." — blueprint `README.md:299-301`
+> "The Rejected alternatives section pays for itself." — blueprint README v1
 
 The 4-field entry shape (`Alternative` / `Case for` / `Case against here` / `Reversal criterion`) with worked examples lives in [architecture-doc.md](architecture-doc.md) §"Rejected alternatives — 4-field shape". Pre-populate at least the perennials listed above; you can sharpen later.
 
@@ -276,13 +276,13 @@ Mechanical sed replacements (be selective — do **not** run inside `.git/`):
 
 | Find | Replace | Notes |
 |------|---------|-------|
-| `<repo>` | project prefix lowercase (`<prefix>`, `<prefix>`, `<prefix>`) | in body text and file paths |
-| `<REPO>` | project prefix uppercase | env var: `<REPO>_QUALITY_MODE` → `<PREFIX>_QUALITY_MODE` |
-| `<project name>` | human-readable name ("<Project A>", "<Project B>", "<Project C>") | in `CLAUDE.md` title |
-| `REPO-AREA` in skill path | first concrete area name (e.g. `<prefix>-flutter` (one per area)) | skill directory rename |
+| `<repo>` | project prefix lowercase (e.g. `aap`, `acme`) | in body text and file paths |
+| `<REPO>` | project prefix uppercase | env var: `<REPO>_QUALITY_MODE` becomes e.g. `AAP_QUALITY_MODE` |
+| `<project name>` | human-readable name (e.g. "Acme App Platform") | in `CLAUDE.md` title |
+| `REPO-AREA` in skill path | first concrete area name (e.g. `aap-flutter`) — one directory per skill | skill directory rename |
 | `<repo-folder-name>` in hook | actual repo directory basename | basename guard — load-bearing, see Phase 7 |
 
-> **Prefix ≠ repo-folder-name.** They are independent and frequently differ. `production-repo-A` (repo folder) uses `<prefix>` (e.g. a 2-letter slug for a longer project name). The **`<prefix>`** is the slug that appears in every artifact name (`<prefix>-architect`, `<prefix>_quality_check.sh`, `<prefix>-flutter`, `/<prefix>-implement`). The **`<repo-folder-name>`** is the on-disk basename ONLY used by the hook's `basename "$repo_root"` scope guard — it determines whether the hook fires in *this* workspace vs. an unrelated one with the same script path. If you substitute `<repo>` into the basename guard by mistake, the hook will silently never fire in the actual project. Verify post-substitution: open `<prefix>_quality_check.sh`, grep for the basename match, confirm it's the repo's directory name not the prefix.
+> **Prefix ≠ repo-folder-name.** They are independent and frequently differ — a repo whose folder is `acme-app-platform` may use the prefix `aap`. The **prefix** is the slug that appears in every artifact name (`aap-architect`, `aap_quality_check.sh`, `aap-flutter`, `/aap-implement`). The **`<repo-folder-name>`** is the on-disk basename ONLY used by the hook's `basename "$repo_root"` scope guard — it determines whether the hook fires in *this* workspace vs. an unrelated one with the same script path. If you substitute the prefix into the basename guard by mistake, the hook will silently never fire in the actual project. Verify post-substitution: open `<prefix>_quality_check.sh`, grep for the basename match, confirm it's the repo's directory name not the prefix.
 
 ### Strip blueprint banners
 
@@ -298,7 +298,7 @@ or
 # BLUEPRINT — adapt per-repo. Strip this banner after substitution.
 ```
 
-> "Each blueprint file carries a banner at the top reminding the reader that it's a blueprint, not production. Once copied and adapted, the banner is stripped." — blueprint `README.md:669-672`
+> "Each blueprint file carries a banner at the top reminding the reader that it's a blueprint, not production. Once copied and adapted, the banner is stripped." — blueprint README v1 (applies to the copied files; reference-only files like `refs/README.md` carry no banner)
 
 Strip them. They're a tell that the file is mid-bootstrap and confuse the agent if left in.
 
@@ -306,71 +306,25 @@ Strip them. They're a tell that the file is mid-bootstrap and confuse the agent 
 
 | Template file | Why not copied |
 |---------------|----------------|
-| `templates/README.md` | The blueprint model itself — read once, refer to it later; never duplicated |
+| `templates/README.md` | Orientation doc for the templates directory — read once, refer to it later; never duplicated |
 | `templates/conventions/module-style.md` | Foundation-level authoring guide; linked from each repo's `claude-architecture.md` §3 |
 | `templates/conventions/pattern-style.md` | Same |
 | `templates/conventions/cheatsheet-style.md` | Same |
 | `templates/claude-layer/refs/README.md` | Discipline doc for what goes in `.claude/refs/`; lives in the template |
 
-> "Stays in the blueprint, never copied: `README.md` — read once, refer to it later; `conventions/{module,pattern,cheatsheet}-style.md` — referenced from `.claude/docs/claude-architecture.md` §3, not duplicated; `.claude/refs/README.md` — discipline doc; your repo's `.claude/refs/` is just the directory with content files as they're added." — blueprint `README.md:423-430`
+> "Stays in the blueprint, never copied: `README.md` — read once, refer to it later; `conventions/{module,pattern,cheatsheet}-style.md` — referenced from `.claude/docs/claude-architecture.md` §3, not duplicated; `.claude/refs/README.md` — discipline doc; your repo's `.claude/refs/` is just the directory with content files as they're added." — blueprint README v1
 
 If you need a `.claude/refs/` directory because the skill split already identified cross-skill content, create the directory and add the content files — but reference the blueprint's `README.md` from your `claude-architecture.md` §3, don't copy it.
 
 ## Phase 4 — Wire `.claude/settings.json`
 
-Canonical shape (blueprint `.claude/settings.json`):
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "utopia-claude-skills": {
-      "source": {
-        "source": "github",
-        "repo": "Utopia-USS/utopia-flutter-skills"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "utopia-hooks@utopia-claude-skills": true
-  },
-  "permissions": {
-    "allow": [
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git show:*)",
-      "Bash(git fetch:*)",
-      "Bash(git branch:*)",
-      "Bash(git checkout:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git stash:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr diff:*)"
-    ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/scripts/<prefix>_quality_check.sh\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+Copy the canonical shape from [`../templates/claude-layer/settings.json`](../templates/claude-layer/settings.json) — `$schema`, marketplace + foundation-plugin declaration, the base `permissions.allow` list, and both `PostToolUse` hooks. [settings-json.md](settings-json.md) explains every field plus the per-repo extensions (toolchain permissions, MCP servers); the template is the single source of truth for the JSON itself.
 
 **Three critical points:**
 
 1. **`git push` is deliberately omitted** from `permissions.allow`. Every push prompts the user. Branch protection on `main` / `staging` covers the remote. No `PreToolUse` push-guard hook — two layers already cover it. See [enforcement-hooks.md](enforcement-hooks.md) and the rejected-alternative in [architecture-doc.md](architecture-doc.md).
-2. **`enabledPlugins` declares the foundation at project scope** — the repo travels with the requirement. Contributors get prompted to install on first open.
-3. **The `PostToolUse` hook references the project script.** Foundation hook fires alongside (project scope), guarded by their own scope checks.
+2. **`enabledPlugins` declares the foundation at project scope** — the repo travels with the requirement. Contributors get prompted to install on first open. (The marketplace key is a local label — production repos B and C still use the legacy `utopia-claude-skills` key; key and `@<key>` plugin suffix must match within the file.)
+3. **The `PostToolUse` hooks reference the project scripts.** Foundation hook fires alongside (project scope); each script is guarded by its own scope checks. Production variance: repo-A wires both scripts; repo-B and repo-C wire only `quality_check` and run the drift scan via `/<prefix>-audit-skills` instead — wiring both is the blueprint default, since the drift script's hook mode silently exits for anything that isn't markdown under `.claude/` or `CLAUDE.md`.
 
 For projects with MCP servers from Phase 0.5, add `enabledMcpjsonServers` and any tool-specific `permissions.allow` lines. **Do NOT add MCP permissions for servers not installed.** See [settings-json.md](settings-json.md) for the full shape.
 
@@ -378,7 +332,7 @@ For projects with MCP servers from Phase 0.5, add `enabledMcpjsonServers` and an
 
 Open the copied `CLAUDE.md` (blueprint shape) and fill in the per-repo content. Keep tight — this is the always-loaded inventory, not deep content.
 
-The canonical full skeleton (sections, agent table, slash-command table, hooks block) lives in [claude-md.md](claude-md.md) §"Full CLAUDE.md skeleton" — read it once and fill per Phase 0.1–0.8 results. Substitutions from Phase 3 still apply (`<repo>`, `<REPO>`, `<project name>`, `<repo-folder-name>`).
+Copy [`../templates/CLAUDE.md`](../templates/CLAUDE.md) as the starting shape; the section-by-section explanation lives in [claude-md.md](claude-md.md) §"Canonical shape skeleton" — read it once and fill per Phase 0.1–0.8 results. Substitutions from Phase 3 still apply (`<repo>`, `<REPO>`, `<project name>`, `<repo-folder-name>`).
 
 ## Phase 6 — Symlink `AGENTS.md → CLAUDE.md` and commit
 
@@ -434,7 +388,7 @@ Ask Claude in a fresh session: "review this code change in `<area-1>`". The corr
 
 In `.claude/docs/claude-architecture.md` §"Rollout status", check each step done. Example (repo-C):
 
-> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `<prefix>` has `<feature>-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/<prefix>_skills_drift.sh --all` passes." — `production-repo-C/.claude/docs/claude-architecture.md:156-163`
+> "1. Foundation wiring — done. 2. Skeleton — done. 3. Enforcement — done. 4. Agents — done. 5. Skills — `<prefix>` has `<feature>-module.md` … 6. CLAUDE.md trim — done. 7. Validation — `bash .claude/scripts/<prefix>_skills_drift.sh --all` passes." — `production-repo-C/.claude/docs/claude-architecture.md:156-162`
 
 ## Validation checklist
 
@@ -442,13 +396,13 @@ Run through every bullet. Each maps to a bootstrap mistake observed in practice 
 
 - [ ] `pubspec.yaml` declares `utopia_hooks` or `utopia_arch` — foundation hook fires for this project
 - [ ] `.claude/settings.json` `permissions.allow` **omits `git push`** — push prompts the user every time
-- [ ] `.claude/settings.json` `enabledPlugins` includes `utopia-hooks@utopia-claude-skills`
+- [ ] `.claude/settings.json` `enabledPlugins` includes `utopia-hooks@utopia-flutter-skills` (or the repo's chosen marketplace key — key and `@<key>` suffix must match)
 - [ ] `.claude/settings.json` does NOT declare MCP servers that aren't installed (no `mcp__<phantom>__*` permissions)
 - [ ] All four agent files have `model: inherit` in frontmatter (cost-portable across Opus / Sonnet)
 - [ ] All four agent files preload `[<prefix>-<master-skill>, utopia-hooks]` in `skills:` frontmatter
 - [ ] Maintainer's frontmatter **omits `tools:`** → defaults to write-enabled. All other agents have `tools: Read, Grep, Glob, Bash` (read-only)
 - [ ] `<prefix>_quality_check.sh` exits 2 on generated-file edits regardless of `<REPO>_QUALITY_MODE` value
-- [ ] `<prefix>_quality_check.sh` has the **basename guard** — `[[ "$(basename "$repo_root")" == "<repo-folder-name>" ]] || exit 0` — preventing it from firing in unrelated workspaces (see blueprint `REPO_quality_check.sh:79`)
+- [ ] `<prefix>_quality_check.sh` has the **basename guard** — `[[ "$(basename "$repo_root")" == "<repo-folder-name>" ]] || exit 0` — preventing it from firing in unrelated workspaces (see the blueprint `REPO_quality_check.sh` basename guard)
 - [ ] `<prefix>_quality_check.sh` path nudges mirror each skill's POSITIVE applicability from `claude-architecture.md` §2 exactly
 - [ ] `AGENTS.md` is `ls -la`-confirmed as a symlink (`lrwxr-xr-x ... -> CLAUDE.md`), not a regular file
 - [ ] `.claude/docs/` and `.claude/refs/` are **different directories with different purposes** — content for the agent vs meta about the layer

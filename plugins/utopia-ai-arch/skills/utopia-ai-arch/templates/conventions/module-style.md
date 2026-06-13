@@ -22,7 +22,7 @@ inventory), use `*-cheatsheet.md` instead.
 ### `# <Module name>`
 
 Short noun phrase. Match the user-visible feature name where
-possible (e.g. *Assessment*, *Homework*, *Lesson Mode*).
+possible (e.g. *Checkout*, *Onboarding*, *Reporting*).
 
 ### `## Business intent`
 
@@ -40,7 +40,7 @@ this is the part of the app that does X for Y"*.
 ### `## User flow`
 
 Step-by-step from the user's POV — not the system's. If there are
-multiple roles (e.g. teacher + pupil, admin + end-user), give a
+multiple roles (e.g. admin + end-user), give a
 sub-flow for each, with the synchronisation points called out.
 
 Include the moments where the **system has to react** — persist,
@@ -66,12 +66,10 @@ lives (Firestore collection, gRPC method, local store, generated
 proto). Use a tree if the nesting is meaningful:
 
 ```
-Assessment
-  └── Flow
-        └── Part
-              └── Category
-                    └── Item
-                          └── Skill
+Order                    # a customer's confirmed purchase
+  └── Shipment           # one fulfilment batch; an order can split into several
+        └── Parcel       # a physical box with its own tracking number
+              └── Item   # a quantity of one product inside one parcel
 ```
 
 For each non-trivial entity, one line describing what it represents

@@ -25,7 +25,7 @@ class HomeScreen extends HookWidget {
 }
 ```
 
-**Correct (shared global state — service layer):**
+**Correct (shared global state - service layer):**
 ```dart
 // auth_service.dart
 class AuthService {
@@ -49,7 +49,7 @@ AuthState useAuthState() {
   );
 }
 
-// app.dart — registered once at the root
+// app.dart - registered once at the root
 const _providers = {
   AuthState: useAuthState,
 };
@@ -60,7 +60,7 @@ final auth = useProvided<AuthState>();
 
 ## When to Use
 
-- State shared between multiple screens (auth, user profile, settings, school/class context)
+- State shared between multiple screens (auth, user profile, settings, current workspace)
 - Data loaded once at startup and used throughout the app (static data, feature flags)
 - State that persists across navigation (shopping cart, active session, connectivity)
 - Any state that would otherwise be passed down as constructor arguments across 2+ widget levels
@@ -70,7 +70,7 @@ final auth = useProvided<AuthState>();
 ### 1. Choose the right base class
 
 ```dart
-// Option A: extends HasInitialized — use when state has async loading
+// Option A: extends HasInitialized - use when state has async loading
 class CoursesState extends HasInitialized {
   final IMap<CourseId, Course>? courses;  // null while loading
   const CoursesState({required super.isInitialized, required this.courses});
@@ -78,7 +78,7 @@ class CoursesState extends HasInitialized {
   Course? course(CourseId id) => courses?[id];
 }
 
-// Option B: plain class — use when state is always available (no async init)
+// Option B: plain class - use when state is always available (no async init)
 class ThemeState {
   final ThemeMode mode;
   const ThemeState({required this.mode});
@@ -91,31 +91,32 @@ class ThemeState {
 CoursesState useCoursesState() {
   final courseService = useInjected<CourseAssetService>();
 
-  // Call one hook per course — useMap handles the dynamic count
+  // One sub-state per course - useMap takes a Set of keys and handles the dynamic count
   final courseMap = useMap(
-    CourseId.values,
+    CourseId.values.toSet(),
     (id) => useAutoComputedState(() => courseService.load(id)).valueOrNull,
   );
 
-  final allLoaded = courseMap.all((_, v) => v != null);
+  final allLoaded = courseMap.values.every((it) => it != null);
 
   return CoursesState(
     isInitialized: allLoaded,
-    courses: allLoaded ? courseMap.toIMap().cast() : null,
+    // .toIMap() comes from fast_immutable_collections (re-exported by utopia_collections)
+    courses: allLoaded ? courseMap.cast<CourseId, Course>().toIMap() : null,
   );
 }
 ```
 
 ### 3. Register in app root
 
+Add an entry to the `_providers` map at the app root:
+
 ```dart
-// classroom_app.dart (or equivalent app root)
+// app.dart (or equivalent app root)
 const _providers = {
+  Injector: AppInjector.use,      // injector setup - see di-services.md
   AuthState: useAuthState,
-  CoursesState: useCoursesState,
-  ThemeState: useThemeState,
-  // leave initialization-dependent states last
-  InitializationState: useInitializationState,
+  CoursesState: useCoursesState,  // may useProvided anything registered above it
 };
 
 class MyApp extends StatelessWidget {
@@ -129,12 +130,14 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-### ValueProvider — providing values without hooks
+The map is an **ordered** dependency list, not a bag of entries - a state hook may `useProvided` only entries registered **above** its own. The grouping/ordering conventions and the full bootstrap recipe (HasInitialized chains, combined initialization state, splash gating, SDK init races) live in [app-bootstrap.md](./app-bootstrap.md).
+
+### ValueProvider - providing values without hooks
 
 For values that don't need hooks (constants, configuration, already-computed values), use `ValueProvider` instead of registering in `_providers`:
 
 ```dart
-// Provide a value to the subtree — accessible via useProvided<RouterState>()
+// Provide a value to the subtree - accessible via useProvided<RouterState>()
 ValueProvider(
   routerState,
   child: MaterialApp.router(routerConfig: routerState.routerConfig),
@@ -193,7 +196,19 @@ if (!profile.isInitialized) return UserProfileScreenState.loading();
 if (state.isLoading) return const CrazyLoader();
 ```
 
-For stream-backed global state, `isInitialized` is derived from the snapshot's connection state — see [async-patterns.md § isInitialized pattern for global state](./async-patterns.md#isinitialized-pattern-for-global-state).
+For stream-backed global state, `isInitialized` is derived from the snapshot's connection state - see [async-patterns.md § isInitialized pattern for global state](./async-patterns.md#isinitialized-pattern-for-global-state).
+
+To combine several states, `HasInitialized` ships static helpers:
+
+```dart
+HasInitialized.all(states)   // bool - every state initialized
+HasInitialized.any(states)   // bool - at least one initialized
+HasInitialized.keys(states)  // List<bool> - useful as hook keys
+```
+
+Initialization chains (`shouldCompute: upstream.isInitialized`), the dedicated combined
+`InitializationState` (`useCombinedInitializationState`) and splash gating are covered in
+[app-bootstrap.md](./app-bootstrap.md) - this file only documents the per-state contract.
 
 ---
 
@@ -203,14 +218,14 @@ Wraps a `useState` value for passing between layers. View reads and writes it di
 without needing a separate callback.
 
 ```dart
-// In State hook — expose mutable field
-final selectedFilter = useState(FilterType.all);
+// In State hook - expose mutable field
+final selectedFilterState = useState(FilterType.all);
 return DashboardState(
-  filter: selectedFilter,  // MutableValue<FilterType>
+  filter: selectedFilterState,  // MutableValue<FilterType>
   items: filteredItems,
 );
 
-// In View — read and write the same object
+// In View - read and write the same object
 SegmentedControl(
   selected: state.filter.value,
   onChanged: (v) => state.filter.value = v,  // triggers rebuild
@@ -226,27 +241,150 @@ SegmentedControl(
 | Field that requires validation | `useFieldState` |
 
 ```dart
-// MutableValue — View drives the value, no business logic involved
+// MutableValue - View drives the value, no business logic involved
 final tabState = useState(TabIndex.first);
 return ScreenState(tab: tabState);  // View: state.tab.value = TabIndex.second
 
-// Callback — async work involved, State hook owns the logic
+// Callback - async work involved, State hook owns the logic
 return ScreenState(onSavePressed: save);  // View: state.onSavePressed()
 ```
 
 ---
 
+## Production Idioms
+
+Four small patterns that keep recurring around global state in production apps.
+
+### Derived plain-value providers
+
+When screens only care about one plain value (an enum, a config flag) derived from a bigger
+state, register a one-line hook under the **value's own type**. Consumers never learn about
+the bigger state.
+
+```dart
+// settings_state.dart
+class SettingsState extends HasInitialized {
+  final MutableValue<ThemeMode> themeMode;
+  const SettingsState({required super.isInitialized, required this.themeMode});
+}
+
+// One-line derived hook, registered under ThemeMode itself
+ThemeMode useThemeModeState() =>
+    useProvided<SettingsState>().takeIf((it) => it.isInitialized)?.themeMode.value ?? ThemeMode.system;
+
+// app root
+const _providers = {
+  SettingsState: useSettingsState,
+  ThemeMode: useThemeModeState,  // consumers call useProvided<ThemeMode>()
+};
+```
+
+### Guard hooks beside the global
+
+When a screen is only valid while some global condition holds (a selection exists, a feature
+is enabled), export a `useEnsureX` hook **next to the state it guards**. Recovery is a callback,
+so navigation stays in the Screen layer.
+
+```dart
+// current_course_state.dart - exported next to CurrentCourseState
+void useEnsureCourseSelected({required void Function() onInvalid}) {
+  final state = useProvided<CurrentCourseState>();
+  useEffect(() {
+    if (state.isInitialized && state.course == null) onInvalid();
+  }, [state.isInitialized, state.course]);
+}
+
+// In a screen state hook - the Screen built onCourseMissing from context.navigator.pop
+useEnsureCourseSelected(onInvalid: onCourseMissing);
+```
+
+### Lazy activation
+
+An expensive global (chat connection, third-party SDK session) should not start on app boot.
+Gate it behind a `useState` flag and expose a `void Function() initializeX()`; the first
+interested screen activates it from a run-once effect.
+
+```dart
+class ChatState extends HasInitialized {
+  final IList<ChatRoom>? rooms;
+  final void Function() initializeChat;
+  const ChatState({required super.isInitialized, required this.rooms, required this.initializeChat});
+}
+
+ChatState useChatState() {
+  final chatService = useInjected<ChatService>();
+  final activatedState = useState(false);
+
+  // Nothing connects until some screen calls initializeChat()
+  final roomsState = useAutoComputedState(
+    () => chatService.connectAndLoadRooms(),
+    shouldCompute: activatedState.value,
+    keys: [activatedState.value],
+  );
+
+  return ChatState(
+    isInitialized: roomsState.valueOrNull != null,
+    rooms: roomsState.valueOrNull,
+    initializeChat: () => activatedState.value = true,
+  );
+}
+
+// First interested screen, in its state hook:
+useEffect(() {
+  chatState.initializeChat();
+}, []);
+```
+
+### Event streams out of global state
+
+When a global state needs to broadcast one-shot events (sync finished, item deleted elsewhere),
+expose a `Stream` field. `useStreamController` creates a broadcast controller and closes it
+automatically when the hook is disposed.
+
+```dart
+class SyncState {
+  final Stream<SyncEvent> events;
+  final Future<void> Function() syncNow;
+  const SyncState({required this.events, required this.syncNow});
+}
+
+SyncState useSyncState() {
+  final syncService = useInjected<SyncService>();
+  final events = useStreamController<SyncEvent>();  // broadcast, auto-closed
+
+  Future<void> syncNow() async {
+    await syncService.sync();
+    events.add(SyncEvent.completed);
+  }
+
+  return SyncState(events: events.stream, syncNow: syncNow);
+}
+
+// Consumer - any screen state hook
+useStreamSubscription(syncState.events, (event) async {
+  if (event == SyncEvent.completed) await itemsState.refresh();
+});
+```
+
+For reporting and observability inside global state hooks (breadcrumbs, crash context,
+where uncaught errors land), see [error-handling.md](./error-handling.md) - those patterns
+are not duplicated here.
+
+---
+
 ## Common Pitfalls
 
-- **State registered but not initialized** — check the order in `_providers`; states registered earlier are available to those registered later
-- **useProvided in a regular StatelessWidget** — only works in `HookWidget` (and hooks called from it)
-- **Mutable state in State class** — `var` fields or setters on the State class create hidden mutation; use `MutableValue<T>` explicitly
-- **Global state for screen-local data** — if only one screen uses it, it belongs in the screen state hook, not in `_providers`
-- **Side effects in State class** — the class is a pure data holder; all logic lives in the hook
+- **State registered but not initialized** - check the order in `_providers`; states registered earlier are available to those registered later
+- **useProvided in a regular StatelessWidget** - only works in `HookWidget` (and hooks called from it)
+- **Mutable state in State class** - `var` fields or setters on the State class create hidden mutation; use `MutableValue<T>` explicitly
+- **Global state for screen-local data** - if only one screen uses it, it belongs in the screen state hook, not in `_providers`
+- **Side effects in State class** - the class is a pure data holder; all logic lives in the hook
 
 ## Related Skills
 
-- [hooks-reference.md](./hooks-reference.md) — useMemoizedStream, useAutoComputedState used inside global state hooks
-- [di-services.md](./di-services.md) — useInjected inside global state hooks to access services
-- [screen-state-view.md](./screen-state-view.md) — useProvided consuming global state in screen state hooks
-- [async-patterns.md](./async-patterns.md) — loading states and HasInitialized patterns
+- [hooks-reference.md](./hooks-reference.md) - useMemoizedStream, useAutoComputedState used inside global state hooks
+- [di-services.md](./di-services.md) - useInjected inside global state hooks to access services
+- [screen-state-view.md](./screen-state-view.md) - useProvided consuming global state in screen state hooks
+- [async-patterns.md](./async-patterns.md) - loading states and HasInitialized patterns
+- [app-bootstrap.md](./app-bootstrap.md) - ordered _providers recipe, initialization chains, combined InitializationState, splash gating
+- [error-handling.md](./error-handling.md) - reporting and observability woven into global state hooks

@@ -11,7 +11,7 @@ tags: evolution, drift, graduation, splits, decision-log, maintenance, lifecycle
 Two halves, deliberately fused:
 
 1. **Operations** — the mechanical procedures for evolving an existing `.claude/` layer once bootstrap is done (graduate a memory entry, split a skill, collapse one back, delete a stale skill, add/remove a path nudge, add a domain auditor mid-project, record a rejected alternative).
-2. **Drift catalogue** — the empirical failure-mode list: 22 things that have actually happened in production-repo-A, production-repo-B, or production-repo-C. Each entry: symptom, file:line evidence, fix.
+2. **Drift catalogue** — the empirical failure-mode list: 21 things that have actually happened in production-repo-A, production-repo-B, or production-repo-C (shortened to repo-A / repo-B / repo-C throughout these references). Each entry: symptom, file:line evidence, fix.
 
 They live in one file because every operation has a corresponding drift symptom — every "how to" pairs with a "what goes wrong if you don't". Reading them apart re-creates the same drift twice.
 
@@ -23,7 +23,7 @@ Triggers that should make the agent **re-read `.claude/docs/claude-architecture.
 
 - A **new techstack** joining the repo (Kotlin backend in a Dart-only repo; Cloud Functions alongside Flutter; an active Next.js landing).
 - A **new MCP server** considered or installed (changes the permission allowlist, the agent-prompt tool tables, and the `assumed MCP` rejected-alternative entry).
-- A **new external integration** (Linear, <ticketing-tool>, <design-tool>, Figma, RevenueCat, GitHub Issues) an agent or slash command will need to talk to.
+- A **new external integration** (Linear, `<ticketing-tool>`, `<design-tool>`, Figma, RevenueCat, GitHub Issues) an agent or slash command will need to talk to.
 - A **recent incident** — the strongest trigger for adding a domain auditor.
 - A **proposal to add or remove an agent / a slash command** — even before drafting, check §"Agent roster" / §"Rejected alternatives".
 - **Repeated agent drift** — the agent keeps losing convention X across unrelated sessions; X belongs in a hook, a skill row, or `CLAUDE.md`, not just memory.
@@ -150,7 +150,7 @@ When the master is firing on too broad a surface, or an audit/convention checkli
 4. Update `claude-architecture.md` — delete the §"Skill split" row, **add a §"Rejected alternatives" entry** for the deletion (alternative kept as standalone / case for / case against / reversal criterion).
 5. Remove path nudges pointing at the deleted skill.
 6. Remove from agent `skills:` frontmatter.
-7. Run `<prefix>_skills_drift.sh` to confirm no dangling links remain.
+7. Run `<prefix>_skills_drift.sh --all` to confirm no dangling links remain (no arguments = hook mode, which reads stdin and scans nothing).
 
 ---
 
@@ -238,7 +238,7 @@ A `.claude/refs/<doc>.md` is only justified when ≥2 skills link to it from the
 1. Move the file.
 2. Update the consuming skill's `SKILL.md` (See also and References).
 3. If linked from `claude-architecture.md`, update those cross-links.
-4. Run `<prefix>_skills_drift.sh` to catch dangling links.
+4. Run `<prefix>_skills_drift.sh --all` to catch dangling links.
 
 ---
 
@@ -252,7 +252,7 @@ Even if you **didn't** do the thing, write it down — future-you will re-propos
 
 # Part II — Drift catalogue
 
-22 failure modes observed in production. Each entry: symptom, evidence (file:line), fix. These are not hypotheticals — each precedent is real and (in most cases) recorded in a §"Rejected alternatives" entry.
+21 failure modes (A through U). Each entry: symptom, evidence (file:line), fix. These are not hypotheticals — each precedent is real and (in most cases) recorded in a §"Rejected alternatives" entry. (T and U are codified from the blueprint's authoring conventions rather than a single production incident; the rest were observed in the production repos.)
 
 When auditing, this is the grep target for what to look for. When designing a new layer, this is the list of mistakes not to make.
 
@@ -312,7 +312,7 @@ When auditing, this is the grep target for what to look for. When designing a ne
 
 **Symptom.** `<prefix>-<domain>-auditor` agent added because "this surface looks risky", with no recorded incident or threat-surface change.
 
-**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:148-152`; `production-repo-C/.claude/docs/claude-architecture.md:75` — "no recent incident has cost enough to warrant a dedicated read-only pass."
+**Evidence.** `production-repo-B/.claude/docs/claude-architecture.md:148-152`; `production-repo-C/.claude/docs/claude-architecture.md:130` — "no recent incident has cost enough to warrant a dedicated read-only pass."
 
 **Fix.** Defer until incident or documented threat-surface change. Record candidate in §"Rejected alternatives" with reversal criterion. repo-A's `<prefix>-security-auditor` is the precedent for justified (native crypto FFI, key-exchange primitives, row-level security, push-payload confidentiality — real adversarial surface).
 
@@ -360,7 +360,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 **Symptom.** Comments like `// Added per user request for <TASK-ID>`, `// FIXME from the review feedback`, `// AI-generated layout for the new flow`.
 
-**Evidence.** `production-repo-A/.claude/agents/<prefix>-maintainer.md:170-189`; `production-repo-B/.claude/agents/<prefix>-maintainer.md:144-164`; `<prefix>-reviewer.md:45-48` — same rule, verbatim in three places: "if the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it."
+**Evidence.** `production-repo-A/.claude/agents/<prefix>-maintainer.md:170-189`; `production-repo-B/.claude/agents/<prefix>-maintainer.md:144-164` — the core sentence verbatim in both maintainers: "if the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it." The reviewer enforces it from the other side (`production-repo-B/.claude/agents/<prefix>-reviewer.md:45-48` classifies such comments as WARN).
 
 **Fix.** Inline `//` for genuine WHY (subtle invariants, workarounds); `///` for public API doc; never for narrating WHAT or referencing the prompt. Reviewer rule: WARN-grade; strip before merge. Precommit-auditor surfaces these as COMMIT-FIX-FIRST when staged.
 
@@ -478,7 +478,7 @@ If BROKEN: bootstrap the worktree (`melos bootstrap` from its root) or do the wo
 
 ## How to scan for these symptoms
 
-Bash one-liners for an audit pass. Run from repo root. These are heuristics, not verdicts — each hit is a prompt to read the linked precedent.
+Bash one-liners for an audit pass. Run from repo root. These are heuristics, not verdicts — each hit is a prompt to read the linked precedent. (Symptoms I and K have no grep - they surface at runtime: I in the process table, K in reviewer transcripts.)
 
 ```bash
 # A. Master skill references that look cross-cutting
@@ -538,7 +538,7 @@ grep -rnE "PreToolUse.*push|push.*PreToolUse|git_push_guard" .claude/
 grep -rohE "mcp__[a-z][a-z0-9_-]+" .claude/ \
   | sort -u \
   | while read server; do
-      grep -q "$server" .mcp.json ~/.claude/.mcp.json 2>/dev/null \
+      grep -q "$server" .mcp.json ~/.claude.json 2>/dev/null \
         || echo "MCP referenced but not declared: $server"
     done
 
@@ -614,7 +614,7 @@ If `.claude/refs/freezed.md` and `<prefix>/references/freezed.md` both exist (or
 3. Did the relevant `SKILL.md`(s) update their Problem→reference and References tables?
 4. Did agent `skills:` frontmatter get updated where preloading changed?
 5. Did path nudges in `<prefix>_quality_check.sh` get updated/added/removed to match the new shape?
-6. Did `<prefix>_skills_drift.sh` (or `/<prefix>-audit-skills`) come back clean?
+6. Did `<prefix>_skills_drift.sh --all` (or `/<prefix>-audit-skills`) come back clean?
 7. If a previously-rejected alternative was reversed, did the entry get flipped in place (not deleted)?
 8. If a previously-applied decision was reversed, did a fresh §"Rejected alternatives" entry capture the experiment?
 9. Did a throwaway edit confirm the firing surface (description match + path nudge) actually loads what you intended?

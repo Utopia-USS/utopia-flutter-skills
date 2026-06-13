@@ -4,15 +4,16 @@ These are the **starting shapes** to copy into a new repo when bootstrapping its
 
 ## What stays in templates (referenced, never copied)
 
-Three things are reference material — readers consult them but they do NOT get copied into the target repo:
+These files are reference material — readers consult them but they do NOT get copied into the target repo:
 
 | File | Purpose |
 |------|---------|
-| [`README.md`](README.md) | Full blueprint walkthrough — read once, then design your repo's layer with this as the canonical model. |
+| [`README.md`](README.md) | Orientation for the templates directory — what's here, what to copy vs reference. |
 | [`conventions/module-style.md`](conventions/module-style.md) | How to write a `<feature>-module.md` reference (user-flow + business intent). |
 | [`conventions/pattern-style.md`](conventions/pattern-style.md) | How to write a `<topic>-pattern.md` reference (rules with reasoning, why-first). |
 | [`conventions/cheatsheet-style.md`](conventions/cheatsheet-style.md) | How to write a `<topic>-cheatsheet.md` reference (inventory tables, no flows). |
 | [`.claude/refs/README.md`](claude-layer/refs/README.md) | Cross-skill `.claude/refs/` discipline — also reference-only. |
+| [`workflow-templates/README.md`](workflow-templates/README.md) | Decision matrix for the opt-in bundles — reference-only (per-bundle files are what get copied). |
 
 ## What gets copied (with placeholder substitution)
 
@@ -32,22 +33,27 @@ Every file below gets adapted into the target repo:
 | [`.claude/commands/REPO-audit.md`](claude-layer/commands/REPO-audit.md) | `<repo-root>/.claude/commands/<repo>-audit.md` | Same |
 | [`.claude/commands/REPO-audit-skills.md`](claude-layer/commands/REPO-audit-skills.md) | `<repo-root>/.claude/commands/<repo>-audit-skills.md` | Same |
 | [`.claude/scripts/REPO_quality_check.sh`](claude-layer/scripts/REPO_quality_check.sh) | `<repo-root>/.claude/scripts/<repo>_quality_check.sh` | `<repo>` everywhere; `<REPO>` env var; `<repo-folder-name>` basename guard; `<repo-specific build_runner / codegen command>`; path → skill case branches |
-| [`.claude/scripts/REPO_skills_drift.sh`](claude-layer/scripts/REPO_skills_drift.sh) | `<repo-root>/.claude/scripts/<repo>_skills_drift.sh` | `<repo>` only |
+| [`.claude/scripts/REPO_skills_drift.sh`](claude-layer/scripts/REPO_skills_drift.sh) | `<repo-root>/.claude/scripts/<repo>_skills_drift.sh` | `<repo>` in name and messages; `<REPO>` env var (`<REPO>_QUALITY_MODE`) |
 | [`.claude/skills/REPO-AREA/SKILL.md`](claude-layer/skills/REPO-AREA/SKILL.md) | `<repo-root>/.claude/skills/<repo>-<area>/SKILL.md` | `<repo>-<area>`, applicability scopes, references table |
 
 ## Placeholder vocabulary
 
 | Placeholder | Meaning | Example |
 |-------------|---------|---------|
-| `<repo>` (lowercase) | Project prefix (matches repo folder name) | `<prefix>`, `<prefix>`, `<prefix>` |
-| `<REPO>` (uppercase) | Env-var prefix — only in `<REPO>_QUALITY_MODE` | e.g. `AAP` (for repo `acme-app-platform`) |
-| `<repo>-<area>` | A skill's slug | `acme-flutter`, `acme-api`, `acme-functions` |
-| `<repo>-<domain>-auditor` | Optional domain-auditor agent | `acme-domain-auditor` |
-| `<project name>` | Human-readable repo name | "Example Project", "Example Monorepo" |
-| `<repo-folder-name>` | On-disk directory name (used by hook basename guard) | `example-monorepo`, `example-monorepo` |
-| `<area-N-paths>` | Path patterns inside hook `case "$repo_rel" in ... esac` | `<area1>/lib/*`, `packages/app/lib/*` |
+| `<repo>` (lowercase) | Project prefix — short slug; often ≠ repo folder name | `aap` (for repo `acme-app-platform`) |
+| `<REPO>` (uppercase) | Env-var prefix — only in `<REPO>_QUALITY_MODE` | `AAP` (for prefix `aap`) |
+| `<repo>-<area>` | A skill's slug | `aap-flutter`, `aap-api`, `aap-functions` |
+| `<repo>-<domain>-auditor` | Optional domain-auditor agent | `aap-security-auditor` |
+| `<project name>` | Human-readable repo name | "Acme App Platform" |
+| `<repo-folder-name>` | On-disk directory name (used by hook basename guard) | `acme-app-platform` |
+| `<area-N-paths>` | Path patterns inside hook `case "$repo_rel" in ... esac` | `<area-1>/lib/*`, `packages/app/lib/*` |
 | `<feature>`, `<topic>`, `<other-area>`, `<shared-doc>` | Reference filenames inside SKILL.md | |
 | `<repo-specific build_runner / codegen command>` | Hook's hint when blocking generated-file edits | `dart run build_runner build --delete-conflicting-outputs --workspace` |
+| `<prefix>` / `<PREFIX>` | Same value as `<repo>` / `<REPO>` — the spelling used in `references/` and `workflow-templates/` | `aap` / `AAP` |
+| `<repo-web-target>` | Workspace serving the web build (browser-testing / ship examples) | `app`, `storefront` |
+| `<design-tool>`, `<ticketing-tool>` | External-tool names in the design / ship bundles | `paper.design`, `linear` |
+| `<TICKET>` / `<TICKET-ID>` | Ticket-reference format in `/ship` | `ACME-12` |
+| `<master-skill>` | The repo's master area skill in references/ prose — same artefact as the template-side `<repo>-<area>` | `aap-flutter` |
 
 ## Apply order
 
@@ -68,15 +74,15 @@ Each blueprint file has banner comments (`<!-- BLUEPRINT — adapt per-repo. ...
 
 ## Workflow-templates — opt-in bundles
 
-The `.claude/` files above are the **always-copy base layer**. Beyond that, [`workflow-templates/`](workflow-templates/) ships **opt-in bundles** for project-specific commands and workflow-style skills. Open each bundle ONLY when its corresponding signal — auto-inspectable (web build, docker-compose, etc.) or user-driven (Phase 0.5 user-prompt) — is positive. See [`workflow-templates/README.md`](workflow-templates/README.md) for the full decision matrix.
+The `.claude/` files above are the **always-copy base layer**. Beyond that, [`workflow-templates/`](workflow-templates/) ships **opt-in bundles** for project-specific commands and workflow-style skills. Open each bundle ONLY when its corresponding signal — auto-inspectable (web build, docker-compose, etc.) or user-driven (Phase 0.4 user-prompt) — is positive. See [`workflow-templates/README.md`](workflow-templates/README.md) for the full decision matrix.
 
 Five bundles, each in its own subdirectory:
 
 | Bundle | Shape | Open when | Production precedent |
 |---|---|---|---|
 | [`workflow-templates/browser-testing/`](workflow-templates/browser-testing/) | skill-only | Repo serves any web build (auto-inspectable) | All 3 repos |
-| [`workflow-templates/design/`](workflow-templates/design/) | **skill + command pair** | Team uses <design-tool> / Figma / handoff bundle (user-prompt) | repo-B |
-| [`workflow-templates/ship/`](workflow-templates/ship/) | command-only | Team uses Linear / <ticketing-tool> / Jira (user-prompt) | repo-B |
+| [`workflow-templates/design/`](workflow-templates/design/) | **skill + command pair** | Team uses `<design-tool>` / Figma / handoff bundle (user-prompt) | repo-B |
+| [`workflow-templates/ship/`](workflow-templates/ship/) | command-only | Team uses Linear / `<ticketing-tool>` / Jira (user-prompt) | repo-B |
 | [`workflow-templates/plan/`](workflow-templates/plan/) | command-only | Routine cross-package PRs (user-prompt) | repo-A |
 | [`workflow-templates/team/`](workflow-templates/team/) | command-only | PRs split into ≥2 disjoint parallel chunks routinely (user-prompt) | repo-A |
 

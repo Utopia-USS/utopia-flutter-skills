@@ -1,26 +1,39 @@
 # 👾 utopia-flutter-skills
 
-**Production-grade Flutter skills for Claude Code** — by [UtopiaSoftware](https://utopiasoft.io).
+**Codex and Claude Code plugins for building Flutter apps with React-like hooks, Screen/State/View structure, and generated CMS/admin panels** — by [UtopiaSoftware](https://utopiasoft.io).
 
-Hooks-based state management, project scaffolding, and architecture conventions for Flutter teams that want AI to write code the way they would.
+`utopia-flutter-skills` helps AI coding agents write Flutter in a predictable,
+product-team-friendly style: hooks instead of widget ceremony, clean screen
+boundaries, reusable app architecture, and admin-panel patterns powered by
+`utopia_cms`.
 
 ```bash
-/plugin marketplace add Utopia-USS/utopia-flutter-skills
+# Claude Code
+/plugin marketplace add Utopia-USS/utopia-skills
 /plugin install utopia-hooks@utopia-flutter-skills
+/plugin install utopia-cms@utopia-flutter-skills
+
+# Codex
+codex plugin marketplace add Utopia-USS/utopia-skills --ref main
+codex plugin install utopia-hooks@utopia-flutter-skills
+codex plugin install utopia-cms@utopia-flutter-skills
 ```
 
-> Drop-in for Claude Code. Works alongside (or replaces) BLoC, Riverpod, and Provider patterns.
+> Drop-in for Claude Code and Codex. Works alongside existing Flutter state-management patterns.
 
 ---
 
 ## Why
 
-Most Flutter AI tooling is either Bloc-locked, paid, or unopinionated boilerplate. `utopia-flutter-skills` is:
+Most Flutter AI tooling is either framework-specific or unopinionated boilerplate.
+`utopia-flutter-skills` is:
 
-- **Hooks-first** — Screen/State/View pattern, composable hooks, no `StatefulWidget` ceremony.
-- **MIT, hackable** — fork it, edit a skill, push back. No license lock-in.
+- **React-friendly** — hooks-first Flutter patterns for people who like composable state and small view functions.
+- **Screen/State/View-first** — predictable file boundaries, no `StatefulWidget` ceremony.
+- **Admin-ready** — `utopia_cms` patterns for CMS, back-office, and internal-tool screens.
+- **BSD-2-Clause, hackable** — fork it, edit a skill, push back. No license lock-in.
 - **Battle-tested** — distilled from production Flutter apps shipped by UtopiaSoftware.
-- **Convention-enforcing** — PostToolUse hooks catch drift the moment Claude writes off-pattern code.
+- **Convention-enforcing** — `utopia_cli` analysis catches drift through Claude hooks, Codex/MCP tools, or manual CLI checks.
 
 This is the AI tooling we use ourselves. We open-sourced it so the rest of the Flutter community can use it too.
 
@@ -29,34 +42,58 @@ This is the AI tooling we use ourselves. We open-sourced it so the rest of the F
 | Plugin | What it does |
 |---|---|
 | [`utopia-hooks`](plugins/utopia-hooks/) | Holistic Flutter-with-hooks guide. Screen/State/View, hook catalog, global state, async patterns, paginated lists, DI, testing. |
-| [`utopia-ai-arch`](plugins/utopia-ai-arch/) | Scaffold and maintain the Claude Code `.claude/` layer (agents, skills, slash commands, hooks, refs, architecture log) for Flutter projects. |
-| [`utopia-hooks-migrate-bloc`](plugins/utopia-hooks-migrate-bloc/) | Orchestrated BLoC/Cubit → `utopia_hooks` migration. Two-phase (global states first, then screens), per-commit granularity, sub-agent review. |
+| [`utopia-cms`](plugins/utopia-cms/) | Flutter CMS / admin panels with `utopia_cms`. `CmsWidget` shell, `CmsTablePage`, delegates for Firebase/Supabase/Hasura/GraphQL, entry catalog, filters, custom actions, management sections, and review guidance for avoiding hand-rolled DataTable + service anti-patterns. |
+| [`utopia-ai-arch`](plugins/utopia-ai-arch/) | Scaffold and maintain an agent-aware project layer (skills, commands, hooks, refs, architecture log) for Flutter projects. |
 
 Canonical hook reference list lives in [`plugins/utopia-hooks/skills/utopia-hooks/SKILL.md`](plugins/utopia-hooks/skills/utopia-hooks/SKILL.md).
 
 ## How it compares
 
-| | utopia-flutter-skills | flutter_bloc | Riverpod | VGV Wingspan |
-|---|---|---|---|---|
-| State pattern | Hooks (Screen/State/View) | Bloc/Cubit | Providers + codegen | Bloc/Cubit |
-| Claude Code skills | ✅ 3 plugins | — | — | ✅ |
-| CLI scaffolder | [`utopia_cli`](https://github.com/Utopia-USS/utopia_cli) | — | — | `very_good_cli` |
-| BLoC migration tool | ✅ | — | — | — |
-| License | MIT | MIT | MIT | MIT (alpha) |
-| Lock-in | None | Bloc-only | Riverpod-only | VGV opinions |
+| | utopia-flutter-skills | Typical state-management packages | Generic AI coding setup |
+|---|---|---|---|
+| State pattern | Hooks (Screen/State/View) | Library-specific patterns | Unspecified |
+| Agent skills | Core plugins for Claude Code and Codex | - | Manual prompts |
+| CLI scaffolder | [`utopia_cli`](https://github.com/Utopia-USS/utopia_cli) | - | Usually separate |
+| License | BSD-2-Clause | Varies | Varies |
+| Lock-in | None | Package-specific | Tooling-specific |
 
 ## Installation
 
 ### Claude Code
 
+The `utopia-hooks` quality analysis is powered by `utopia_cli`, so make sure
+`utopia` is available on `PATH`:
+
+```bash
+dart pub global activate utopia_cli
+```
+
 ```bash
 # Register the marketplace
-/plugin marketplace add Utopia-USS/utopia-flutter-skills
+/plugin marketplace add Utopia-USS/utopia-skills
 
 # Install plugins individually
 /plugin install utopia-hooks@utopia-flutter-skills
 /plugin install utopia-ai-arch@utopia-flutter-skills
-/plugin install utopia-hooks-migrate-bloc@utopia-flutter-skills
+/plugin install utopia-cms@utopia-flutter-skills
+```
+
+### Codex
+
+The `utopia-hooks` and `utopia-cms` plugins are available through this repo's
+Codex marketplace. Keep `utopia` on `PATH` for quality analysis:
+
+```bash
+dart pub global activate utopia_cli
+```
+
+```bash
+# Register the marketplace from GitHub
+codex plugin marketplace add Utopia-USS/utopia-skills --ref main
+
+# Install the Codex plugins
+codex plugin install utopia-hooks@utopia-flutter-skills
+codex plugin install utopia-cms@utopia-flutter-skills
 ```
 
 ### One-command project setup with `utopia-cli`
@@ -65,10 +102,13 @@ Canonical hook reference list lives in [`plugins/utopia-hooks/skills/utopia-hook
 dart pub global activate utopia_cli
 utopia create flutter_app my_app --org io.example
 cd my_app
-claude  # .claude/ already wired to this marketplace
+# Open the project in Claude Code or register this repo marketplace in Codex.
+claude
+# or:
+codex plugin marketplace add Utopia-USS/utopia-skills --ref main
 ```
 
-You get a Flutter app with `utopia_hooks` + `utopia_arch` scaffolding **and** Claude Code that already knows your project's conventions.
+You get a Flutter app with `utopia_hooks` + `utopia_arch` scaffolding **and** an AI-agent layer that already knows your project's conventions.
 
 ## Companion packages
 
@@ -85,15 +125,15 @@ Compatible with [`fast_immutable_collections`](https://pub.dev/packages/fast_imm
 
 - [Screen/State/View pattern](plugins/utopia-hooks/skills/utopia-hooks/SKILL.md)
 - [Hook catalog](plugins/utopia-hooks/skills/utopia-hooks/references/)
-- [BLoC migration playbook](plugins/utopia-hooks-migrate-bloc/skills/migrate-bloc-to-utopia-hooks/SKILL.md)
+- [CMS / admin-panel guide](plugins/utopia-cms/skills/utopia-cms/SKILL.md)
 
 ## Contributing
 
-Issues and PRs welcome. Skills are designed to be forked — copy a skill into your own `.claude/`, tweak the rules, and ship it.
+Issues and PRs welcome. Skills are designed to be forked — copy a skill into your own Claude Code or Codex setup, tweak the rules, and ship it.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+BSD 2-Clause — see [LICENSE](LICENSE).
 
 ---
 

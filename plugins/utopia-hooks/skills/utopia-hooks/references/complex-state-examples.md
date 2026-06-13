@@ -6,25 +6,25 @@ tags: reference, examples, complex, pipeline, list, per-item, paginated, multi-s
 
 # Complex-State Examples
 
-Concrete hook shapes for genuinely **complex state** — multi-domain screens, multi-stream pipelines, or multi-step flows. Simple screens (≤10 `useState`, single-domain, no streams) don't need this level of patterning; see [hooks-reference.md](./hooks-reference.md) and [screen-state-view.md](./screen-state-view.md) for the baseline.
+Concrete hook shapes for genuinely **complex state** - multi-domain screens, multi-stream pipelines, or multi-step flows. Simple screens (≤10 `useState`, single-domain, no streams) don't need this level of patterning; see [hooks-reference.md](./hooks-reference.md) and [screen-state-view.md](./screen-state-view.md) for the baseline.
 
-Code sketches are **anonymised** — no product names, no domain-specific tokens. Use them as "what does good look like?" references after reading [composable-hooks.md](./composable-hooks.md) and [async-patterns.md](./async-patterns.md).
+Code sketches are **anonymised** - no product names, no domain-specific tokens. Use them as "what does good look like?" references after reading [composable-hooks.md](./composable-hooks.md) and [async-patterns.md](./async-patterns.md).
 
-If you're migrating from a BLoC/Cubit, the `utopia-hooks-migrate-bloc` skill's [complex-cubit-patterns.md](../../../../utopia-hooks-migrate-bloc/skills/migrate-bloc-to-utopia-hooks/references/complex-cubit-patterns.md) gives the pattern-by-pattern mapping; these examples are what the final result looks like.
+If you're migrating from a BLoC/Cubit, the `utopia-hooks-migrate-bloc` plugin's `migrate-bloc-to-utopia-hooks` skill ships `references/complex-cubit-patterns.md` with the pattern-by-pattern mapping; these examples are what the final result looks like. (Plugins install to separate directories, so there is no stable relative link - locate it by plugin name.)
 
 Five shapes, each paired with the problem it solves:
 
-1. **Paginated list with reactive search** — input → transform → output pipeline with memoised derivations
-2. **Dashboard combining global-state lift + UI-region state** — one screen, two sub-hooks with different shapes
-3. **List with parent-owned state + optimistic updates** — reactive parent-owns-list, per-item mutations patch locally
-4. **List with per-item widget-level hooks (Pattern 1 extraction)** — parent owns skeleton only, each item is a full widget hook
-5. **Multi-step async flow** — one `useSubmitState.runSimple` wrapping a sequential procedure with step-enum progress
+1. **Paginated list with reactive search** - input → transform → output pipeline with memoised derivations
+2. **Dashboard combining global-state lift + UI-region state** - one screen, two sub-hooks with different shapes
+3. **List with parent-owned state + optimistic updates** - reactive parent-owns-list, per-item mutations patch locally
+4. **List with per-item widget-level hooks (Pattern 1 extraction)** - parent owns skeleton only, each item is a full widget hook
+5. **Multi-step async flow** - one `useSubmitState.runSimple` wrapping a sequential procedure with step-enum progress
 
 Use the two list examples (3 + 4) together as the decision point for "where does per-item state go?"
 
 ---
 
-## 1. Paginated list with reactive search — the pipeline shape
+## 1. Paginated list with reactive search - the pipeline shape
 
 Classic input → transform → output. User types in a search field; debounced query drives a fetch; fetched data is processed into a display-ready list. Each stage is pure or declaratively async.
 
@@ -44,20 +44,20 @@ SearchScreenState useSearchScreenState({
   required void Function() moveBack,
   required void Function(ItemId) navigateToItem,
 }) {
-  final searchField = useFieldState();
+  final searchState = useFieldState();
   final debounced = useDebounced(
-    searchField.value,
+    searchState.value,
     duration: const Duration(milliseconds: 300),
   );
 
-  // Stage 1: fetch (download — keys re-trigger on debounced change)
+  // Stage 1: fetch (download - keys re-trigger on debounced change)
   final fetchState = useSearchFetchState(query: debounced);
 
   // Stage 2: process (pure derive from fetched data)
   final processState = useSearchProcessState(fetchState: fetchState);
 
   return SearchScreenState(
-    searchField: searchField,
+    searchField: searchState,
     contacts: processState.contacts,
     newUsers: processState.newUsers,
     onCancel: moveBack,
@@ -65,26 +65,26 @@ SearchScreenState useSearchScreenState({
   );
 }
 
-// Stage 1 — download sub-hook
+// Stage 1 - download sub-hook
 SearchFetchState useSearchFetchState({required String query}) {
   final repo = useInjected<ItemRepository>();
 
-  final contacts = useAutoComputedState(
+  final contactsState = useAutoComputedState(
     () => repo.fetchContacts(query: query),
     keys: [query],
   );
-  final users = useAutoComputedState(
+  final usersState = useAutoComputedState(
     () => repo.fetchUsers(query: query),
     keys: [query],
   );
 
   return SearchFetchState(
-    contacts: contacts.valueOrNull,
-    users: users.valueOrNull,
+    contacts: contactsState.valueOrNull,
+    users: usersState.valueOrNull,
   );
 }
 
-// Stage 2 — pure derive (memoised)
+// Stage 2 - pure derive (memoised)
 SearchProcessState useSearchProcessState({required SearchFetchState fetchState}) {
   final contactIds = useMemoized(
     () => fetchState.contacts?.map((c) => c.id).toISet(),
@@ -109,14 +109,14 @@ SearchProcessState useSearchProcessState({required SearchFetchState fetchState})
 **Characteristics:**
 - Linear dependency chain: `query → fetch → process → screen`
 - Each stage re-runs only when its inputs change (useAutoComputedState keys, useMemoized deps)
-- No mutation cycles, no shared writers — each sub-hook owns exactly its own output
+- No mutation cycles, no shared writers - each sub-hook owns exactly its own output
 - Zero `.listen()`, zero manual lifecycle
 
 **When to use this shape:** a user-driven input (search, filter, date range) drives a data fetch whose result is displayed (possibly after transformation). Effectively every "list with filters" screen.
 
 ---
 
-## 2. Dashboard — global-state lift + UI-region state combo
+## 2. Dashboard - global-state lift + UI-region state combo
 
 One screen with two legitimate sub-hook shapes: one re-exports provided globals (read-only with memoised derivations), another owns UI state for a specific region (tabs, filter pills, expanded cards). Both live as sub-hooks of the main screen state; they have different shapes because they have different responsibilities.
 
@@ -142,9 +142,9 @@ DashboardScreenState useDashboardScreenState({
   );
 }
 
-// Sub-hook A: data-lift — no local state, just exposes globals + derivations
+// Sub-hook A: data-lift - no local state, just exposes globals + derivations
 DashboardInsightsState useDashboardInsightsState() {
-  final currentClass = useProvided<CurrentClassState>();
+  final currentGroup = useProvided<CurrentGroupState>();
   final reportSummaries = useProvided<ReportSummariesState>();
 
   final totalCount = useMemoized(
@@ -158,47 +158,47 @@ DashboardInsightsState useDashboardInsightsState() {
   );
 
   return DashboardInsightsState(
-    classInfo: currentClass.value,
+    groupInfo: currentGroup.value,
     reports: reportSummaries.data,
     totalCount: totalCount,
     currentReportId: currentReportId,
   );
 }
 
-// Sub-hook B: area-with-state — owns the filter-panel UI state
+// Sub-hook B: area-with-state - owns the filter-panel UI state
 DashboardFilterState useDashboardFilterState({required DashboardInsightsState insights}) {
-  final selectedCategory = useState<CategoryId?>(null);
-  final comparisonMode = useState<ComparisonMode>(ComparisonMode.previous);
+  final selectedCategoryState = useState<CategoryId?>(null);
+  final comparisonModeState = useState<ComparisonMode>(ComparisonMode.previous);
 
   final filteredReports = useMemoized(
     () => insights.reports?.where((r) {
-      if (selectedCategory.value == null) return true;
-      return r.categoryId == selectedCategory.value;
+      if (selectedCategoryState.value == null) return true;
+      return r.categoryId == selectedCategoryState.value;
     }).toIList(),
-    [insights.reports, selectedCategory.value],
+    [insights.reports, selectedCategoryState.value],
   );
 
   return DashboardFilterState(
-    selectedCategory: selectedCategory,
-    comparisonMode: comparisonMode,
+    selectedCategory: selectedCategoryState,
+    comparisonMode: comparisonModeState,
     filteredReports: filteredReports,
   );
 }
 ```
 
 **Characteristics:**
-- `useDashboardInsightsState` owns no local state — just provided-globals + memoised derivations. "Data-lift" sub-hook.
+- `useDashboardInsightsState` owns no local state - just provided-globals + memoised derivations. "Data-lift" sub-hook.
 - `useDashboardFilterState` owns local UI state (category, comparison mode) only the filter panel region touches. "Area-with-state" sub-hook.
 - The two sub-hooks have different shapes because they do different things. Don't force them into one consistent template.
 - Dependency direction: `insights → filters` (filters read insights), never the reverse.
 
-**When to use this shape:** a screen mixes re-exporting app-wide state with region-specific UI state. The region's state wouldn't make sense at the app level, but also doesn't need to leak across the whole screen — it's just for that area.
+**When to use this shape:** a screen mixes re-exporting app-wide state with region-specific UI state. The region's state wouldn't make sense at the app level, but also doesn't need to leak across the whole screen - it's just for that area.
 
 ---
 
 ## 3. Paginated list with parent-owned optimistic overlay
 
-A cursor-paginated list where the parent drives pagination via `usePaginatedComputedState` and per-item mutations (like/unlike, delete, add) project onto the list via a **local override layer** — overlaid at render time, rolled back on failure. The paginated buffer itself stays honest (always mirrors the server); the overlay is the optimistic view. Items themselves are dumb renderers — they don't own state.
+A cursor-paginated list where the parent drives pagination via `usePaginatedComputedState` and per-item mutations (like/unlike, delete, add) project onto the list via a **local override layer** - overlaid at render time, rolled back on failure. The paginated buffer itself stays honest (always mirrors the server); the overlay is the optimistic view. Items themselves are dumb renderers - they don't own state.
 
 See [paginated.md](./paginated.md) for the full `usePaginatedComputedState` contract.
 
@@ -218,12 +218,12 @@ FeedScreenState useFeedScreenState({
   required ActivityId activityId,
 }) {
   final client = useInjected<ApiClient>();
-  final commentField = useMentionFieldState();
-  final addSubmit = useSubmitState();
-  final likeSubmit = useSubmitState();
+  final commentState = useMentionFieldState();
+  final addSubmitState = useSubmitState();
+  final likeSubmitState = useSubmitState();
 
-  // Paginated state at parent — owns the authoritative list
-  final reactions = usePaginatedComputedState<Reaction, String?>(
+  // Paginated state at parent - owns the authoritative list
+  final reactionsState = usePaginatedComputedState<Reaction, String?>(
     initialCursor: null,
     (token) async {
       final response = await client.fetchReactions(
@@ -236,49 +236,49 @@ FeedScreenState useFeedScreenState({
     deduplicateBy: (r) => r.id,
   );
 
-  // Override layers — overlaid at render, cleared on refresh
-  final edits = useState<IMap<ReactionId, Reaction>>(const IMap.empty());
-  final prepended = useState<IList<Reaction>>(const IList.empty());
+  // Override layers - overlaid at render, cleared on refresh
+  final editsState = useState<IMap<ReactionId, Reaction>>(const IMap.empty());
+  final prependedState = useState<IList<Reaction>>(const IList.empty());
 
   final visible = useMemoized(
     () => [
-      ...prepended.value,
-      ...(reactions.items ?? const <Reaction>[]).map((r) => edits.value[r.id] ?? r),
+      ...prependedState.value,
+      ...(reactionsState.items ?? const <Reaction>[]).map((r) => editsState.value[r.id] ?? r),
     ].toIList(),
-    [reactions.items, edits.value, prepended.value],
+    [reactionsState.items, editsState.value, prependedState.value],
   );
 
-  // Optimistic like — patch overlay first, roll back on failure
+  // Optimistic like - patch overlay first, roll back on failure
   void onToggleLike(Reaction reaction) {
     final isLiked = reaction.ownChildren?['like']?.isNotEmpty ?? false;
     final patched = reaction.copyWith(
       likeCount: reaction.likeCount + (isLiked ? -1 : 1),
       ownChildren: isLiked ? null : {'like': [_stubLike()]},
     );
-    likeSubmit.runSimple<void, Never>(
-      beforeSubmit: () => edits.modify((it) => it.add(reaction.id, patched)),
+    likeSubmitState.runSimple<void, Never>(
+      beforeSubmit: () => editsState.modify((it) => it.add(reaction.id, patched)),
       submit: () => client.toggleReaction(reaction),
-      afterSubmit: (_) => edits.modify((it) => it.remove(reaction.id)),
-      afterError: () => edits.modify((it) => it.remove(reaction.id)),
+      afterSubmit: (_) => editsState.modify((it) => it.remove(reaction.id)),
+      afterError: () => editsState.modify((it) => it.remove(reaction.id)),
     );
   }
 
-  // Optimistic add — prepend into overlay, settle on server confirmation
-  void onSubmitComment() => addSubmit.runSimple<void, Never>(
+  // Optimistic add - prepend into overlay, settle on server confirmation
+  void onSubmitComment() => addSubmitState.runSimple<void, Never>(
     submit: () async {
-      final text = commentField.controller.text;
+      final text = commentState.controller.text;
       if (text.isEmpty) return;
       final result = await client.addReaction(activityId, text);
-      prepended.modify((it) => it.add(result));
-      commentField.controller.clear();
+      prependedState.modify((it) => it.add(result));
+      commentState.controller.clear();
     },
   );
 
   return FeedScreenState(
-    reactions: reactions,
+    reactions: reactionsState,
     visibleReactions: visible,
-    commentField: commentField,
-    addCommentInProgress: addSubmit.inProgress,
+    commentField: commentState,
+    addCommentInProgress: addSubmitState.inProgress,
     onToggleLike: onToggleLike,
     onSubmitComment: onSubmitComment,
   );
@@ -286,8 +286,8 @@ FeedScreenState useFeedScreenState({
 ```
 
 **Characteristics:**
-- Parent owns pagination via `usePaginatedComputedState<T, C>` — cursor, loadMore, refresh, debounce, deduplication all handled
-- Per-item mutations patch a **separate override layer** (`edits`, `prepended`), never the paginated buffer directly — `items` is read-only on purpose
+- Parent owns pagination via `usePaginatedComputedState<T, C>` - cursor, loadMore, refresh, debounce, deduplication all handled
+- Per-item mutations patch a **separate override layer** (`editsState`, `prependedState`), never the paginated buffer directly - `items` is read-only on purpose
 - Overlay + buffer are combined in a memoised `visibleReactions` the View renders
 - On failure, overlay is rolled back (`afterError`); on success, kept or cleared depending on whether the next refresh will include the change
 - Items are dumb `StatelessWidget`s with no per-item hook
@@ -296,12 +296,12 @@ FeedScreenState useFeedScreenState({
 
 ---
 
-## 4. List with per-item widget-level hooks — Pattern 1 extraction
+## 4. List with per-item widget-level hooks - Pattern 1 extraction
 
 Complementary to shape 3. Here each list item has **non-trivial per-item state**: lazy async loading on expand, per-item edit drafts, per-item animation controller. Each item becomes a full widget-level Pattern 1 (`widget_name/` + `state/` + `view/` subfolder). Parent owns only the skeleton.
 
 ```dart
-// Parent — thin shell, owns the skeleton
+// Parent - thin shell, owns the skeleton
 class SectionScreenState {
   final IList<ItemRef>? itemRefs;
   final IMap<ItemId, ItemDetail> resolvedCache;
@@ -319,18 +319,18 @@ SectionScreenState useSectionScreenState({required SectionId sectionId}) {
     keys: [sectionId],
   );
 
-  // Shared resolved cache — each item feeds back when its async completes
-  final resolvedCache = useState<IMap<ItemId, ItemDetail>>(const IMap.empty());
+  // Shared resolved cache - each item feeds back when its async completes
+  final resolvedCacheState = useState<IMap<ItemId, ItemDetail>>(const IMap.empty());
 
   return SectionScreenState(
     itemRefs: itemRefs,
-    resolvedCache: resolvedCache.value,
+    resolvedCache: resolvedCacheState.value,
     onItemResolved: (id, data) =>
-        resolvedCache.value = resolvedCache.value.add(id, data),
+        resolvedCacheState.value = resolvedCacheState.value.add(id, data),
   );
 }
 
-// Parent view — just renders the shell + items
+// Parent view - just renders the shell + items
 class SectionScreenView extends StatelessWidget {
   final SectionScreenState state;
   const SectionScreenView({required this.state});
@@ -349,7 +349,7 @@ class SectionScreenView extends StatelessWidget {
   }
 }
 
-// widgets/item_card/item_card.dart — HookWidget shell
+// widgets/item_card/item_card.dart - HookWidget shell
 class ItemCard extends HookWidget {
   final ItemRef itemRef;
   final void Function(ItemId, ItemDetail) onResolved;
@@ -363,7 +363,7 @@ class ItemCard extends HookWidget {
   }
 }
 
-// widgets/item_card/state/item_card_state.dart — per-item hook
+// widgets/item_card/state/item_card_state.dart - per-item hook
 class ItemCardState {
   final ItemRef ref;
   final MutableValue<bool> expandedState;
@@ -404,8 +404,8 @@ ItemCardState useItemCardState({
 **Characteristics:**
 - Parent hook owns only the skeleton (ids, shared cache if needed, feedback sink)
 - Each list item is a full widget-level Pattern 1 (`widget/state/view`)
-- Per-item async, per-item expansion, per-item caching — all local to the tile
-- Tile feeds back to parent via one callback per axis (e.g. `onResolved`) — no callbacks-per-field
+- Per-item async, per-item expansion, per-item caching - all local to the tile
+- Tile feeds back to parent via one callback per axis (e.g. `onResolved`) - no callbacks-per-field
 - Parent's list concern stays pure: no `loadMore`, no `expandedIds Map`, no per-item state on the screen
 
 **When to use this shape vs. shape 3:**
@@ -415,9 +415,9 @@ ItemCardState useItemCardState({
 
 ---
 
-## 5. Multi-step async flow — one `useSubmitState` wrapping a procedure
+## 5. Multi-step async flow - one `useSubmitState` wrapping a procedure
 
-A complex async orchestration where steps must happen in order: scan QR → open session → wait for upload-ready event → download → decrypt → import → finalise. Each step has its own failure mode but collectively they're one user-triggered flow. Resist the urge to split into N hooks — one `useSubmitState` owns the lifecycle; a `stepState` enum drives UI progress.
+A complex async orchestration where steps must happen in order: scan QR → open session → wait for upload-ready event → download → decrypt → import → finalise. Each step has its own failure mode but collectively they're one user-triggered flow. Resist the urge to split into N hooks - one `useSubmitState` owns the lifecycle; a `stepState` enum drives UI progress.
 
 ```dart
 enum TransferStep {
@@ -444,6 +444,7 @@ TransferScreenState useTransferScreenState({
   final sessionSvc = useInjected<SessionService>();
   final packageSvc = useInjected<PackageService>();
   final dskeState = useProvided<DskeState>();
+  final appReporter = useInjected<AppReporter>();
 
   final submitState = useSubmitState();
   final stepState = useState(TransferStep.scanQr);
@@ -454,7 +455,7 @@ TransferScreenState useTransferScreenState({
     () => MobileScannerController(formats: [BarcodeFormat.qrCode]),
   );
 
-  // The whole orchestration — not broken into sub-hooks
+  // The whole orchestration - not broken into sub-hooks
   Future<void> processTransfer() async {
     final payload = payloadState.value!;
     stepState.value = TransferStep.confirmingKey;
@@ -494,7 +495,9 @@ TransferScreenState useTransferScreenState({
     try {
       payloadState.value = QrPayload.fromBytes(base64Decode(raw));
       return true;
-    } catch (_) {
+    } catch (e) {
+      // Expected (garbled QR): warn so it stays observable, never swallow it bare.
+      appReporter.warning("QR payload parse failed", e: e);
       return false;
     }
   }
@@ -519,12 +522,9 @@ TransferScreenState useTransferScreenState({
 ```
 
 **Characteristics:**
-- One big `useSubmitState` wraps the entire flow
-- `stepState` enum is just a progress indicator — it doesn't gate anything; the `processTransfer` function does
-- Steps are set manually at each transition (`stepState.value = ...`) — honest about the imperative nature
-- Cleanup via `afterError: abortFlow` (not `try/finally`)
-- `skipIfInProgress: true` naturally prevents double-tap re-entry
-- Services (`sessionSvc`, `packageSvc`, `dskeState`) are all resolved at hook start via `useInjected` / `useProvided`
+- One big `useSubmitState` wraps the entire flow; `skipIfInProgress: true` prevents double-tap re-entry
+- `stepState` enum is just a UI progress label set manually at each transition (`stepState.value = ...`) - it gates nothing; `processTransfer` does. Honest about the imperative nature
+- Cleanup via `afterError: abortFlow` (not `try/finally`); services resolved at hook start via `useInjected` / `useProvided`
 
 **When to use this shape:** a user-triggered flow with inherently sequential steps. Splitting into sub-hooks would fragment the sequence across unrelated lifecycles and lose the natural "try/afterError" recovery path. Keep the sequence in one function, use enum for UI-facing step label.
 
@@ -532,6 +532,6 @@ TransferScreenState useTransferScreenState({
 
 ## Related
 
-- [composable-hooks.md](./composable-hooks.md) — Pattern 1 / Pattern 2 / Pattern 3 structures + per-item archetypes (referenced by shapes 2 and 4)
-- [async-patterns.md](./async-patterns.md) — `useSubmitState` / `useAutoComputedState` / `useMemoizedStream` in depth
-- `utopia-hooks-migrate-bloc:references/complex-cubit-patterns.md` — when migrating from a BLoC/Cubit, the pattern descriptions that map cubit concerns to the shapes above
+- [composable-hooks.md](./composable-hooks.md) - Pattern 1 / Pattern 2 / Pattern 3 structures + per-item archetypes (referenced by shapes 2 and 4)
+- [async-patterns.md](./async-patterns.md) - `useSubmitState` / `useAutoComputedState` / `useMemoizedStream` in depth
+- `utopia-hooks-migrate-bloc:references/complex-cubit-patterns.md` - when migrating from a BLoC/Cubit, the pattern descriptions that map cubit concerns to the shapes above

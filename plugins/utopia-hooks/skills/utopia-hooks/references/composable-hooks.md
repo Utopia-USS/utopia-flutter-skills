@@ -1,16 +1,16 @@
 ---
 title: Composable & Widget-Level Hooks
 impact: HIGH
-tags: composition, reusable, widget-hooks, extract, paging, HookWidget, decomposition, large-hook
+tags: composition, reusable, widget-hooks, extract, paging, HookWidget, decomposition, large-hook, useMap, recipes, useOverridable, useMinimumLoading, optimistic
 ---
 
 # Skill: Composable & Widget-Level Hooks
 
 Hooks are extractable and composable. Three patterns emerge from this:
 
-1. **Widget-level hook** — a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Screen/State/View breakdown at widget scope.
-2. **Composed hook state** — a reusable widget's state is a hook called *from the parent screen's state hook* and passed down. The widget receives state; it doesn't create it.
-3. **Screen hook decomposition** — a large screen hook is split into focused sub-hooks that the main hook composes. Used when a single hook grows too large or mixes unrelated domains.
+1. **Widget-level hook** - a complex widget manages its own hook for local state (animations, lazy loading, expand/collapse). Uses the full Screen/State/View breakdown at widget scope.
+2. **Composed hook state** - a reusable widget's state is a hook called *from the parent screen's state hook* and passed down. The widget receives state; it doesn't create it.
+3. **Screen hook decomposition** - a large screen hook is split into focused sub-hooks that the main hook composes. Used when a single hook grows too large or mixes unrelated domains.
 
 ---
 
@@ -21,16 +21,16 @@ Use when a widget has enough local complexity to warrant its own hook: animation
 **Quick Pattern:**
 
 ```dart
-// ❌ Local complexity inlined in screen state — ties screen logic to tile behavior
+// ❌ Local complexity inlined in screen state - ties screen logic to tile behavior
 ScreenState useScreenState() {
-  final expandedIds = useState<ISet<ItemId>>(const ISet.empty());
-  final loadedDetails = useMap(ids.length, (i) =>
-    useAutoComputedState(() => service.loadDetails(ids[i])));
+  final expandedIdsState = useState<ISet<ItemId>>(const ISet.empty());
+  final loadedDetails = useMap(expandedIdsState.value.toSet(), (id) =>
+    useAutoComputedState(() => service.loadDetails(id)));
 
   // screen state is now entangled with tile animation/loading logic
 }
 
-// ✅ Tile extracts its own hook — screen state stays clean
+// ✅ Tile extracts its own hook - screen state stays clean
 class ItemTile extends HookWidget {
   final Item item;
   const ItemTile({required this.item});
@@ -57,7 +57,7 @@ ui/pages/items/
       view/item_tile_view.dart     ← StatelessWidget, pure UI
 ```
 
-**Full example — expandable tile with lazy loading:**
+**Full example - expandable tile with lazy loading** (the state hook is the teaching core; widget shell + view follow the standard Screen/State/View shape):
 
 ```dart
 // state/item_tile_state.dart
@@ -67,77 +67,32 @@ class ItemTileState {
   final bool isExpanded;
   final bool isLoadingDetails;
   final void Function() onToggle;
-
   const ItemTileState({
-    required this.item,
-    required this.details,
-    required this.isExpanded,
-    required this.isLoadingDetails,
-    required this.onToggle,
+    required this.item, required this.details, required this.isExpanded,
+    required this.isLoadingDetails, required this.onToggle,
   });
 }
 
 ItemTileState useItemTileState({required Item item}) {
   final service = useInjected<ItemService>();
-  final isExpanded = useState(false);
-  final details = useAutoComputedState(
+  final isExpandedState = useState(false);
+  final detailsState = useAutoComputedState(
     () async => service.loadDetails(item.id),
     keys: [item.id],
-    shouldCompute: isExpanded.value,  // lazy — only load when expanded
+    shouldCompute: isExpandedState.value,  // lazy - only load when expanded
   );
 
   return ItemTileState(
     item: item,
-    details: details.valueOrNull,
-    isExpanded: isExpanded.value,
-    isLoadingDetails: isExpanded.value && !details.isInitialized,
-    onToggle: () => isExpanded.value = !isExpanded.value,
+    details: detailsState.valueOrNull,
+    isExpanded: isExpandedState.value,
+    isLoadingDetails: isExpandedState.value && !detailsState.isInitialized,
+    onToggle: () => isExpandedState.value = !isExpandedState.value,
   );
 }
 
-// item_tile_widget.dart
-class ItemTile extends HookWidget {
-  final Item item;
-  const ItemTile({required this.item, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = useItemTileState(item: item);
-    return ItemTileView(state: state);
-  }
-}
-
-// view/item_tile_view.dart
-class ItemTileView extends StatelessWidget {
-  final ItemTileState state;
-  const ItemTileView({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(state.item.title),
-            trailing: Icon(state.isExpanded ? Icons.expand_less : Icons.expand_more),
-            onTap: state.onToggle,
-          ),
-          if (state.isExpanded) _buildDetails(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetails() {
-    if (state.isLoadingDetails) return const CrazyLoader();
-    if (state.details == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(state.details!.description),
-    );
-  }
-}
+// item_tile_widget.dart - HookWidget shell: calls useItemTileState(item: item), returns ItemTileView(state: state)
+// view/item_tile_view.dart - StatelessWidget: ListTile + trailing expand icon, reveals details (CrazyLoader while isLoadingDetails) when isExpanded
 ```
 
 **When to extract a widget-level hook:**
@@ -147,9 +102,9 @@ class ItemTileView extends StatelessWidget {
 - You want to reuse this widget as a `HookWidget` in multiple screens
 
 **Same rules apply at widget scope:**
-- `item_tile_widget.dart` — HookWidget, zero logic, just calls hook and renders view
-- `state/item_tile_state.dart` — no widget imports
-- `view/item_tile_view.dart` — StatelessWidget, no hooks
+- `item_tile_widget.dart` - HookWidget, zero logic, just calls hook and renders view
+- `state/item_tile_state.dart` - no widget imports
+- `view/item_tile_view.dart` - StatelessWidget, no hooks
 
 ---
 
@@ -162,10 +117,10 @@ Use when a reusable widget (paging control, specialized text field, date picker)
 **Quick Pattern:**
 
 ```dart
-// ❌ State created inside widget — screen can't coordinate it, can't access results
+// ❌ State created inside widget - screen can't coordinate it, can't access results
 class PagingWidget extends HookWidget {
   Widget build(BuildContext context) {
-    final pagingState = usePagingState(pageSize: 20); // hidden from screen
+    final pagingState = usePagingState(totalPages: 10); // hidden from screen
     // screen doesn't know current page, can't react to page changes
   }
 }
@@ -177,19 +132,19 @@ return ScreenState(
 
 // ✅ State created in screen's state hook, passed to widget
 ScreenState useScreenState() {
-  final pagingState = usePagingState(pageSize: 20); // screen owns it
-  final items = useAutoComputedState(
+  final pagingState = usePagingState(totalPages: 10); // screen owns it
+  final itemsState = useAutoComputedState(
     () => service.load(page: pagingState.currentPage),
     keys: [pagingState.currentPage],   // screen can react to page changes
   );
 
   return ScreenState(
-    items: items.valueOrNull,
+    items: itemsState.valueOrNull,
     paging: pagingState,   // passed to PagingWidget via ScreenState
   );
 }
 
-// PagingWidget just renders — it doesn't create state
+// PagingWidget just renders - it doesn't create state
 class PagingWidget extends StatelessWidget {
   final PagingState state;
   const PagingWidget({required this.state});
@@ -197,7 +152,7 @@ class PagingWidget extends StatelessWidget {
 }
 ```
 
-**Full example — reusable paging:**
+**Full example - reusable paging:**
 
 ```dart
 // Reusable state + hook (lives in common/widgets/paging/)
@@ -218,85 +173,40 @@ class PagingState {
   bool get canGoPrevious => currentPage > 0;
 }
 
-// The composable hook — called from parent screen state
+// The composable hook - called from parent screen state
 PagingState usePagingState({required int totalPages}) {
-  final page = useState(0);
+  final pageState = useState(0);
   return PagingState(
-    currentPage: page.value,
+    currentPage: pageState.value,
     totalPages: totalPages,
-    onNext: () { if (page.value < totalPages - 1) page.value++; },
-    onPrevious: () { if (page.value > 0) page.value--; },
+    onNext: () { if (pageState.value < totalPages - 1) pageState.value++; },
+    onPrevious: () { if (pageState.value > 0) pageState.value--; },
   );
 }
 
-// Reusable widget — StatelessWidget, receives state
+// Reusable widget - StatelessWidget, receives state (prev/next IconButtons gated on
+// state.canGoPrevious / state.canGoNext, with a '${currentPage + 1} / $totalPages' label)
 class PagingWidget extends StatelessWidget {
   final PagingState state;
   const PagingWidget({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: state.canGoPrevious ? state.onPrevious : null,
-        ),
-        Text('${state.currentPage + 1} / ${state.totalPages}'),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: state.canGoNext ? state.onNext : null,
-        ),
-      ],
-    );
-  }
+  // build(): Row of chevron IconButtons + page label
 }
 
-// Screen state hook — composes usePagingState
+// Screen state hook - composes usePagingState, reacts to page changes
 ProductListScreenState useProductListScreenState() {
   final service = useInjected<ProductService>();
-  final totalCount = useProvided<ProductsState>().totalCount ?? 0;
-  final totalPages = (totalCount / 20).ceil();
-
-  // State created here — screen can react to page changes
-  final paging = usePagingState(totalPages: totalPages);
-
-  final products = useAutoComputedState(
+  final totalPages = ((useProvided<ProductsState>().totalCount ?? 0) / 20).ceil();
+  final paging = usePagingState(totalPages: totalPages);  // screen owns it
+  final productsState = useAutoComputedState(
     () => service.loadPage(paging.currentPage, pageSize: 20),
     keys: [paging.currentPage],
   );
 
   return ProductListScreenState(
-    products: products.valueOrNull,
-    isLoading: !products.isInitialized,
-    paging: paging,  // passed to PagingWidget in View
+    products: productsState.valueOrNull,
+    isLoading: !productsState.isInitialized,
+    paging: paging,  // View passes the whole PagingState to PagingWidget(state: state.paging)
   );
-}
-
-// Screen state class
-class ProductListScreenState {
-  final IList<Product>? products;
-  final bool isLoading;
-  final PagingState paging;  // ← View passes this to PagingWidget
-  // ...
-}
-
-// View wires it up
-class ProductListScreenView extends StatelessWidget {
-  final ProductListScreenState state;
-  // ...
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (state.isLoading) const CrazyLoader()
-        else _buildProductList(),
-        PagingWidget(state: state.paging),  // just passes state down
-      ],
-    );
-  }
 }
 ```
 
@@ -308,13 +218,13 @@ ui/common/widgets/paging/
   paging_state.dart          ← PagingState class + usePagingState hook
 ```
 
-No `view/` subdirectory — the widget is simple enough to not need it. No `HookWidget` — state is always provided from outside.
+No `view/` subdirectory - the widget is simple enough to not need it. No `HookWidget` - state is always provided from outside.
 
 ---
 
 ## Pattern 3: Screen Hook Decomposition
 
-Use when a screen's state hook grows too large — too many concerns, too many `useState` calls, too many lines. Instead of one monolithic hook, split it into focused sub-hooks that the main screen hook composes.
+Use when a screen's state hook grows too large - too many concerns, too many `useState` calls, too many lines. Instead of one monolithic hook, split it into focused sub-hooks that the main screen hook composes.
 
 **Signals to decompose:**
 - More than ~10 `useState` calls in one hook
@@ -325,7 +235,7 @@ Use when a screen's state hook grows too large — too many concerns, too many `
 **Quick Pattern:**
 
 ```dart
-// ❌ One monolithic hook — 1200 lines, 15 useState, fetch + search + scroll interleaved
+// ❌ One monolithic hook - 1200 lines, 15 useState, fetch + search + scroll interleaved
 OrderScreenState useOrderScreenState() {
   // ... data fetching (200 lines)
   // ... search/filter (150 lines)
@@ -360,7 +270,7 @@ OrderScreenState useOrderScreenState({
 **How sub-hooks communicate:**
 - Each sub-hook returns its own typed state object (e.g., `OrderFetchState`, `OrderSearchState`)
 - The main hook passes outputs from one sub-hook as inputs to another
-- Sub-hooks never call each other directly — the main hook is the coordinator
+- Sub-hooks never call each other directly - the main hook is the coordinator
 - The Screen State class aggregates fields from all sub-hooks into a single flat interface for the View
 
 **Sub-hook example:**
@@ -411,69 +321,49 @@ ui/screens/orders/
   view/orders_screen_view.dart
 ```
 
-Sub-hooks live in the same `state/` directory as the main hook. They are private to this screen — not reusable (that's Pattern 2).
+Sub-hooks live in the same `state/` directory as the main hook. They are private to this screen - not reusable (that's Pattern 2).
 
 **What this is NOT:**
-- Not Pattern 1 — sub-hooks are not extracted to child widgets; they're called from the same screen hook
-- Not Pattern 2 — sub-hooks are not reusable across screens; they're specific to this screen's domain
+- Not Pattern 1 - sub-hooks are not extracted to child widgets; they're called from the same screen hook
+- Not Pattern 2 - sub-hooks are not reusable across screens; they're specific to this screen's domain
 - If a sub-hook IS reusable (e.g., paging logic used on 3 screens), it becomes Pattern 2
 
 ---
 
 ## Per-item state: three archetypes
 
-A list of N items where each item has its own state (expansion, per-item async, validation, drafts, UI resources) raises one question: **where does that state live?** Three valid archetypes — the choice depends on whether the parent needs to read or modify individual item state.
+A list of N items where each item has its own state (expansion, per-item async, validation, drafts, UI resources) raises one question: **where does that state live?** Three valid archetypes - the choice depends on whether the parent needs to read or modify individual item state.
 
 ### Decision tree
 
 | Does parent need to read/modify individual item state? | N of items | Per-item complexity | Recommended |
 |---|---|---|---|
-| No — parent only cares when done | Any | Any | **9-A**: Widget-level Pattern 1 (full `widget/state/view`), optional feedback callback |
-| Yes — parent aggregates / coordinates | **Fixed** (known at code-time) | Multi-field / async / lifecycle | **9-B.1**: Composed hook called multiple times (`final a = useX(); final b = useX();`) |
-| Yes — parent aggregates / coordinates | **Dynamic** (runtime add/remove) | Multi-field / async / lifecycle | **9-B.2**: `useMap<Key, useX>` at parent |
-| Yes — parent reads often | Any | Single small flag | **9-C**: Screen-state `Map<Key, Flag>` (OK, but reconsider if state grows) |
+| No - parent only cares when done | Any | Any | **A**: Widget-level Pattern 1 (full `widget/state/view`), optional feedback callback |
+| Yes - parent aggregates / coordinates | **Fixed** (known at code-time) | Multi-field / async / lifecycle | **B.1**: Composed hook called multiple times (`final a = useX(); final b = useX();`) |
+| Yes - parent aggregates / coordinates | **Dynamic** (runtime add/remove) | Multi-field / async / lifecycle | **B.2**: `useMap<Key, useX>` at parent |
+| Yes - parent reads often | Any | Single small flag | **C**: Screen-state `Map<Key, Flag>` (OK, but reconsider if state grows) |
 
-`useMap` is the dynamic-N variant of 9-B.1 — same coupling shape (parent-owns-state, widget-gets-prop), just with runtime-growing keys. For fixed N, just call the hook multiple times; reaching for `useMap` is overkill.
+`useMap` is the dynamic-N variant of B.1 - same coupling shape (parent-owns-state, widget-gets-prop), just with runtime-growing keys. For fixed N, just call the hook multiple times; reaching for `useMap` is overkill.
 
-### 9-A: Widget-level Pattern 1 — per-item state is self-contained
+### Archetype A: Widget-level Pattern 1 - per-item state is self-contained
 
 Use when parent never needs to inspect individual item state. The tile owns its own async, flags, caches; if parent needs "it's done," a single feedback callback suffices.
 
-**Worked example — tile with lazy-loaded content + expansion, parent-agnostic:**
+Same shape as the Pattern 1 expandable tile above (full `widget/state/view`), with one addition: an optional `onResultLoaded` feedback callback so the parent learns "it's done" without owning the state.
 
 ```dart
-// widgets/item_tile/state/item_tile_state.dart
-class ItemTileState {
-  final Item item;
-  final MutableValue<bool> expandedState;
-  final ItemDetails? details;
-  final bool isLoadingDetails;
-  final void Function() onReload;
-
-  const ItemTileState({
-    required this.item,
-    required this.expandedState,
-    required this.details,
-    required this.isLoadingDetails,
-    required this.onReload,
-  });
-}
-
 ItemTileState useItemTileState({
   required Item item,
-  required void Function(ItemId, ItemDetails)? onResultLoaded,  // optional feedback
+  void Function(ItemId, ItemDetails)? onResultLoaded,  // optional feedback
 }) {
   final service = useInjected<ItemService>();
   final expandedState = useState(false);
-
-  // Per-item async, self-cached across expand/collapse
   final detailsState = useComputedState(() async => service.loadDetails(item.id));
 
   // Trigger load when expanded; notify parent when done (if caller cares)
   useEffect(() async {
     if (expandedState.value && detailsState.value is! ComputedStateValueInProgress) {
-      final data = await detailsState.refresh();
-      onResultLoaded?.call(item.id, data);
+      onResultLoaded?.call(item.id, await detailsState.refresh());
     }
     return null;
   }, [expandedState.value, item]);
@@ -488,23 +378,14 @@ ItemTileState useItemTileState({
 }
 ```
 
-Parent screen only passes the item + an optional feedback callback. `loadMore`, `expandedIds`, `loadedDetails` concerns disappear from the screen state entirely.
+Parent passes only the item + an optional callback. `loadMore`, `expandedIdsState`, `loadedDetails` concerns disappear from the screen state entirely.
 
-File structure (full Pattern 1):
-
-```
-widgets/item_tile/
-  item_tile.dart          ← HookWidget shell, calls useItemTileState
-  state/item_tile_state.dart  ← state class + hook above
-  view/item_tile_view.dart    ← StatelessWidget, reads state, renders UI
-```
-
-### 9-B.1: Fixed N — just call the hook multiple times
+### Archetype B.1: Fixed N - just call the hook multiple times
 
 When parent needs to aggregate and N is known at code-time, no special primitive is needed. Call the hook directly per instance.
 
 ```dart
-// Parent state hook — two specific editors on one form
+// Parent state hook - two specific editors on one form
 EditorFormScreenState useEditorFormScreenState() {
   final primary = useEditorItemState(label: 'Primary');
   final secondary = useEditorItemState(label: 'Secondary');
@@ -533,35 +414,35 @@ Column([
 
 This is just Pattern 2 with two instances. No `useMap`, no ceremony.
 
-### 9-B.2: Dynamic N — `useMap<Key, useXState>`
+### Archetype B.2: Dynamic N - `useMap<Key, useXState>`
 
 When N grows/shrinks at runtime, `useMap` gives you one hook instance per key, stable across rebuilds. Parent holds the Map; widgets look up by key.
 
 ```dart
-// The per-item hook — non-trivial, multiple internal hooks
+// The per-item hook - non-trivial, multiple internal hooks
 EditorItemState useEditorItemState({required ItemId id}) {
-  final value = useFieldState();
-  final label = useFieldState();
+  final valueState = useFieldState();
+  final labelState = useFieldState();
   final saveState = useSubmitState();
-  final isValid = value.value.isNotEmpty && label.value.isNotEmpty;
+  final isValid = valueState.value.isNotEmpty && labelState.value.isNotEmpty;
 
   return EditorItemState(
     id: id,
-    value: value,
-    label: label,
+    value: valueState,
+    label: labelState,
     isValid: isValid,
     isSaving: saveState.inProgress,
     save: () => saveState.runSimple<void, Never>(
-      submit: () async => service.save(id, value.value, label.value),
+      submit: () async => service.save(id, valueState.value, labelState.value),
     ),
     reset: () {
-      value.value = '';
-      label.value = '';
+      valueState.value = '';
+      labelState.value = '';
     },
   );
 }
 
-// Parent — one instance per dynamic id, aggregates and coordinates
+// Parent - one instance per dynamic id, aggregates and coordinates
 EditorListScreenState useEditorListScreenState({required IList<ItemId> itemIds}) {
   final itemStates = useMap(
     itemIds.toSet(),
@@ -592,28 +473,115 @@ for (final id in itemIds)
   EditorItemTile(state: state.itemStates[id]!)
 ```
 
-Key lifecycle: adding an id to `itemIds` → new hook instance initialised; removing an id → that instance disposed. `useMap` keeps the Map identity stable across rebuilds so list identity doesn't churn.
+Key lifecycle: adding an id to `itemIds` → new hook instance initialised; removing an id → that instance disposed. `useMap` keeps the Map identity stable across rebuilds. For user-editable rows, let the parent own a mutable `useState<ISet<ItemId>>` and pass a removal closure into each sub-state (`onRemove: () => itemIds.modify((it) => it.remove(id))`); removing from the set disposes that instance on the next build, and the View can render `itemStates.values.toIList()` with no Map lookups.
 
-### 9-C: Screen-state `Map<Key, Flag>` — only for trivial single-flag cases
+### Archetype C: Screen-state `Map<Key, Flag>` - only for trivial single-flag cases
 
 If per-item state is one small flag and parent always reads it, the screen hook can hold `Map<Key, Flag>` directly.
 
 ```dart
-// Dismissible banners — screen tracks which are dismissed
-final dismissedBanners = useState<ISet<BannerId>>(const ISet.empty());
+// Dismissible banners - screen tracks which are dismissed
+final dismissedBannersState = useState<ISet<BannerId>>(const ISet.empty());
 
 void dismiss(BannerId id) =>
-    dismissedBanners.value = dismissedBanners.value.add(id);
+    dismissedBannersState.value = dismissedBannersState.value.add(id);
 ```
 
-Don't scale this: the moment per-item state adds a second field, async, or lifecycle, move to 9-A or 9-B.
+Don't scale this: the moment per-item state adds a second field, async, or lifecycle, move to archetype A or B.
 
 ### Anti-patterns
 
-- **Don't use `useMap` when 9-A suffices.** Parent doesn't need per-item access? Stay widget-level. Reaching for `useMap` couples parent to item state it doesn't use.
-- **Don't use 9-A when 9-B is needed.** If parent has a "submit-all" or "reset-all" action, you'll end up plumbing N feedback callbacks per item — at which point 9-B is cleaner.
-- **Don't use 9-C when 9-B is needed.** A `Map<Key, Flag>` doesn't scale to per-item async or lifecycle. Convert to per-item hook (9-A or 9-B) as complexity grows.
-- **Don't use 9-B when 9-A suffices.** Running per-item hooks at the parent when the parent never reads them just pushes per-item lifecycle into the screen hook unnecessarily.
+- **Don't use `useMap` when archetype A suffices.** Parent doesn't need per-item access? Stay widget-level. Reaching for `useMap` couples parent to item state it doesn't use.
+- **Don't use A when B is needed.** If parent has a "submit-all" or "reset-all" action, you'll end up plumbing N feedback callbacks per item - at which point B is cleaner.
+- **Don't use C when B is needed.** A `Map<Key, Flag>` doesn't scale to per-item async or lifecycle. Convert to per-item hook (A or B) as complexity grows.
+- **Don't use B when A suffices.** Running per-item hooks at the parent when the parent never reads them just pushes per-item lifecycle into the screen hook unnecessarily.
+
+---
+
+## Recipes - Small Composable Hooks to Copy
+
+Two recurring problems with a known-good composable-hook shape. These are **recipes to copy
+into your project** (e.g. `common/hook/`) - they are not utopia_hooks APIs.
+
+### useOverridable - optimistic override of a server-backed scalar
+
+A toggle or dropdown backed by a server value: changing it should update the UI immediately,
+persist in the background, revert on failure, and resume tracking the server value once it
+has caught up. Exposing the result as `MutableValue<T>` keeps the View dumb (reads `.value`,
+writes `.value`).
+
+```dart
+MutableValue<T> useOverridable<T extends Object>(
+  T serverValue, {
+  required Future<void> Function(T value) persist,
+}) {
+  final overrideState = useState<T?>(null);
+  final submitState = useSubmitState();
+  final isMounted = useIsMounted();
+
+  // Server caught up with the override - resume tracking the server value.
+  useEffect(() {
+    if (overrideState.value != null && overrideState.value == serverValue) overrideState.value = null;
+  }, [serverValue]);
+
+  return MutableValue.computed(
+    () => overrideState.value ?? serverValue,
+    (newValue) {
+      final previous = overrideState.value;
+      overrideState.value = newValue; // optimistic - UI updates immediately
+      unawaited(submitState.runSimple<void, Never>(
+        submit: () => persist(newValue),
+        afterError: () {
+          if (isMounted()) overrideState.value = previous; // revert on failure
+        },
+      ));
+    },
+  );
+}
+
+// Usage in a state hook:
+final notificationsEnabled = useOverridable(
+  profile.valueOrNull?.notificationsEnabled ?? false,
+  persist: (it) => service.setNotificationsEnabled(it),
+);
+```
+
+Unknown persistence errors still rethrow into the global error pipeline (the override has
+already been reverted by then). For optimistic updates over a *list*, use the override-layer
+shape in [complex-state-examples.md](./complex-state-examples.md) (shape 3) instead.
+
+### useMinimumLoading - minimum skeleton duration
+
+Once a loader or skeleton has appeared, keep it visible for a minimum beat - a skeleton that
+flashes for 80ms reads as a glitch, not as loading.
+
+```dart
+bool useMinimumLoading(bool isLoading, {Duration minimum = const Duration(milliseconds: 500)}) {
+  final shownAtState = useState<DateTime?>(null, listen: false); // latch - no rebuild needed
+  final holdingState = useState(false);
+
+  useEffect(() {
+    if (isLoading) {
+      shownAtState.value = DateTime.now();
+      return null;
+    }
+    if (shownAtState.value == null) return null; // loader never showed
+    final remaining = minimum - DateTime.now().difference(shownAtState.value!);
+    if (remaining <= Duration.zero) {
+      holdingState.value = false; // reset - a previous hold may still be latched
+      return null;
+    }
+    holdingState.value = true;
+    final timer = Timer(remaining, () => holdingState.setIfMounted(false));
+    return timer.cancel;
+  }, [isLoading]);
+
+  return isLoading || holdingState.value;
+}
+
+// Usage in a state hook:
+final showSkeleton = useMinimumLoading(!items.isInitialized);
+```
 
 ---
 
@@ -625,25 +593,25 @@ Don't scale this: the moment per-item state adds a second field, async, or lifec
 | Widget is reused across screens, screen needs to react to its state | Composed hook state (Pattern 2) |
 | Widget is simple, no async, no state coordination needed | Plain `StatelessWidget`, no hook |
 | Screen state would get polluted with per-tile logic for N tiles | Widget-level hook (Pattern 1) |
-| Multiple fields of the same type on one screen | Composed hook state (Pattern 2) — one `useXState()` call per instance in screen state hook |
+| Multiple fields of the same type on one screen | Composed hook state (Pattern 2) - one `useXState()` call per instance in screen state hook |
 | Screen hook > ~300 lines or > ~10 useState | Screen hook decomposition (Pattern 3) |
 | Screen hook mixes unrelated domains (fetch + search + scroll) | Screen hook decomposition (Pattern 3) |
-| State class has too many unrelated fields | Screen hook decomposition (Pattern 3) — split into sub-hooks with own state objects |
+| State class has too many unrelated fields | Screen hook decomposition (Pattern 3) - split into sub-hooks with own state objects |
 
 ---
 
 ## Common Pitfalls
 
-- **Calling usePagingState inside PagingWidget** — screen can't react to page changes; always compose from screen state hook
-- **Widget-level hook for simple state** — if the widget only has one `useState`, it doesn't need the full [state, widget, view] breakdown; a single `HookWidget` with inline hook calls is fine
-- **Mixing both patterns** — don't have a widget that both calls its own hook AND accepts state from outside; pick one
-- **Screen state passing individual fields instead of state object** — pass the whole `PagingState`, not `currentPage: paging.currentPage, onNext: paging.onNext, …`
-- **Sub-hooks calling each other directly** — sub-hooks should return state; the main screen hook coordinates and passes values between them
-- **Decomposing too early** — a hook with 5 useState and 100 lines doesn't need Pattern 3; only decompose when the signals are clearly present
+- **Calling usePagingState inside PagingWidget** - screen can't react to page changes; always compose from screen state hook
+- **Widget-level hook for simple state** - if the widget only has one `useState`, it doesn't need the full [state, widget, view] breakdown; a single `HookWidget` with inline hook calls is fine
+- **Mixing both patterns** - don't have a widget that both calls its own hook AND accepts state from outside; pick one
+- **Screen state passing individual fields instead of state object** - pass the whole `PagingState`, not `currentPage: paging.currentPage, onNext: paging.onNext, …`
+- **Sub-hooks calling each other directly** - sub-hooks should return state; the main screen hook coordinates and passes values between them
+- **Decomposing too early** - a hook with 5 useState and 100 lines doesn't need Pattern 3; only decompose when the signals are clearly present
 
 ## Related Skills
 
-- [screen-state-view.md](./screen-state-view.md) — same rules apply at widget scope
-- [hooks-reference.md](./hooks-reference.md) — useState, useAutoComputedState inside widget-level hooks
-- [async-patterns.md](./async-patterns.md) — lazy loading in widget-level hooks
-- [complex-state-examples.md](./complex-state-examples.md) — full worked examples of the three per-item archetypes and screen decomposition shapes
+- [screen-state-view.md](./screen-state-view.md) - same rules apply at widget scope
+- [hooks-reference.md](./hooks-reference.md) - useState, useAutoComputedState inside widget-level hooks
+- [async-patterns.md](./async-patterns.md) - lazy loading in widget-level hooks
+- [complex-state-examples.md](./complex-state-examples.md) - full worked examples of the three per-item archetypes and screen decomposition shapes

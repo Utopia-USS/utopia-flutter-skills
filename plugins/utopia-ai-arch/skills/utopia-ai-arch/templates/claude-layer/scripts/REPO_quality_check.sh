@@ -33,7 +33,8 @@ file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/n
 # Configure extensions per repo.
 # ---------------------------------------------------------------------------
 case "$(basename "$file")" in
-  *.g.dart|*.freezed.dart|*.gr.dart|*.pb.dart|*.pbenum.dart|*.pbjson.dart|*.config.dart)
+  *.g.dart|*.freezed.dart|*.gr.dart|*.config.dart|\
+  *.pb.dart|*.pbenum.dart|*.pbjson.dart|*.pbserver.dart)
     {
       echo "<repo>_quality_check: BLOCK — attempted edit to generated file"
       echo "  $file"
@@ -86,9 +87,9 @@ add() { violations+=("$1"); }
 # Universal: relative imports in lib/ (foundation already enforces, but
 # this layer surfaces it explicitly for clarity)
 # ---------------------------------------------------------------------------
-if [[ "$repo_rel" == */lib/* ]]; then
+if [[ "$repo_rel" == lib/* || "$repo_rel" == */lib/* ]]; then
   if grep -qE "^import[[:space:]]+['\"](\.\./|\./)" "$file"; then
-    add "uses relative Dart import — repo convention requires 'package:...' imports"
+    add "uses relative Dart import — repo convention requires 'package:...' imports (always_use_package_imports)"
   fi
 fi
 
@@ -113,7 +114,7 @@ case "$repo_rel" in
     ;;
 esac
 
-# ... add cases per skill ...
+# ... add cases per skill with ≥2 references; delete unused blocks ...
 
 # ---------------------------------------------------------------------------
 # Report

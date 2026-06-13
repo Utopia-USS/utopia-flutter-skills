@@ -43,7 +43,7 @@ The project hooks coexist with the foundation hook (provided by the `utopia-hook
 | exit 1 | warn — user sees stderr, Claude continues |
 | exit 2 | block — Claude sees stderr and must address before continuing |
 
-> "stdin: JSON with `{.tool_input.file_path}`. env <PREFIX>_QUALITY_MODE: 'warn' (default, exit 1) or 'block' (exit 2). Note: edits to *.g.dart / *.freezed.dart ALWAYS exit 2 regardless of mode. exit 0: silent success (or out of scope). exit 1: warn — user sees stderr, Claude continues. exit 2: block — Claude sees stderr and must address." — `production-repo-A/.claude/scripts/<prefix>_quality_check.sh:8-15`
+> "stdin: JSON with `{.tool_input.file_path}`. env `<PREFIX>_QUALITY_MODE`: 'warn' (default, exit 1) or 'block' (exit 2). Note: edits to *.g.dart / *.freezed.dart ALWAYS exit 2 regardless of mode. exit 0: silent success (or out of scope). exit 1: warn — user sees stderr, Claude continues. exit 2: block — Claude sees stderr and must address." — `production-repo-A/.claude/scripts/<prefix>_quality_check.sh:8-15`
 
 ### The mode env var
 
@@ -182,7 +182,7 @@ A repo-wide convention surfaced explicitly even though the analyzer also catches
 - The script is two cheap lines.
 
 ```bash
-if [[ "$repo_rel" == */lib/* ]]; then
+if [[ "$repo_rel" == lib/* || "$repo_rel" == */lib/* ]]; then
   if grep -qE "^import[[:space:]]+['\"](\.\./|\./)" "$file"; then
     add "uses relative Dart import — repo convention requires 'package:...' imports (always_use_package_imports)"
   fi
@@ -198,13 +198,13 @@ Mirrors each skill's `applicability` from `claude-architecture.md` §"Skill spli
 ```bash
 # Example — adapt paths and skill names per repo.
 case "$repo_rel" in
-  <area-1-glob-patterns>)
+  <area-1-paths>)
     add "<area-1> edit — consult <prefix>-<area-1> skill (references/<feature>-module.md)"
     ;;
 esac
 
 case "$repo_rel" in
-  <area-2-glob-patterns>)
+  <area-2-paths>)
     add "<area-2> edit — consult <prefix>-<area-2> skill"
     ;;
 esac
@@ -217,10 +217,10 @@ esac
 **Expected granularity in a mature repo.** A bootstrap hook may start with 0-1 nudges (one for the master skill). As `references/` files accumulate, the hook should grow to **typically 4-8 nudges** — one per distinct surface that has earned ≥2 references. Production examples:
 
 - **repo-A**: 5+ nudges covering UI paths, state files, security-sensitive crypto/FFI paths, <crypto-service>, RLS-protected backend paths
-- **repo-B**: 5 nudges covering activity proto+UI, <design-system> / classroom non-lesson, services, models, proto edits
-- **repo-C**: 6 nudges covering real-time-DB game-state paths, design-system, content packs, services, models, IAP
+- **repo-B**: 5 nudges covering domain proto+UI, design-system / app-wide UI, services, models, proto edits
+- **repo-C**: 7 nudges covering real-time-DB game-state paths, design-system, app/admin UI surfaces, content packs, services, models, IAP
 
-A bootstrap hook with one nudge per skill is fine for day one. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`evolution-and-drift.md` §5.1 "Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
+At bootstrap, add a nudge only for skills launching with ≥2 references (usually just the master skill) and delete the unused case blocks from the template. A two-year-old hook with one nudge means either references didn't accumulate (suggesting the skill itself is thin) or the hook has not been maintained (`evolution-and-drift.md` §5.1 "Adding a path nudge incrementally"). Production maturity = surface coverage matches the actual reference inventory.
 
 Quoted in both production repos that explicitly considered extending their hook to a primitive sister skill:
 
@@ -418,7 +418,7 @@ Don't blindly copy this hook to a new repo. Validate the leak first.
 
 A `PreToolUse` push-guard duplicates both **and runs on every Bash invocation** (every `git status`, every `ls`, every `melos run`). The matcher cost is real; the benefit is zero given the two existing layers.
 
-Precedent: explicitly rejected in `production-repo-A/.claude/docs/claude-architecture.md:123`, `production-repo-B/.claude/docs/claude-architecture.md:109-113`, `production-repo-C/.claude/docs/claude-architecture.md:106-108` — all three repos removed their `PreToolUse` push-guard once the two existing layers were in place.
+Precedent: explicitly rejected in `production-repo-A/.claude/docs/claude-architecture.md:123`, `production-repo-B/.claude/docs/claude-architecture.md:109-113` (a push-guard existed and was removed as redundant once the two layers were in place), and `production-repo-C/.claude/docs/claude-architecture.md:106-108` (never added — recorded as unnecessary from day one).
 
 **Reversal criterion.** A repo with **neither** a `permissions.allow` exclusion **nor** GitHub branch protection. In that case the guard plugs a real hole. Until then, it's overhead.
 
@@ -459,6 +459,8 @@ The hooks block in `.claude/settings.json`:
 
 Two entries under one matcher block means **both scripts fire on every `Edit|Write|MultiEdit`** — quality_check on the edited file, skills_drift in hook-mode on the same file (silent unless the file is markdown under `.claude/` or `CLAUDE.md`).
 
+Production variance: repo-A wires both scripts; repo-B and repo-C wire only `quality_check` and run the drift scan via `/<prefix>-audit-skills` instead. Wiring both is the blueprint default — hook mode costs one silent `exit 0` on out-of-scope edits.
+
 A SessionStart hook (when justified — see repo-B precedent above) wires under a separate top-level key:
 
 ```json
@@ -481,7 +483,7 @@ See [settings-json.md](settings-json.md) for the full settings shape.
 
 ## Anti-patterns
 
-(For basename-guard regression, push-guard hook, primitive-skill nudges — those are catalogued in [evolution-and-drift.md](evolution-and-drift.md) symptoms §O, §S, and in §"Why NO `git push` guard hook" above.)
+(For the push-guard hook and primitive-skill nudges — catalogued in [evolution-and-drift.md](evolution-and-drift.md) symptoms §O and §S, and in §"Why NO `git push` guard hook" above. For a hook that never fires or fires in an unrelated repo, re-check §"Scope guards" and the bootstrap validation checklist.)
 
 ### Allowing generated-file edits in `block` mode by mistake
 

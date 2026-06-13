@@ -49,7 +49,7 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 **Invariants:**
 
 - "You plan; you do not implement." — never edit code.
-- "Every chunk must name the skill whose `applicability` it falls into. If no skill applies, that's a finding — escalate, don't invent one." (blueprint `REPO-architect.md:35-36`)
+- "Every chunk must name the skill whose `applicability` it falls into. If no skill applies, that's a finding — escalate, don't invent one." (blueprint `REPO-architect.md` §Invariants)
 - Explicit prohibition on inventing skills or proposing a "shared" / router skill.
 - Hand-off: produces a spec → main context or `<prefix>-maintainer` executes; stops at the plan boundary.
 
@@ -65,17 +65,17 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 
 **Invariants:**
 
-- "After each logical change set: run static analysis. Block on errors (do not continue with red analyzer)." (blueprint `REPO-maintainer.md:19-20`)
+- "After each logical change set: run static analysis. Block on errors (do not continue with red analyzer)." (blueprint `REPO-maintainer.md` §Invariants)
 - "Surface blockers back to the planner; do not invent design decisions."
 - "Generated files … are regenerated, not edited. The hook hard-blocks edits — do not work around it."
 - "Stay within the architect's scope. If a change requires touching surfaces outside the plan, surface it instead of expanding silently."
-- **Reviewer-facing rule:** "If you find yourself writing 'the reviewer should be OK with this because X', that X belongs in the code or in a warning, not as a hint to the reviewer." (<prefix>-maintainer.md:225-227)
-- **`dart_fix` discipline:** never run `mcp__<repo>-dart__dart_fix` project-wide as a mandatory step. It bulldozes the user's WIP. Run only on a narrow set of files in the change.
+- **Reviewer-facing rule:** "If you find yourself writing 'the reviewer should be OK with this because X', that X belongs in the code or in a warning, not as a hint to the reviewer." (`production-repo-B/.claude/agents/<prefix>-maintainer.md:225-227`)
+- **`dart_fix` discipline:** never run `mcp__<prefix>-dart__dart_fix` project-wide as a mandatory step. It bulldozes the user's WIP. Run only on a narrow set of files in the change.
 
 **Self-report shape — REQUIRED, parsed by `/<prefix>-implement`** (handed to the main context — NOT to the reviewer):
 
 ```
-## status        — done / partial / blocked
+## status        — success / partial / needs_human
 ## files_touched
 ## commit_message_draft
 ## analyze       — baseline / current / delta
@@ -85,9 +85,9 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 ## out_of_scope_observations  — for the main context only, NOT the reviewer
 ```
 
-> "When `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch, not from your reasoning." (`<prefix>-maintainer.md:222-227`)
+> "When `/<prefix>-implement` invokes the reviewer, it withholds this self-report on purpose — the reviewer must verify the diff from scratch, not from your reasoning." (`production-repo-B/.claude/agents/<prefix>-maintainer.md:222-227`)
 
-**This is a contract, not a suggestion.** The orchestrator slash command (`/<prefix>-implement`) parses these section headers to (a) extract `files_touched` + `commit_message_draft` + `analyze` for the reviewer's fresh-context input, and (b) surface `warnings` + `out_of_scope_observations` to the user. A maintainer that returns free-form prose breaks the loop. Production precedents: `<prefix>-maintainer.md:192-220`, `<prefix>-maintainer.md:99-129`. The maintainer template at [`../templates/claude-layer/agents/REPO-maintainer.md`](../templates/claude-layer/agents/REPO-maintainer.md) includes this block — preserve it verbatim during substitution.
+**This is a contract, not a suggestion.** The orchestrator slash command (`/<prefix>-implement`) parses these section headers to (a) extract `files_touched` + `commit_message_draft` + `analyze` for the reviewer's fresh-context input, and (b) surface `warnings` + `out_of_scope_observations` to the user. A maintainer that returns free-form prose breaks the loop. Production precedents: `production-repo-B/.claude/agents/<prefix>-maintainer.md:192-220`, `production-repo-C/.claude/agents/<prefix>-maintainer.md:99-129`. The maintainer template at [`../templates/claude-layer/agents/REPO-maintainer.md`](../templates/claude-layer/agents/REPO-maintainer.md) includes this block — preserve it verbatim during substitution.
 
 ### 3. `<prefix>-reviewer` — Post-implementation reviewer (read-only)
 
@@ -98,12 +98,12 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 | Model | `inherit` |
 | Invoked when | After maintainer hand-off (step 4 of `/<prefix>-implement` loop) |
 | Inputs received | `files_touched`, `proposed_commit_message`, `baseline_analyze` — and nothing else from the maintainer |
-| Output | Classified list: `BLOCKER`, `SHOULD-FIX` (also called `WARN`), `NIT` |
+| Output | Classified list: `BLOCKER`, `WARN` (written `SHOULD-FIX` in some repos), `NIT` |
 
 **Invariants:**
 
-- Read-only: "Do not edit product code." (`<prefix>-reviewer.md:110-111`)
-- **Blockers must cite a skill rule.** "If you cannot point to a non-negotiable rule in `<prefix>` or `utopia-hooks`, downgrade to WARN." (`<prefix>-reviewer.md:123-124`)
+- Read-only: "Do not edit product code." (`production-repo-B/.claude/agents/<prefix>-reviewer.md:111-112`)
+- **Blockers must cite a skill rule.** "If you cannot point to a non-negotiable rule in `<prefix>` or `utopia-hooks`, downgrade to WARN." (`production-repo-B/.claude/agents/<prefix>-reviewer.md:123-124`)
 - "Do not invent fixes that aren't grounded in a skill or foundation rule."
 - "Do not duplicate the precommit auditor's job — your scope is correctness and convention, not commit-readiness hygiene."
 - **Independence is the reviewer's only superpower** — does not see the maintainer's self-report, reasoning, or warnings.
@@ -124,7 +124,7 @@ Every Utopia project ships **exactly four standard agents**, named with the repo
 - Debug artifacts (`print`, `console.log`, fresh `TODO(self)`)
 - Generated-file edits leaking past the hook
 - Package-import violations
-- Skill-specific naming (e.g. activity codes, `*Ref` suffixes)
+- Skill-specific naming (e.g. domain entity codes, `*Ref` suffixes)
 - Scaffolding comments (`// placeholder`, `// TODO ai`)
 - AI-cruft comments (see [evolution-and-drift.md](evolution-and-drift.md))
 - Formatter regressions
@@ -223,7 +223,7 @@ Every agent body, in this order:
 
 The repo-A and repo-B maintainers inline a comment-style section. It is repeated in the reviewer and precommit-auditor to make the rule independently enforceable. Verbatim core rules:
 
-- "If the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it." (`<prefix>-maintainer.md:188-189`)
+- "If the comment wouldn't make sense to a reader who has never seen this conversation, PR, or review thread — delete it." (`production-repo-A/.claude/agents/<prefix>-maintainer.md:188-189`)
 - Always-bad examples (treat as BLOCK in review): `// Added per user request for <TASK-ID>`, `// FIXME from the review feedback`, `// This handles the case where Ben mentioned in Slack`, `// Removed the bool flag — see commit`, `// AI-generated layout for the new flow`.
 - Inline `//` for genuine WHY (subtle invariants, workarounds for specific bugs); `///` for public API doc comments; never for narrating WHAT the code does or referencing the prompt.
 
@@ -241,7 +241,7 @@ Each agent adds description-matching noise. Every new agent should have a §"Age
 
 ### Frontmatter without `model: inherit`
 
-Hard-coding `model: opus-4` means the user can't downgrade to sonnet for cost. The standard is `inherit`.
+Hard-coding `model: opus` means the user can't downgrade to sonnet for cost. The standard is `inherit`.
 
 ### Description that explains what the agent IS
 

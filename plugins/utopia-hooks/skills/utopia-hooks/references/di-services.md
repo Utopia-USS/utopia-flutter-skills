@@ -1,13 +1,15 @@
 ---
 title: Dependency Injection & Services
 impact: MEDIUM
-tags: di, injection, services, useInjected, bridge, get_it, provider
+tags: di, injection, services, useInjected, utopia_injector, Injector, get_it, bridge
 ---
 
 # Skill: Dependency Injection & Services
 
-Services are accessed via a `useInjected<T>()` bridge hook that wraps your project's existing DI.
-This decouples screens from concrete implementations and enables testability.
+Services are accessed in state hooks via `useInjected<T>()` - a one-line hook you declare over
+whatever DI the project already has. This skill does not care which container that is or how it
+is set up; this file covers only the hook-side wiring (utopia_injector, get_it, or
+BuildContext-based DI underneath).
 
 ## Quick Pattern
 
@@ -22,7 +24,7 @@ TasksScreenState useTasksScreenState() {
 **Correct (injected service):**
 ```dart
 TasksScreenState useTasksScreenState() {
-  final service = useInjected<TaskService>(); // resolved via DI bridge
+  final service = useInjected<TaskService>(); // resolved from the provided Injector
   // ...
 }
 ```
@@ -31,8 +33,7 @@ TasksScreenState useTasksScreenState() {
 
 - Accessing Firebase services, API clients, or data transformation services in a screen state hook
 - Accessing services in a global state hook
-- Adding a new service to the app
-- Writing a service that depends on other services
+- Declaring `useInjected` in a project that doesn't have it yet
 
 ---
 
@@ -40,14 +41,14 @@ TasksScreenState useTasksScreenState() {
 
 Services own all contact with infrastructure (Firebase, gRPC, SharedPreferences, file system, HTTP). Hooks own all state. This means:
 
-- A service exposes methods that return `Stream<T>`, `Future<T>`, or synchronous `T` — it never holds mutable state
+- A service exposes methods that return `Stream<T>`, `Future<T>`, or synchronous `T` - it never holds mutable state
 - A hook calls `useInjected<Service>()` and passes the service's streams/futures to `useMemoizedStream`, `useAutoComputedState`, `useSubmitState`, etc.
-- The hook never knows *how* data is stored or fetched — only *what* to ask for
+- The hook never knows *how* data is stored or fetched - only *what* to ask for
 
 ```dart
 // ❌ Hook calls infrastructure directly
 ProfileState useProfileState() {
-  final data = useAutoComputedState(
+  final dataState = useAutoComputedState(
     () async => database.collection('profiles').doc(userId).get(),  // infra in hook
   );
   // ...
@@ -56,7 +57,7 @@ ProfileState useProfileState() {
 // ✅ Service wraps infrastructure, hook calls service
 ProfileState useProfileState() {
   final profileService = useInjected<ProfileService>();
-  final data = useAutoComputedState(
+  final dataState = useAutoComputedState(
     () async => profileService.load(userId),  // hook doesn't know how/where
   );
   // ...
@@ -65,51 +66,47 @@ ProfileState useProfileState() {
 
 ---
 
-## Service Types
+## Declaring useInjected
 
-| Suffix | Responsibility | I/O | Returns |
-|--------|----------------|-----|---------|
-| `FirebaseService` | Firestore CRUD | Stream / Future | Stream for reads, Future for writes |
-| `ApiService` | gRPC / REST calls | Future | Future |
-| `DataService` | Pure transformations | None | Synchronous |
-| `AssetService` | Local asset loading | Future | Future |
+`useInjected` is a one-liner over the project's container, declared once:
 
 ```dart
-// FirebaseService — Firestore streams
-class TaskFirebaseService extends FirestoreRepositoryService {
-  Stream<IList<Task>> streamTasks(String userId) =>
-      streamList('users/$userId/tasks', Task.fromJson);
-
-  Future<void> save(Task task) => set('users/${task.userId}/tasks/${task.id}', task.toJson());
-}
-
-// ApiService — gRPC call
-class TaskApiService {
-  final GrpcClient _grpc;
-  TaskApiService(this._grpc);
-
-  Future<TaskResponse> createTask(CreateTaskRequest req) =>
-      _grpc.execute((client) => client.createTask(req));
-}
-
-// DataService — pure, no I/O
-class TaskDataService {
-  IList<Task> filterByStatus(IList<Task> tasks, TaskStatus status) =>
-      tasks.where((it) => it.status == status).toIList();
-
-  TaskSummary buildSummary(IList<Task> tasks) =>
-      TaskSummary(total: tasks.length, done: tasks.count((it) => it.isDone));
-}
+T useInjected<T>() => useProvided<Injector>().get();
 ```
+
+With utopia_injector, the `Injector` is built before `runApp` and registered as the first
+`_providers` entry, so everything below it may `useInjected`:
+
+```dart
+const _providers = {
+  Injector: AppInjector.use,
+  AuthState: useAuthState,
+  // ...
+};
+```
+
+(`utopia_arch`, if the project uses it, ships exactly this one-liner ready-made - keep only
+one `useInjected` in scope. Container setup, registration variants, and layering are the DI
+package's own concern, not this skill's.)
+
+**Where `useInjected` is allowed:**
+
+| Location | Allowed? |
+|----------|----------|
+| Screen state hook (`useXScreenState`) | ✅ Yes |
+| Global state hook (`useXState` in `_providers`) | ✅ Yes |
+| View (`StatelessWidget.build`) | ❌ No - not a hook context, and Views stay service-free |
+| Screen widget (`HookWidget.build`) | ❌ No - Screen is pure wiring; all services go in the state hook |
+| Custom hooks | ✅ Yes, if called from an allowed hook |
 
 ---
 
-## Creating the useInjected Bridge Hook
+## Fallback: Bridging Non-Utopia DI
 
-`useInjected<T>()` is not a framework class — it's a one-liner you write yourself to bridge
-your project's existing DI into hook context. Pick the variant matching your DI:
+If the project already uses another container, write your own `useInjected` bridge instead of
+importing `utopia_arch`'s. Keep exactly one `useInjected` in scope.
 
-### For get_it (most common)
+### get_it
 
 ```dart
 // hooks/use_injected.dart
@@ -117,28 +114,33 @@ T useInjected<T extends Object>() => GetIt.I<T>();
 ```
 
 Services are registered as usual in get_it:
+
 ```dart
-// di/injection.dart
 final getIt = GetIt.instance;
 
 void setupDependencies() {
   getIt.registerSingleton(TaskDataService());
   getIt.registerSingleton(TaskFirebaseService());
-  getIt.registerFactory(() => TaskApiService(getIt<GrpcClient>()));
+  getIt.registerFactory(() => TaskApiService(getIt<GrpcClientService>()));
 }
 ```
 
-### For a simple service locator
+### package:provider and other BuildContext-based DI
+
+`useProvided<T>()` does **not** read `package:provider` - it only reads utopia's own provider
+container (`HookProviderContainerWidget`, `ValueProvider`). To consume services provided with
+`package:provider`, either bridge through the BuildContext:
 
 ```dart
 // hooks/use_injected.dart
-T useInjected<T>() => ServiceLocator.instance.get<T>();
+T useInjected<T>() => Provider.of<T>(useBuildContext(), listen: false);
 ```
 
-### For BuildContext-based DI (provider, etc.)
+or re-provide the value into the utopia container so `useProvided<T>()` works:
 
-If your services are provided via `Provider` in the widget tree, you can use
-`useProvided<T>()` directly — no bridge needed.
+```dart
+ValueProvider(apiClient, child: /* subtree where useProvided<ApiClient>() resolves */);
+```
 
 ---
 
@@ -163,28 +165,38 @@ TasksScreenState useTasksScreenState() {
 }
 ```
 
-**Where `useInjected` is allowed:**
+---
 
-| Location | Allowed? |
-|----------|----------|
-| Screen state hook (`useXScreenState`) | ✅ Yes |
-| Global state hook (`useXState` in `_providers`) | ✅ Yes |
-| View (`StatelessWidget.build`) | ❌ No — not a hook context |
-| Screen widget (`HookWidget.build`) | ❌ No — Screen is pure wiring; all services go in the state hook |
-| Custom hooks | ✅ Yes, if called from an allowed hook |
+## Reverse Bridge: Exposing Live Hook State to Services
+
+When a service method needs the current value of hook state (e.g. current user, locale), register
+a `ServiceContext` - a `MutableInjector` into which a global state hook publishes a
+`useValueWrapper`-wrapped value; services then resolve that `Value<T>` at call time, not boot time.
+Reach for this only when the service genuinely requires live hook state; keep the published set
+value-only to avoid inverting the architecture.
+
+```dart
+// Inside useAuthState() - publishes live user to ServiceContext
+final serviceContext = useInjected<ServiceContext>();
+final userValue = useValueWrapper(user); // stable wrapper, fresh .value each build
+useImmediateEffect(() {
+  serviceContext.register.override.instance<Value<User?>>(userValue);
+}, []);
+```
 
 ---
 
 ## Common Pitfalls
 
-- **Accessing infrastructure directly in hooks** — `FirebaseDatabase.instance.ref(...)`, `SharedPreferences.getInstance()`, raw HTTP clients in a hook body. Always wrap in a service and use `useInjected<Service>()`. The hook should never know *how* data is stored or fetched — only *what* to ask for.
-- **Injecting in View or Screen** — `View extends StatelessWidget` cannot call hooks; `Screen` is pure wiring and must not call `useInjected`. All services go in the state hook.
-- **Ensure your DI has the type registered** — if `useInjected<T>()` throws at runtime, the service isn't registered in your DI container
-- **Using `useInjected` inside a regular function** — only valid inside a hook build context; don't call it inside a `Future` or callback body
-- **One service doing too much** — split large services by type (Firebase vs API vs Data); keeps responsibilities clear and tests isolated
+- **Accessing infrastructure directly in hooks** - `FirebaseDatabase.instance.ref(...)`, `SharedPreferences.getInstance()`, raw HTTP clients in a hook body. Always wrap in a service and use `useInjected<Service>()`.
+- **Injecting in View or Screen** - `View extends StatelessWidget` cannot call hooks; `Screen` is pure wiring and must not call `useInjected`. All services go in the state hook.
+- **`useInjected` fails at runtime** - the service isn't registered in the container, or the `Injector` entry is missing from `_providers` (then it fails on `useProvided<Injector>` instead).
+- **Using `useInjected` inside a regular function** - only valid inside a hook build context; don't call it inside a `Future` or callback body. Resolve the service during build, use it in the callback.
+- **One service doing too much** - split large services by type (Firebase vs API vs Data); keeps responsibilities clear and tests isolated.
 
 ## Related Skills
 
-- [screen-state-view.md](./screen-state-view.md) — useInjected in the State hook
-- [global-state.md](./global-state.md) — useInjected in global state hooks
-- [async-patterns.md](./async-patterns.md) — calling service methods via useSubmitState
+- [screen-state-view.md](./screen-state-view.md) - useInjected in the State hook
+- [global-state.md](./global-state.md) - useInjected in global state hooks, ordered _providers map
+- [async-patterns.md](./async-patterns.md) - calling service methods via useSubmitState
+- [testing.md](./testing.md) - test Injector with register.instance / register.override mocks
