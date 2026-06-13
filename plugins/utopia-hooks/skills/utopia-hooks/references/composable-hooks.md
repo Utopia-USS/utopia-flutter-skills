@@ -23,8 +23,8 @@ Use when a widget has enough local complexity to warrant its own hook: animation
 ```dart
 // ❌ Local complexity inlined in screen state - ties screen logic to tile behavior
 ScreenState useScreenState() {
-  final expandedIds = useState<ISet<ItemId>>(const ISet.empty());
-  final loadedDetails = useMap(expandedIds.value.toSet(), (id) =>
+  final expandedIdsState = useState<ISet<ItemId>>(const ISet.empty());
+  final loadedDetails = useMap(expandedIdsState.value.toSet(), (id) =>
     useAutoComputedState(() => service.loadDetails(id)));
 
   // screen state is now entangled with tile animation/loading logic
@@ -57,7 +57,7 @@ ui/pages/items/
       view/item_tile_view.dart     ← StatelessWidget, pure UI
 ```
 
-**Full example - expandable tile with lazy loading:**
+**Full example - expandable tile with lazy loading** (the state hook is the teaching core; widget shell + view follow the standard Screen/State/View shape):
 
 ```dart
 // state/item_tile_state.dart
@@ -67,77 +67,32 @@ class ItemTileState {
   final bool isExpanded;
   final bool isLoadingDetails;
   final void Function() onToggle;
-
   const ItemTileState({
-    required this.item,
-    required this.details,
-    required this.isExpanded,
-    required this.isLoadingDetails,
-    required this.onToggle,
+    required this.item, required this.details, required this.isExpanded,
+    required this.isLoadingDetails, required this.onToggle,
   });
 }
 
 ItemTileState useItemTileState({required Item item}) {
   final service = useInjected<ItemService>();
-  final isExpanded = useState(false);
-  final details = useAutoComputedState(
+  final isExpandedState = useState(false);
+  final detailsState = useAutoComputedState(
     () async => service.loadDetails(item.id),
     keys: [item.id],
-    shouldCompute: isExpanded.value,  // lazy - only load when expanded
+    shouldCompute: isExpandedState.value,  // lazy - only load when expanded
   );
 
   return ItemTileState(
     item: item,
-    details: details.valueOrNull,
-    isExpanded: isExpanded.value,
-    isLoadingDetails: isExpanded.value && !details.isInitialized,
-    onToggle: () => isExpanded.value = !isExpanded.value,
+    details: detailsState.valueOrNull,
+    isExpanded: isExpandedState.value,
+    isLoadingDetails: isExpandedState.value && !detailsState.isInitialized,
+    onToggle: () => isExpandedState.value = !isExpandedState.value,
   );
 }
 
-// item_tile_widget.dart
-class ItemTile extends HookWidget {
-  final Item item;
-  const ItemTile({required this.item, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = useItemTileState(item: item);
-    return ItemTileView(state: state);
-  }
-}
-
-// view/item_tile_view.dart
-class ItemTileView extends StatelessWidget {
-  final ItemTileState state;
-  const ItemTileView({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(state.item.title),
-            trailing: Icon(state.isExpanded ? Icons.expand_less : Icons.expand_more),
-            onTap: state.onToggle,
-          ),
-          if (state.isExpanded) _buildDetails(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetails() {
-    if (state.isLoadingDetails) return const CrazyLoader();
-    if (state.details == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(state.details!.description),
-    );
-  }
-}
+// item_tile_widget.dart - HookWidget shell: calls useItemTileState(item: item), returns ItemTileView(state: state)
+// view/item_tile_view.dart - StatelessWidget: ListTile + trailing expand icon, reveals details (CrazyLoader while isLoadingDetails) when isExpanded
 ```
 
 **When to extract a widget-level hook:**
@@ -178,13 +133,13 @@ return ScreenState(
 // ✅ State created in screen's state hook, passed to widget
 ScreenState useScreenState() {
   final pagingState = usePagingState(totalPages: 10); // screen owns it
-  final items = useAutoComputedState(
+  final itemsState = useAutoComputedState(
     () => service.load(page: pagingState.currentPage),
     keys: [pagingState.currentPage],   // screen can react to page changes
   );
 
   return ScreenState(
-    items: items.valueOrNull,
+    items: itemsState.valueOrNull,
     paging: pagingState,   // passed to PagingWidget via ScreenState
   );
 }
@@ -220,83 +175,38 @@ class PagingState {
 
 // The composable hook - called from parent screen state
 PagingState usePagingState({required int totalPages}) {
-  final page = useState(0);
+  final pageState = useState(0);
   return PagingState(
-    currentPage: page.value,
+    currentPage: pageState.value,
     totalPages: totalPages,
-    onNext: () { if (page.value < totalPages - 1) page.value++; },
-    onPrevious: () { if (page.value > 0) page.value--; },
+    onNext: () { if (pageState.value < totalPages - 1) pageState.value++; },
+    onPrevious: () { if (pageState.value > 0) pageState.value--; },
   );
 }
 
-// Reusable widget - StatelessWidget, receives state
+// Reusable widget - StatelessWidget, receives state (prev/next IconButtons gated on
+// state.canGoPrevious / state.canGoNext, with a '${currentPage + 1} / $totalPages' label)
 class PagingWidget extends StatelessWidget {
   final PagingState state;
   const PagingWidget({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: state.canGoPrevious ? state.onPrevious : null,
-        ),
-        Text('${state.currentPage + 1} / ${state.totalPages}'),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: state.canGoNext ? state.onNext : null,
-        ),
-      ],
-    );
-  }
+  // build(): Row of chevron IconButtons + page label
 }
 
-// Screen state hook - composes usePagingState
+// Screen state hook - composes usePagingState, reacts to page changes
 ProductListScreenState useProductListScreenState() {
   final service = useInjected<ProductService>();
-  final totalCount = useProvided<ProductsState>().totalCount ?? 0;
-  final totalPages = (totalCount / 20).ceil();
-
-  // State created here - screen can react to page changes
-  final paging = usePagingState(totalPages: totalPages);
-
-  final products = useAutoComputedState(
+  final totalPages = ((useProvided<ProductsState>().totalCount ?? 0) / 20).ceil();
+  final paging = usePagingState(totalPages: totalPages);  // screen owns it
+  final productsState = useAutoComputedState(
     () => service.loadPage(paging.currentPage, pageSize: 20),
     keys: [paging.currentPage],
   );
 
   return ProductListScreenState(
-    products: products.valueOrNull,
-    isLoading: !products.isInitialized,
-    paging: paging,  // passed to PagingWidget in View
+    products: productsState.valueOrNull,
+    isLoading: !productsState.isInitialized,
+    paging: paging,  // View passes the whole PagingState to PagingWidget(state: state.paging)
   );
-}
-
-// Screen state class
-class ProductListScreenState {
-  final IList<Product>? products;
-  final bool isLoading;
-  final PagingState paging;  // ← View passes this to PagingWidget
-  // ...
-}
-
-// View wires it up
-class ProductListScreenView extends StatelessWidget {
-  final ProductListScreenState state;
-  // ...
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (state.isLoading) const CrazyLoader()
-        else _buildProductList(),
-        PagingWidget(state: state.paging),  // just passes state down
-      ],
-    );
-  }
 }
 ```
 
@@ -439,41 +349,21 @@ A list of N items where each item has its own state (expansion, per-item async, 
 
 Use when parent never needs to inspect individual item state. The tile owns its own async, flags, caches; if parent needs "it's done," a single feedback callback suffices.
 
-**Worked example - tile with lazy-loaded content + expansion, parent-agnostic:**
+Same shape as the Pattern 1 expandable tile above (full `widget/state/view`), with one addition: an optional `onResultLoaded` feedback callback so the parent learns "it's done" without owning the state.
 
 ```dart
-// widgets/item_tile/state/item_tile_state.dart
-class ItemTileState {
-  final Item item;
-  final MutableValue<bool> expandedState;
-  final ItemDetails? details;
-  final bool isLoadingDetails;
-  final void Function() onReload;
-
-  const ItemTileState({
-    required this.item,
-    required this.expandedState,
-    required this.details,
-    required this.isLoadingDetails,
-    required this.onReload,
-  });
-}
-
 ItemTileState useItemTileState({
   required Item item,
-  required void Function(ItemId, ItemDetails)? onResultLoaded,  // optional feedback
+  void Function(ItemId, ItemDetails)? onResultLoaded,  // optional feedback
 }) {
   final service = useInjected<ItemService>();
   final expandedState = useState(false);
-
-  // Per-item async, self-cached across expand/collapse
   final detailsState = useComputedState(() async => service.loadDetails(item.id));
 
   // Trigger load when expanded; notify parent when done (if caller cares)
   useEffect(() async {
     if (expandedState.value && detailsState.value is! ComputedStateValueInProgress) {
-      final data = await detailsState.refresh();
-      onResultLoaded?.call(item.id, data);
+      onResultLoaded?.call(item.id, await detailsState.refresh());
     }
     return null;
   }, [expandedState.value, item]);
@@ -488,16 +378,7 @@ ItemTileState useItemTileState({
 }
 ```
 
-Parent screen only passes the item + an optional feedback callback. `loadMore`, `expandedIds`, `loadedDetails` concerns disappear from the screen state entirely.
-
-File structure (full Pattern 1):
-
-```
-widgets/item_tile/
-  item_tile.dart          ← HookWidget shell, calls useItemTileState
-  state/item_tile_state.dart  ← state class + hook above
-  view/item_tile_view.dart    ← StatelessWidget, reads state, renders UI
-```
+Parent passes only the item + an optional callback. `loadMore`, `expandedIdsState`, `loadedDetails` concerns disappear from the screen state entirely.
 
 ### Archetype B.1: Fixed N - just call the hook multiple times
 
@@ -540,23 +421,23 @@ When N grows/shrinks at runtime, `useMap` gives you one hook instance per key, s
 ```dart
 // The per-item hook - non-trivial, multiple internal hooks
 EditorItemState useEditorItemState({required ItemId id}) {
-  final value = useFieldState();
-  final label = useFieldState();
+  final valueState = useFieldState();
+  final labelState = useFieldState();
   final saveState = useSubmitState();
-  final isValid = value.value.isNotEmpty && label.value.isNotEmpty;
+  final isValid = valueState.value.isNotEmpty && labelState.value.isNotEmpty;
 
   return EditorItemState(
     id: id,
-    value: value,
-    label: label,
+    value: valueState,
+    label: labelState,
     isValid: isValid,
     isSaving: saveState.inProgress,
     save: () => saveState.runSimple<void, Never>(
-      submit: () async => service.save(id, value.value, label.value),
+      submit: () async => service.save(id, valueState.value, labelState.value),
     ),
     reset: () {
-      value.value = '';
-      label.value = '';
+      valueState.value = '';
+      labelState.value = '';
     },
   );
 }
@@ -592,33 +473,7 @@ for (final id in itemIds)
   EditorItemTile(state: state.itemStates[id]!)
 ```
 
-Key lifecycle: adding an id to `itemIds` → new hook instance initialised; removing an id → that instance disposed. `useMap` keeps the Map identity stable across rebuilds so list identity doesn't churn.
-
-**Upgrade: parent-owned dynamic key set with per-item removal.** When rows are added and
-removed by the user (editable forms, draft lists), the parent owns a mutable `ISet` of keys
-and passes a removal closure into each sub-state. Removing mutates the key set, which makes
-`useMap` dispose that sub-hook instance on the next build. The View receives a flat `IList`
-of sub-states - no Map lookups in the View:
-
-```dart
-// The per-item hook gains an onRemove callback it exposes on its state
-EditorListScreenState useEditorListScreenState() {
-  final itemIds = useState<ISet<ItemId>>(const ISet.empty());
-
-  final itemStates = useMap(itemIds.value.toSet(), (id) {
-    return useEditorItemState(
-      id: id,
-      // Removal closure - each sub-state can take itself out of the set
-      onRemove: () => itemIds.modify((it) => it.remove(id)),
-    );
-  });
-
-  return EditorListScreenState(
-    items: itemStates.values.toIList(),  // View renders the list of sub-states
-    onAddItem: () => itemIds.modify((it) => it.add(ItemId.generate())),
-  );
-}
-```
+Key lifecycle: adding an id to `itemIds` → new hook instance initialised; removing an id → that instance disposed. `useMap` keeps the Map identity stable across rebuilds. For user-editable rows, let the parent own a mutable `useState<ISet<ItemId>>` and pass a removal closure into each sub-state (`onRemove: () => itemIds.modify((it) => it.remove(id))`); removing from the set disposes that instance on the next build, and the View can render `itemStates.values.toIList()` with no Map lookups.
 
 ### Archetype C: Screen-state `Map<Key, Flag>` - only for trivial single-flag cases
 
@@ -626,10 +481,10 @@ If per-item state is one small flag and parent always reads it, the screen hook 
 
 ```dart
 // Dismissible banners - screen tracks which are dismissed
-final dismissedBanners = useState<ISet<BannerId>>(const ISet.empty());
+final dismissedBannersState = useState<ISet<BannerId>>(const ISet.empty());
 
 void dismiss(BannerId id) =>
-    dismissedBanners.value = dismissedBanners.value.add(id);
+    dismissedBannersState.value = dismissedBannersState.value.add(id);
 ```
 
 Don't scale this: the moment per-item state adds a second field, async, or lifecycle, move to archetype A or B.
@@ -660,24 +515,24 @@ MutableValue<T> useOverridable<T extends Object>(
   T serverValue, {
   required Future<void> Function(T value) persist,
 }) {
-  final override = useState<T?>(null);
+  final overrideState = useState<T?>(null);
   final submitState = useSubmitState();
   final isMounted = useIsMounted();
 
   // Server caught up with the override - resume tracking the server value.
   useEffect(() {
-    if (override.value != null && override.value == serverValue) override.value = null;
+    if (overrideState.value != null && overrideState.value == serverValue) overrideState.value = null;
   }, [serverValue]);
 
   return MutableValue.computed(
-    () => override.value ?? serverValue,
+    () => overrideState.value ?? serverValue,
     (newValue) {
-      final previous = override.value;
-      override.value = newValue; // optimistic - UI updates immediately
+      final previous = overrideState.value;
+      overrideState.value = newValue; // optimistic - UI updates immediately
       unawaited(submitState.runSimple<void, Never>(
         submit: () => persist(newValue),
         afterError: () {
-          if (isMounted()) override.value = previous; // revert on failure
+          if (isMounted()) overrideState.value = previous; // revert on failure
         },
       ));
     },
@@ -702,26 +557,26 @@ flashes for 80ms reads as a glitch, not as loading.
 
 ```dart
 bool useMinimumLoading(bool isLoading, {Duration minimum = const Duration(milliseconds: 500)}) {
-  final shownAt = useState<DateTime?>(null, listen: false); // latch - no rebuild needed
-  final holding = useState(false);
+  final shownAtState = useState<DateTime?>(null, listen: false); // latch - no rebuild needed
+  final holdingState = useState(false);
 
   useEffect(() {
     if (isLoading) {
-      shownAt.value = DateTime.now();
+      shownAtState.value = DateTime.now();
       return null;
     }
-    if (shownAt.value == null) return null; // loader never showed
-    final remaining = minimum - DateTime.now().difference(shownAt.value!);
+    if (shownAtState.value == null) return null; // loader never showed
+    final remaining = minimum - DateTime.now().difference(shownAtState.value!);
     if (remaining <= Duration.zero) {
-      holding.value = false; // reset - a previous hold may still be latched
+      holdingState.value = false; // reset - a previous hold may still be latched
       return null;
     }
-    holding.value = true;
-    final timer = Timer(remaining, () => holding.setIfMounted(false));
+    holdingState.value = true;
+    final timer = Timer(remaining, () => holdingState.setIfMounted(false));
     return timer.cancel;
   }, [isLoading]);
 
-  return isLoading || holding.value;
+  return isLoading || holdingState.value;
 }
 
 // Usage in a state hook:

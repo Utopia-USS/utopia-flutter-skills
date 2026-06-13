@@ -48,7 +48,7 @@ Services own all contact with infrastructure (Firebase, gRPC, SharedPreferences,
 ```dart
 // ❌ Hook calls infrastructure directly
 ProfileState useProfileState() {
-  final data = useAutoComputedState(
+  final dataState = useAutoComputedState(
     () async => database.collection('profiles').doc(userId).get(),  // infra in hook
   );
   // ...
@@ -57,7 +57,7 @@ ProfileState useProfileState() {
 // ✅ Service wraps infrastructure, hook calls service
 ProfileState useProfileState() {
   final profileService = useInjected<ProfileService>();
-  final data = useAutoComputedState(
+  final dataState = useAutoComputedState(
     () async => profileService.load(userId),  // hook doesn't know how/where
   );
   // ...
@@ -169,53 +169,20 @@ TasksScreenState useTasksScreenState() {
 
 ## Reverse Bridge: Exposing Live Hook State to Services
 
-Services resolve once, before any hook runs - but occasionally a service method needs the
-*current* value of hook state (current user, selected workspace, locale). The convention is a
-`ServiceContext`: a mutable injector registered like any other dependency, into which global
-state hooks publish live values.
+When a service method needs the current value of hook state (e.g. current user, locale), register
+a `ServiceContext` - a `MutableInjector` into which a global state hook publishes a
+`useValueWrapper`-wrapped value; services then resolve that `Value<T>` at call time, not boot time.
+Reach for this only when the service genuinely requires live hook state; keep the published set
+value-only to avoid inverting the architecture.
 
 ```dart
-// service_context.dart
-class ServiceContext {
-  final _injector = MutableInjector();
-
-  InjectorRegister get register => _injector.register;
-  T get<T>() => _injector.get<T>();
-}
-
-// app_injector.dart
-register.noarg(ServiceContext.new);
-```
-
-A global state hook publishes a value once; `useValueWrapper` returns a stable `Value<T>` whose
-`.value` is refreshed on every build, so one registration stays live:
-
-```dart
-// Inside useAuthState()
+// Inside useAuthState() - publishes live user to ServiceContext
 final serviceContext = useInjected<ServiceContext>();
-final userValue = useValueWrapper(user);  // stable wrapper, fresh value each build
+final userValue = useValueWrapper(user); // stable wrapper, fresh .value each build
 useImmediateEffect(() {
   serviceContext.register.override.instance<Value<User?>>(userValue);
 }, []);
 ```
-
-Services resolve at call time, never at construction time:
-
-```dart
-class AuditService {
-  final ServiceContext _context;
-
-  AuditService(Injector injector) : _context = injector();
-
-  Future<void> log(String action) async {
-    final user = _context.get<Value<User?>>().value;  // current value, not a boot-time snapshot
-    // ...
-  }
-}
-```
-
-Keep the published set tiny and value-only - publishing callbacks into hook logic inverts the
-architecture and makes services stateful by proxy.
 
 ---
 

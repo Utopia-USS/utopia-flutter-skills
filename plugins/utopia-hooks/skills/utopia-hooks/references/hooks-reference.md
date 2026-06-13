@@ -42,31 +42,31 @@ Complete reference for utopia_hooks, organized by what you're trying to do.
 Mutable local state. Signature: `StateHookState<T> useState<T>(T initialValue, {bool listen = true, HookKeys keys})`. `StateHookState<T>` implements `MutableValue<T>` - read `.value`, write `.value =`, or use `.modify()` for collections.
 
 ```dart
-final count = useState(0);
-final filter = useState(FilterType.all);
-final items = useState<IList<Task>>(const IList.empty());
+final countState = useState(0);
+final filterState = useState(FilterType.all);
+final itemsState = useState<IList<Task>>(const IList.empty());
 
-count.value++;
-filter.value = FilterType.active;
-items.modify((it) => it.add(newTask));
+countState.value++;
+filterState.value = FilterType.active;
+itemsState.modify((it) => it.add(newTask));
 ```
 
 `listen: false` - creates state without triggering rebuilds (for use inside custom hooks):
 ```dart
-final state = useState(value, listen: false);
+final dataState = useState(value, listen: false);
 ```
 
 `keys:` - resets the state back to `initialValue` when the keys change:
 ```dart
-final selection = useState<ItemId?>(null, keys: [categoryId]);  // cleared when category changes
+final selectionState = useState<ItemId?>(null, keys: [categoryId]);  // cleared when category changes
 ```
 
 `StateHookState` also exposes `mounted` and `setIfMounted(value)` - use them in async callbacks that may complete after dispose (setting `.value` on an unmounted state throws in debug mode):
 ```dart
-final progress = useState(0.0);
+final progressState = useState(0.0);
 Future<void> track(Stream<double> events) async {
   await for (final p in events) {
-    if (!progress.setIfMounted(p)) return;  // stop when unmounted
+    if (!progressState.setIfMounted(p)) return;  // stop when unmounted
   }
 }
 ```
@@ -76,7 +76,7 @@ Future<void> track(Stream<double> events) async {
 Same as `useState`, but the initial value is built by a function on first use - for expensive-to-construct initial values:
 
 ```dart
-final draft = useStateLazy(() => buildInitialDraft(template));  // runs once, not on every build
+final draftState = useStateLazy(() => buildInitialDraft(template));  // runs once, not on every build
 ```
 
 Signature: `StateHookState<T> useStateLazy<T>(T Function() init, {bool listen = true, HookKeys keys})`.
@@ -87,9 +87,9 @@ Cached derived value. Re-computes only when `keys` change. Prefer over `useEffec
 
 ```dart
 // ❌ useEffect to derive state - unnecessary indirection
-final sorted = useState<IList<Task>?>(null);
+final sortedState = useState<IList<Task>?>(null);
 useEffect(() {
-  sorted.value = tasks?.sortedBy((it) => it.dueDate).toIList();
+  sortedState.value = tasks?.sortedBy((it) => it.dueDate).toIList();
   return null;
 }, [tasks]);
 
@@ -266,11 +266,11 @@ final profile = snap.data;  // null while loading
 Delays propagating a value change until the user stops for `duration`:
 
 ```dart
-final query = useState('');
-final debouncedQuery = useDebounced(query.value, duration: const Duration(milliseconds: 300));
+final queryState = useState('');
+final debouncedQuery = useDebounced(queryState.value, duration: const Duration(milliseconds: 300));
 
 // debouncedQuery only changes 300ms after user stops typing
-final results = useAutoComputedState(
+final resultsState = useAutoComputedState(
   () => searchService.search(debouncedQuery),
   keys: [debouncedQuery],
 );
@@ -304,16 +304,16 @@ The two core async primitives map to a simple mental model:
 **Your default "download" hook.** Auto-loads async data on first build, re-fetches when `keys` change. Use for any read operation: loading a screen's data, fetching a list, computing a result from an API. Returns `MutableComputedState<T>` - you can not only read it, but also drive it manually. Full coverage in [async-patterns.md](./async-patterns.md).
 
 ```dart
-final product = useAutoComputedState(
+final productState = useAutoComputedState(
   () async => productService.load(productId),
   keys: [productId],
   shouldCompute: authState.isInitialized,
 );
 
 // Reading
-product.isInitialized   // false until first ready value
-product.valueOrNull     // T? - null while loading / not initialized
-product.value           // ComputedStateValue<T> - notInitialized / inProgress / ready(T) / failed(e)
+productState.isInitialized   // false until first ready value
+productState.valueOrNull     // T? - null while loading / not initialized
+productState.value           // ComputedStateValue<T> - notInitialized / inProgress / ready(T) / failed(e)
 
 // Driving it manually: refresh() / updateValue(next) / clear()
 // In-flight semantics + the parallel-useState anti-pattern: async-patterns.md "Driving it manually"
@@ -385,14 +385,31 @@ saveState.inProgress       // bool - true while at least one run is in flight
 saveState.toButtonState(enabled: isValid, onTap: save)  // ButtonState for UI
 ```
 
-`run<T>(block, {bool isRetryable = true})` is the low-level primitive; `runSimple<T, E>` layers structured lifecycle callbacks on top - full signature in [async-patterns.md](./async-patterns.md).
+`run<T>(block, {bool isRetryable = true})` is the low-level primitive; `runSimple<T, E>` layers structured lifecycle callbacks on top. Full signature:
+
+```dart
+Future<void> runSimple<T, E>({
+  FutureOr<bool> Function()? shouldSubmit,         // pre-check, return false to abort
+  FutureOr<void> Function()? afterShouldNotSubmit, // runs when shouldSubmit returned false
+  FutureOr<void> Function()? beforeSubmit,         // runs before submit
+  required Future<T> Function() submit,            // the async work
+  FutureOr<void> Function(T)? afterSubmit,         // called on success with result
+  FutureOr<E?> Function(Object)? mapError,         // convert raw error → typed E (null = unknown)
+  FutureOr<void> Function(E)? afterKnownError,     // handle typed error
+  FutureOr<void> Function()? afterError,           // runs on ANY error, before mapError
+  bool isRetryable = true,                         // unknown errors get a Retryable handle
+  bool skipIfInProgress = false,                   // silently skip if already running
+})
+```
+
+The when/why, error-handling strategy, and cross-hook patterns live in [async-patterns.md](./async-patterns.md).
 
 ### usePaginatedComputedState
 
 **Your default "cursor-paginated download" hook.** Handles the full lifecycle of a paginated list: first-page auto-load, `loadMore`, pull-to-refresh, keys-triggered refresh, debouncing, deduplication, cancellation. Pairs with `PaginatedComputedStateWrapper` for infinite scroll + pull-to-refresh. Full coverage in [paginated.md](./paginated.md).
 
 ```dart
-final users = usePaginatedComputedState<User, String?>(
+final usersState = usePaginatedComputedState<User, String?>(
   initialCursor: null,
   (token) async {
     final response = await api.getUsers(pageToken: token);
@@ -403,9 +420,9 @@ final users = usePaginatedComputedState<User, String?>(
   deduplicateBy: (u) => u.id,       // drop items whose id already appears
 );
 
-users.items                         // List<T>? - null until first successful load
-users.hasMore / users.isLoading / users.error
-users.loadMore() / users.refresh({bool clearCache = false}) / users.clear()
+usersState.items                         // List<T>? - null until first successful load
+usersState.hasMore / usersState.isLoading / usersState.error
+usersState.loadMore() / usersState.refresh({bool clearCache = false}) / usersState.clear()
 ```
 
 Cursor `C` is opaque - use `int` for offset/page or `String?` (nullable) for opaque tokens. See [paginated.md](./paginated.md) for the three cursor schemes and the optimistic-overlay pattern.
@@ -415,15 +432,15 @@ Cursor `C` is opaque - use `int` for offset/page or `String?` (nullable) for opa
 Syncs local state with persistent storage (SharedPreferences, Hive, etc.). `get` and `set` are positional parameters:
 
 ```dart
-final themePreference = usePersistedState<ThemeMode>(
+final themePreferenceState = usePersistedState<ThemeMode>(
   () async => prefs.getThemeMode(),           // get
   (value) async => prefs.setThemeMode(value), // set - value is ThemeMode?, null means "clear"
 );
 
-themePreference.isInitialized   // false until the first get completes
-themePreference.isSynchronized  // false while a save is in flight
-themePreference.value           // T? - null before first load and when storage is empty
-themePreference.value = ThemeMode.dark;  // updates immediately, persists via set in the background
+themePreferenceState.isInitialized   // false until the first get completes
+themePreferenceState.isSynchronized  // false while a save is in flight
+themePreferenceState.value           // T? - null before first load and when storage is empty
+themePreferenceState.value = ThemeMode.dark;  // updates immediately, persists via set in the background
 ```
 
 Signature:
@@ -446,7 +463,7 @@ Only available if `utopia_arch` is added as a dependency - not required for core
 
 ```dart
 // Simple types (String, int, double, bool)
-final locale = usePreferencesPersistedState<String>('locale', defaultValue: 'en');
+final localeState = usePreferencesPersistedState<String>('locale', defaultValue: 'en');
 
 // Enums
 final theme = useEnumPreferencesPersistedState<ThemeMode>('theme', ThemeMode.values);
@@ -476,14 +493,14 @@ Returns `MutableFieldState` (alias for `MutableGenericFieldState<String>`) which
 - `.validate(validator)` - runs validator and sets `.errorMessage`
 
 ```dart
-final email = useFieldState(initialValue: user?.email ?? '');
-final age = useGenericFieldState<int>(initialValue: 0);
+final emailState = useFieldState(initialValue: user?.email ?? '');
+final ageState = useGenericFieldState<int>(initialValue: 0);
 
 // Validate manually
-email.errorMessage = isValidEmail(email.value) ? null : (context) => 'Invalid email';
+emailState.errorMessage = isValidEmail(emailState.value) ? null : (context) => 'Invalid email';
 
 // Or use .validate() with a Validator<T>
-email.validate((value) => isValidEmail(value) ? null : (context) => 'Invalid email');
+emailState.validate((value) => isValidEmail(value) ? null : (context) => 'Invalid email');
 
 // In View - error displayed automatically
 CrazyTextField(state: state.email, label: const Text("Email"))
@@ -570,8 +587,8 @@ Re-runs the block (creating fresh hook state) when keys change:
 ```dart
 // Fresh hook state whenever userId changes
 final userHooks = useKeyed([userId], () {
-  final profile = useAutoComputedState(() => service.load(userId));
-  return profile;
+  final profileState = useAutoComputedState(() => service.load(userId));
+  return profileState;
 });
 ```
 
@@ -582,7 +599,7 @@ Runs a hook for each key in a `Set`. Keys can change dynamically.
 ```dart
 // ❌ Hook inside loop - breaks ordering
 for (final id in courseIds) {
-  final state = useAutoComputedState(() => load(id), keys: [id]); // WRONG
+  final dataState = useAutoComputedState(() => load(id), keys: [id]); // WRONG
 }
 
 // ✅ useMap - one hook instance per key, stable across rebuilds
@@ -630,28 +647,10 @@ FadeTransition(opacity: fade, child: SlideTransition(position: slide, child: con
 
 ### useFocusNode / useScrollController
 
-**Exported on current `utopia_hooks` master (unreleased at 0.4.25)** - and `utopia_arch` re-exports them along with the rest of `utopia_hooks`. On the published 0.4.25 release they are NOT exported: use the `flutter_hooks` equivalents or the local definitions below. When you upgrade past 0.4.25, delete the local copies (or `hide` one symbol on the import) - otherwise the duplicate names produce an ambiguous-import compile error.
-
-Package signatures on master:
+Lifecycle-managed `FocusNode` and `ScrollController`. Exported from `utopia_hooks` (and re-exported by `utopia_arch`).
 
 ```dart
-FocusNode useFocusNode({String? debugLabel, FocusOnKeyCallback? onKey, FocusOnKeyEventCallback? onKeyEvent, bool skipTraversal = false, bool canRequestFocus = true, bool descendantsAreFocusable = true})
-
-ScrollController useScrollController({double initialScrollOffset = 0.0, bool keepScrollOffset = true, String? debugLabel, HookKeys keys = hookKeysEmpty})
-```
-
-Compiling local versions for 0.4.25:
-
-```dart
-FocusNode useFocusNode({String? debugLabel}) =>
-    useMemoized(() => FocusNode(debugLabel: debugLabel), [], (it) => it.dispose());
-
-ScrollController useScrollController({double initialScrollOffset = 0.0}) =>
-    useMemoized(() => ScrollController(initialScrollOffset: initialScrollOffset), [], (it) => it.dispose());
-```
-
-```dart
-final focus = useFocusNode();
+final focus = useFocusNode(debugLabel: 'email');
 final scroll = useScrollController(initialScrollOffset: 0);
 
 TextField(focusNode: focus)
@@ -723,11 +722,11 @@ Returns last non-null value - the packaged fix for refresh blink (content flashi
 
 ```dart
 // Without: content disappears while refreshing
-final data = useAutoComputedState(() => service.load(id), keys: [id]);
-final display = data.valueOrNull; // null during refresh = blank screen
+final dataState = useAutoComputedState(() => service.load(id), keys: [id]);
+final display = dataState.valueOrNull; // null during refresh = blank screen
 
 // With usePreviousIfNull: old content stays visible during refresh
-final display = usePreviousIfNull(data.valueOrNull);
+final display = usePreviousIfNull(dataState.valueOrNull);
 ```
 
 For the full sticky-value pattern (including the View-side `keepInProgress` alternative), see [async-patterns.md](./async-patterns.md).

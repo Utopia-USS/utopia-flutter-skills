@@ -87,21 +87,10 @@ CmsFilterDateEntry(filterKeys: ['created'], entryKey: 'created_to', label: 'To',
 
 ## The `CmsFilter` algebra
 
-`CmsFilter` is a sealed union - these are the constructors and the operators:
+`CmsFilter` is a sealed union with constructors for equality, comparison, containment, list
+membership, and logical composition (`all`, `and`, `or`, `not`). Compose filters with operators:
 
 ```dart
-const CmsFilter.all();                                                                // identity
-const CmsFilter.equals(String field, Object? value);                                  // the only constructor that accepts null
-const CmsFilter.notEquals(String field, Object value);                                // value is NON-nullable
-const CmsFilter.containsString(String field, String value, {bool caseSensitive = false});
-const CmsFilter.inList(String field, List<Object> values);
-const CmsFilter.greaterOrEq(String field, Object value);
-const CmsFilter.lesserOrEq(String field, Object value);
-const CmsFilter.and(List<CmsFilter> filters);
-const CmsFilter.or(List<CmsFilter> filters);
-const CmsFilter.not(CmsFilter filter);
-
-// Operators
 filter & other;    // AND
 filter | other;    // OR
 ~filter;           // NOT (with De Morgan distribution)
@@ -121,7 +110,7 @@ final query = (verified & search) | CmsFilterEquals('id', 'special-id');
 
 ### NULL and NOT filters
 
-**Known limitation (v0.2.3):** "field is not null" is inexpressible with the filter algebra. `notEquals` takes a non-nullable `Object`, so `notEquals(field, null)` does not compile. And on the Supabase backend the paths that could express null checks are runtime-broken: `CmsFilterEquals(field, null)` and `CmsFilterNot(...)` hit `CmsSupabaseService` calls whose arity doesn't match postgrest 2.x (`isFilter` / `not` invoked on a dynamic builder), throwing `NoSuchMethodError`. Workaround: push null-based constraints into a custom delegate's `get()` override - apply `.not('col', 'is', null)` directly on the Supabase query builder, or read from a pre-filtered DB view.
+**Known limitation (v0.2.3):** "field is not null" has no reliable expression. `CmsFilter.notEquals(field, null)` type-checks (`value` is `Object?`), but the backend delegates don't turn it into an "is not null" query, and on the Supabase backend the paths that could express null checks are runtime-broken: `CmsFilterEquals(field, null)` and `CmsFilterNot(...)` hit `CmsSupabaseService` calls whose arity doesn't match postgrest 2.x (`isFilter` / `not` invoked on a dynamic builder), throwing `NoSuchMethodError`. Workaround: push null-based constraints into a custom delegate's `get()` override - apply `.not('col', 'is', null)` directly on the Supabase query builder, or read from a pre-filtered DB view.
 
 ## Custom filter entries
 

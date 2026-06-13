@@ -122,8 +122,8 @@ Tests a single hook function. Automatically runs the hook on construction and af
 ```dart
 test('counter increments', () {
   final context = SimpleHookContext(() {
-    final count = useState(0);
-    return (value: count.value, increment: () => count.value++);
+    final countState = useState(0);
+    return (value: countState.value, increment: () => countState.value++);
   });
 
   expect(context().value, 0);
@@ -196,14 +196,14 @@ test('effect runs when key changes', () {
   var effectRunCount = 0;
 
   final context = SimpleHookContext(() {
-    final id = useState('a');
+    final idState = useState('a');
 
     useEffect(() {
       effectRunCount++;
       return null;
-    }, [id.value]);
+    }, [idState.value]);
 
-    return id;
+    return idState;
   });
 
   expect(effectRunCount, 1); // ran on mount

@@ -56,19 +56,12 @@ role-based gating in [table-page.md](table-page.md).
 ## API
 
 ```dart
-class CmsManagementSectionEntry {
-  final String title;
-  final bool   showEdit;     // visible when editing (default true)
-  final bool   showCreate;   // visible when creating (default false)
-  final Widget Function(JsonMap? json, bool isEdit) sliverBuilder;
-
-  CmsManagementSectionEntry({
-    required this.title,
-    this.showEdit   = true,
-    this.showCreate = false,
-    required this.sliverBuilder,
-  });
-}
+CmsManagementSectionEntry({
+  required String title,
+  bool showEdit   = true,   // visible when editing
+  bool showCreate = false,  // visible when creating
+  required Widget Function(JsonMap? json, bool isEdit) sliverBuilder,
+});
 ```
 
 - **`title`** - header above the sliver, themed automatically.
@@ -138,17 +131,17 @@ CmsManagementSectionEntry(
   sliverBuilder: (json, _) {
     return HookBuilder(builder: (context) {
       final baseState = Provider.of<CmsManagementBaseState>(context, listen: false);
-      final selected  = useState<Set<String>>(_initialRoles(json));
+      final selectedState = useState<Set<String>>(_initialRoles(json));
 
       // Register a callback that runs when the user clicks "Save"
       useEffect(() {
         baseState.addOnSavedCallback((row) async {
-          await userService.setRoles(row['id'] as String, selected.value);
+          await userService.setRoles(row['id'] as String, selectedState.value);
         });
         return null;
       }, const []);
 
-      return SliverToBoxAdapter(child: RolesPicker(value: selected.value, onChanged: (v) => selected.value = v));
+      return SliverToBoxAdapter(child: RolesPicker(value: selectedState.value, onChanged: (v) => selectedState.value = v));
     });
   },
 )
@@ -201,20 +194,20 @@ class ItemListSection extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final baseState = Provider.of<CmsManagementBaseState>(context, listen: false); // write-only handle
-    final items = useState<List<Item>>(Item.listFromJson(initialJson?['items'])); // seeded once per mount
+    final itemsState = useState<List<Item>>(Item.listFromJson(initialJson?['items'])); // seeded once per mount
 
     void push(List<Item> updated) {
-      items.value = updated;
+      itemsState.value = updated;
       baseState.onValueChanged('items', [for (final e in updated) e.toJson()]); // Save persists it
     }
 
     return SliverList.builder(
-      itemCount: items.value.length,
+      itemCount: itemsState.value.length,
       itemBuilder: (_, i) => ItemEditorRow(
-        key: ValueKey(items.value[i].id), // text fields keep identity across inserts/removals
-        item: items.value[i],
-        onChanged: (item) => push([...items.value]..[i] = item),
-        onRemoved: () => push([...items.value]..removeAt(i)),
+        key: ValueKey(itemsState.value[i].id), // text fields keep identity across inserts/removals
+        item: itemsState.value[i],
+        onChanged: (item) => push([...itemsState.value]..[i] = item),
+        onRemoved: () => push([...itemsState.value]..removeAt(i)),
       ),
     );
   }
@@ -268,25 +261,25 @@ CmsManagementSectionEntry(
     final row = json!; // non-null in practice; 'id' present because the section is edit-only
     return HookBuilder(builder: (context) {
       final submitState = useSubmitState();
-      final current = useState(row['role'] as String? ?? 'USER');
-      final error = useState<String?>(null);
+      final currentState = useState(row['role'] as String? ?? 'USER');
+      final errorState = useState<String?>(null);
 
       Future<void> onChanged(String role) => submitState.runSimple<void, String>(
-            shouldSubmit: () => role != current.value, // no-op guard
-            beforeSubmit: () => error.value = null,
+            shouldSubmit: () => role != currentState.value, // no-op guard
+            beforeSubmit: () => errorState.value = null,
             submit: () async {
               await userService.updateRole(row['id'] as String, role); // own RPC, not the row delegate
-              current.value = role;
+              currentState.value = role;
             },
             mapError: (e) => e is CmsDelegateException ? e.message : null,
-            afterKnownError: (message) => error.value = message,
+            afterKnownError: (message) => errorState.value = message,
           );
 
       return SliverToBoxAdapter(
         child: Row(children: [
-          RolePicker(value: current.value, enabled: !submitState.inProgress, onChanged: onChanged),
+          RolePicker(value: currentState.value, enabled: !submitState.inProgress, onChanged: onChanged),
           if (submitState.inProgress) const CmsLoader(),
-          if (error.value != null) Expanded(child: Text(error.value!)),
+          if (errorState.value != null) Expanded(child: Text(errorState.value!)),
         ]),
       );
     });

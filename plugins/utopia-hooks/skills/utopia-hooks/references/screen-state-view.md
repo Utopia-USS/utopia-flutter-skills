@@ -24,12 +24,12 @@ class TasksScreen extends HookWidget {
   Widget build(BuildContext context) {
     final tasks = useProvided<TasksState>().tasks;
     final service = useInjected<TaskService>();
-    final isLoading = useState(false);
+    final isLoadingState = useState(false);
 
     Future<void> deleteTask(TaskId id) async {
-      isLoading.value = true;
+      isLoadingState.value = true;
       await service.delete(id);
-      isLoading.value = false;
+      isLoadingState.value = false;
     }
 
     return ListView(
@@ -572,29 +572,29 @@ ProductScreenState useProductScreenState({
   final service = useInjected<ProductService>();
 
   // Local state
-  final nameField = useFieldState();
-  final product = useAutoComputedState(() => service.load(productId));
+  final nameState = useFieldState();
+  final productState = useAutoComputedState(() => service.load(productId));
   final saveState = useSubmitState();
 
   // Sync name field when product loads.
-  // product.value is ComputedStateValue<Product>, not Product - bind valueOrNull first.
+  // productState.value is ComputedStateValue<Product>, not Product - bind valueOrNull first.
   useEffect(() {
-    final p = product.valueOrNull;
-    if (p != null) nameField.value = p.name;
+    final p = productState.valueOrNull;
+    if (p != null) nameState.value = p.name;
     return null;
-  }, [product.valueOrNull?.name]);
+  }, [productState.valueOrNull?.name]);
 
   void save() => saveState.runSimple<void, AppError>(
-    submit: () async => service.update(productId, name: nameField.value),
+    submit: () async => service.update(productId, name: nameState.value),
     afterSubmit: (_) => navigateBack(),
     mapError: (e) => e is AppError ? e : null,
     afterKnownError: (e) => showErrorSnackbar('Failed to save: ${e.message}'),
   );
 
   return ProductScreenState(
-    product: product.valueOrNull,
+    product: productState.valueOrNull,
     isSaving: saveState.inProgress,
-    nameField: nameField,
+    nameField: nameState,
     onSavePressed: save,
     onDeletePressed: () {/* ... */},
   );

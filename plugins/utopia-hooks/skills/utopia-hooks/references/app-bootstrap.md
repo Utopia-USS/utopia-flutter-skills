@@ -37,8 +37,8 @@ Future<void> main() async {
 
 // Each bootstrap step is a HasInitialized global state
 FirebaseState useFirebaseState() {
-  final init = useAutoComputedState<void>(() => Firebase.initializeApp());
-  return FirebaseState(isInitialized: init.isInitialized); // extends HasInitialized
+  final initState = useAutoComputedState<void>(() => Firebase.initializeApp());
+  return FirebaseState(isInitialized: initState.isInitialized); // extends HasInitialized
 }
 
 // One aggregate (InitializationState) composes readiness and gates the splash - see below
@@ -114,7 +114,7 @@ ProfileState useProfileState() {
   final auth = useProvided<AuthState>();
   final service = useInjected<ProfileService>();
 
-  final profile = useAutoComputedState(
+  final profileState = useAutoComputedState(
     () => service.load(auth.userId!),
     shouldCompute: auth.isInitialized && auth.isLoggedIn,
     keys: [auth.userId], // re-load when the user changes
@@ -122,8 +122,8 @@ ProfileState useProfileState() {
 
   return ProfileState(
     // Not-applicable-tolerant: logged out means there is no profile step to wait for.
-    isInitialized: auth.isInitialized && (!auth.isLoggedIn || profile.isInitialized),
-    profile: profile.valueOrNull,
+    isInitialized: auth.isInitialized && (!auth.isLoggedIn || profileState.isInitialized),
+    profile: profileState.valueOrNull,
   );
 }
 ```
@@ -135,7 +135,7 @@ Three things make this chain correct:
 - **`shouldCompute: false` clears the state immediately** - logout wipes the profile
   automatically, no manual cleanup effect needed.
 - **Every `ComputedState` implements `HasInitialized`** (`isInitialized` == value is ready),
-  so `profile.isInitialized` composes directly into the formula.
+  so `profileState.isInitialized` composes directly into the formula.
 
 ### The not-applicable-tolerant formula
 
@@ -197,51 +197,51 @@ When readiness needs domain gates beyond the flags, compose manually with the
 ## Splash gating - the boot decision tree
 
 The splash screen renders nothing (the native splash, e.g. `flutter_native_splash`, still
-covers the app), waits for the aggregate flag, then routes exactly once. A render-nothing
-screen has no View and its hook returns `void` - this is the lightweight tier from
-[screen-state-view.md](./screen-state-view.md) ("The Lightweight Tier"), not a new exception.
-Route names come from the screens' own `static route` constants
-(see [navigation.md](./navigation.md)) - never inline string literals. The Screen itself is
-standard wiring: it builds each callback as
-`() => Navigator.of(context).pushReplacementNamed(XScreen.route)`, passes
-`FlutterNativeSplash.remove` as `removeNativeSplash`, and returns `const SizedBox.shrink()`.
+covers the app), waits for the aggregate flag, then routes exactly once. It is the lightweight
+tier from [screen-state-view.md](./screen-state-view.md) ("The Lightweight Tier"): a single
+`HookWidget` that reads the globals and runs the decision tree inline in `build` - no
+State/View split, no separate hook, and (since the tree IS its only logic) no navigate-callback
+parameters. Route names come from the screens' own `static route` constants
+(see [navigation.md](./navigation.md)) - never inline string literals.
 
 ```dart
-void useSplashScreenState({
-  required void Function() navigateToUpdateRequired,
-  required void Function() navigateToLanding,
-  required void Function() navigateToRegistration,
-  required void Function() navigateToMain,
-  required void Function() removeNativeSplash,
-}) {
-  final initialization = useProvided<InitializationState>();
-  final config = useProvided<RemoteConfigState>();
-  final auth = useProvided<AuthState>();
-  final profile = useProvided<ProfileState>();
+class SplashScreen extends HookWidget {
+  static const route = '/splash';
 
-  useEffect(() {
-    if (!initialization.isInitialized) return null;
+  @override
+  Widget build(BuildContext context) {
+    final initialization = useProvided<InitializationState>();
+    final config = useProvided<RemoteConfigState>();
+    final auth = useProvided<AuthState>();
+    final profile = useProvided<ProfileState>();
 
-    // Decision tree - first match wins
-    if (config.isUpdateRequired) {
-      navigateToUpdateRequired();
-    } else if (!auth.isLoggedIn) {
-      navigateToLanding();
-    } else if (profile.profile?.isRegistrationComplete != true) {
-      navigateToRegistration();
-    } else {
-      navigateToMain();
-    }
-    removeNativeSplash();
-    return null;
-  }, [initialization.isInitialized]);
+    useEffect(() {
+      if (!initialization.isInitialized) return null;
+
+      // Decision tree - first match wins. Navigate inline; the Screen owns context.
+      final navigator = context.navigator;
+      if (config.isUpdateRequired) {
+        navigator.pushReplacementNamed(UpdateRequiredScreen.route);
+      } else if (!auth.isLoggedIn) {
+        navigator.pushReplacementNamed(LandingScreen.route);
+      } else if (profile.profile?.isRegistrationComplete != true) {
+        navigator.pushReplacementNamed(RegistrationScreen.route);
+      } else {
+        navigator.pushReplacementNamed(MainScreen.route);
+      }
+      FlutterNativeSplash.remove();
+      return null;
+    }, [initialization.isInitialized]);
+
+    return const SizedBox.shrink();
+  }
 }
 ```
 
 The effect is keyed on the single aggregate flag: it runs once on mount (flag still `false`,
-returns early) and once when the flag flips. Navigation stays in callbacks built by the Screen,
-per the core rule. If your app can regress mid-session (sign-out, forced re-auth), the splash
-one-shot is not enough - see the status-driven redirect in [navigation.md](./navigation.md).
+returns early) and once when the flag flips. Navigation lives in the Screen's own effect, where
+`BuildContext` belongs. If your app can regress mid-session (sign-out, forced re-auth), the
+splash one-shot is not enough - see the status-driven redirect in [navigation.md](./navigation.md).
 
 ## SDK init races
 
@@ -255,12 +255,12 @@ ItemsState useItemsState() {
   final firebase = useProvided<FirebaseState>();
   final service = useInjected<ItemService>();
 
-  final items = useAutoComputedState(
+  final itemsState = useAutoComputedState(
     () => service.fetchAll(),              // touches Firestore
     shouldCompute: firebase.isInitialized, // re-triggers itself when the SDK comes up
   );
 
-  return ItemsState(isInitialized: items.isInitialized, items: items.valueOrNull);
+  return ItemsState(isInitialized: itemsState.isInitialized, items: itemsState.valueOrNull);
 }
 ```
 
@@ -280,13 +280,13 @@ class BillingSetupState extends HasInitialized {
 
 BillingSetupState useBillingSetupState() {
   final service = useInjected<BillingService>();
-  final setup = useAutoComputedState<void>(() => service.configure());
-  return BillingSetupState(isInitialized: setup.isInitialized);
+  final setupState = useAutoComputedState<void>(() => service.configure());
+  return BillingSetupState(isInitialized: setupState.isInitialized);
 }
 ```
 
 Readiness IS the computed value: `isInitialized` is derived from it, failure leaves it
-`false` (the aggregate keeps gating), and `setup.refresh()` is a free retry.
+`false` (the aggregate keeps gating), and `setupState.refresh()` is a free retry.
 
 ## Retryable bootstrap
 
@@ -297,7 +297,7 @@ affordances:
 class RemoteConfigState extends HasInitialized {
   final Config? config;
   final Object? error; // non-null when bootstrap failed
-  final Future<void> Function() retry;
+  final Future<void> Function() retry; // on the state, travelling with the flag the splash reads
 
   const RemoteConfigState(
       {required super.isInitialized, required this.config, required this.error, required this.retry});
@@ -305,13 +305,13 @@ class RemoteConfigState extends HasInitialized {
 
 RemoteConfigState useRemoteConfigState() {
   final service = useInjected<ConfigService>();
-  final config = useAutoComputedState(() => service.fetch(), isRetryable: true);
+  final configState = useAutoComputedState(() => service.fetch(), isRetryable: true);
 
   return RemoteConfigState(
-    isInitialized: config.isInitialized,
-    config: config.valueOrNull,
-    error: config.value.maybeWhen(failed: (e) => e, orElse: () => null),
-    retry: config.refresh,
+    isInitialized: configState.isInitialized,
+    config: configState.valueOrNull,
+    error: configState.value.maybeWhen(failed: (e) => e, orElse: () => null),
+    retry: configState.refresh,
   );
 }
 ```

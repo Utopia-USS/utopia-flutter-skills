@@ -56,7 +56,7 @@ throws at you, and a broadcast stream carries each error (with its `Retryable` h
 to the UI layer:
 
 ```dart
-typedef AppError = ({Object error, void Function()? retry});
+typedef AppError = ({Object error});
 
 void runWithGlobalErrorHandling(
   AppReporter reporter,
@@ -66,7 +66,7 @@ void runWithGlobalErrorHandling(
 
   void handle(Object error, StackTrace? stack) {
     reporter.report(error, stack);
-    controller.add((error: error, retry: Retryable.tryGet(error)?.retry));
+    controller.add((error: error)); // Retryable stays attached to error; recover via tryGet
   }
 
   // Framework errors (build/layout/paint). Silent ones are reported but not surfaced.
@@ -159,7 +159,7 @@ class AppErrorDialog extends StatelessWidget {
       content: Text(kDebugMode ? error.error.toString() : "Something has gone wrong."),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Close")),
-        if (error.retry case final retry?)
+        if (Retryable.tryGet(error.error)?.retry case final retry?)
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -187,8 +187,8 @@ class Retryable {
 
 `Retryable.make` attaches the retry closure to the error object itself (via an `Expando`), so the
 original exception keeps propagating unchanged and any catcher - including the app-root catcher -
-can recover the retry with `Retryable.tryGet(error)`. The `AppError.retry` field built above is
-exactly that.
+can recover the retry with `Retryable.tryGet(error)`. The dialog above does exactly that - it
+reads the retry off the error object instead of carrying a duplicate field on `AppError`.
 
 **Who attaches it (defaults):**
 
@@ -253,27 +253,9 @@ useEffect(() {
 }, [tokenSnap.hasError]);
 ```
 
-### Declarative crash context
-
-Tiny `useEffect` wrappers turn telemetry into one-liners that global state hooks declare
-alongside the state itself:
-
-```dart
-// e.g. Sentry scope, Crashlytics custom keys - whatever your SDK exposes
-void useCrashContext(String key, Object? value) {
-  useEffect(() {
-    crashReporting.setContext(key, value); // your SDK call
-  }, [value]);
-}
-
-// In useAuthState():
-useCrashContext("userId", user?.uid);
-
-// Breadcrumb on every transition of a key flag:
-useEffect(() => appReporter.info("Auth changed: loggedIn=${user != null}"), [user != null]);
-```
-
-Crash reports then always carry the current user/session context with zero imperative wiring.
+For crash context (user/session keys, breadcrumbs), wrap your SDK's `setContext` in a tiny
+`useEffect` hook that global state hooks declare alongside the state - same pattern as the
+`warning` effect above, keyed on the value so it re-runs only on change.
 
 ## Common Pitfalls
 

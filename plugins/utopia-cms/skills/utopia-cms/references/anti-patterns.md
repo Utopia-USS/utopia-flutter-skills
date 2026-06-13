@@ -43,15 +43,15 @@ class ProductsScreenState {
 
 ProductsScreenState useProductsScreenState() {
   final service = useInjected<ProductService>();        // hand-rolled Firestore service
-  final products = useState<IList<Product>?>(null);
-  final isLoading = useState(true);
-  final error = useState<String?>(null);
+  final productsState = useState<IList<Product>?>(null);
+  final isLoadingState = useState(true);
+  final errorState = useState<String?>(null);
 
   Future<void> load() async {
-    isLoading.value = true; error.value = null;
-    try { products.value = await service.loadProducts(); }
-    catch (e) { error.value = e.toString(); }
-    finally { isLoading.value = false; }
+    isLoadingState.value = true; errorState.value = null;
+    try { productsState.value = await service.loadProducts(); }
+    catch (e) { errorState.value = e.toString(); }
+    finally { isLoadingState.value = false; }
   }
 
   useEffect(() { load(); return null; }, const []);
@@ -217,28 +217,7 @@ missing framework capability forces it, e.g.
 When upstream grows that capability, the comment tells you the page can
 collapse back into `CmsTablePage`.
 
-The singleton-config form has one recurring bug: a background refetch
-re-hydrating the controllers while the admin is typing. Guard hydration with a
-reload counter so it runs exactly once per explicit reload:
-
-```dart
-final reloadCounter = useState(0);                  // bump to refetch + rehydrate
-final configState = useAutoComputedState(() => service.fetchConfig(), keys: [reloadCounter.value]);
-final priceController = useMemoized(TextEditingController.new, const []);
-final hydratedFor = useState(-1);
-
-useEffect(() {
-  final v = configState.value;
-  if (v is! ComputedStateValueReady<Config?>) return null;
-  if (hydratedFor.value == reloadCounter.value) return null;   // hydrate ONCE per reload
-  priceController.text = v.value?.price?.toString() ?? '';     // empty field = absent in DB
-  hydratedFor.value = reloadCounter.value;
-  return null;
-}, [configState.value]);
-```
-
-Save with `useSubmitState`; treat an empty input as "field absent" rather than
-silently injecting defaults, so the admin sees exactly what is persisted.
+The singleton-config form requires a hydration latch (a reload counter plus a `hydratedFor` guard) to keep background refetches from clobbering in-progress edits: seed the field state once per load id, save via `useSubmitState`, and treat empty fields as absent rather than defaulted.
 
 These are *not* anti-patterns - the framework deliberately exposes shell +
 theme primitives so non-table admin pages still look native to the panel. The

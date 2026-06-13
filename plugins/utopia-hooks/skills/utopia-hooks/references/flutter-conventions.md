@@ -424,14 +424,14 @@ EditProductScreenState useEditProductScreenState({
   required String initialName,
   required void Function() navigateBack,
 }) {
-  final nameField = useFieldState(initialValue: initialName);
+  final nameState = useFieldState(initialValue: initialName);
   final saveState = useSubmitState();
   // ...
   return EditProductScreenState(
-    nameField: nameField,
+    nameField: nameState,
     isSaving: saveState.inProgress,
     onSavePressed: () => saveState.runSimple<void, Never>(
-      submit: () async => service.update(name: nameField.value),
+      submit: () async => service.update(name: nameState.value),
       afterSubmit: (_) => navigateBack(),
     ),
   );

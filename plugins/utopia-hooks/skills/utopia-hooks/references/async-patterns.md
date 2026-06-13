@@ -22,19 +22,19 @@ Async operations in utopia_hooks follow a **download / upload / stream** mental 
 
 **Incorrect (manual loading flag):**
 ```dart
-final isLoading = useState(false);
-final error = useState<String?>(null);
+final isLoadingState = useState(false);
+final errorState = useState<String?>(null);
 
 Future<void> submit() async {
-  isLoading.value = true;
-  error.value = null;
+  isLoadingState.value = true;
+  errorState.value = null;
   try {
     await service.save(data);
     navigateBack();
   } catch (e) {
-    error.value = e.toString();
+    errorState.value = e.toString();
   } finally {
-    isLoading.value = false;
+    isLoadingState.value = false;
   }
 }
 ```
@@ -76,22 +76,11 @@ void onTrigger() {
 }
 ```
 
-### runSimple - full signature
+### runSimple - the params this file teaches
 
-```dart
-Future<void> runSimple<T, E>({
-  FutureOr<bool> Function()? shouldSubmit,         // pre-check, return false to abort
-  FutureOr<void> Function()? afterShouldNotSubmit, // runs when shouldSubmit returned false
-  FutureOr<void> Function()? beforeSubmit,         // runs before submit
-  required Future<T> Function() submit,            // the async work
-  FutureOr<void> Function(T)? afterSubmit,         // called on success with result
-  FutureOr<E?> Function(Object)? mapError,         // convert raw error → typed E (null = unknown)
-  FutureOr<void> Function(E)? afterKnownError,     // handle typed error
-  FutureOr<void> Function()? afterError,           // runs on ANY error, before mapError
-  bool isRetryable = true,                         // unknown errors get a Retryable handle
-  bool skipIfInProgress = false,                   // silently skip if already running
-})
-```
+Full signature lives in [hooks-reference.md](./hooks-reference.md) §4 (`useSubmitState`). The three this file leans on:
+`shouldSubmit` (pre-check, return false to abort - the validation gate, see "Form Validation" below),
+`mapError` (raw error → typed `E`, null = unknown/rethrow), and `afterKnownError` (handle the typed error).
 
 ### Error-handling strategy - let errors crash by default
 
@@ -140,8 +129,10 @@ useEffect(() {
     try {
       final verified = await authService.isEmailVerified();
       emailVerifiedState.setIfMounted(verified);
-    } on NetworkException {
-      // documented fallback for the one case we tolerate; setIfMounted stays false
+    } on NetworkException catch (e) {
+      // documented fallback for the one case we tolerate; setIfMounted stays false.
+      // Still report it as a warning - an expected exception is not a silent one.
+      appReporter.warning('email verification check failed', e: e);
     }
   });
   return null;
@@ -239,31 +230,31 @@ Signature and basic usage are in [hooks-reference.md](./hooks-reference.md). The
 - `clear()` - reset to `notInitialized`; cancels any in-flight computation
 
 ```dart
-final product = useAutoComputedState(() => service.load(id), keys: [id]);
+final productState = useAutoComputedState(() => service.load(id), keys: [id]);
 
 // After a save that returns the updated entity - no round-trip needed
-void onSaved(Product updated) => product.updateValue(updated);
+void onSaved(Product updated) => productState.updateValue(updated);
 
 // Local edit, reflect immediately then reconcile on next keys change
-void onFieldEdited(Product edited) => product.updateValue(edited);
+void onFieldEdited(Product edited) => productState.updateValue(edited);
 
 // Log out - drop cached value
-void onLogout() => product.clear();
+void onLogout() => productState.clear();
 ```
 
 **Anti-pattern: parallel `useState` override for a computed state.** If you find yourself writing `useState<T?>` next to `useAutoComputedState<T>` to "override" the loaded value after a mutation or local edit, call `updateValue` on the computed state instead. Mirroring the value in a separate `useState` duplicates the source of truth and silently drifts from `refresh()` / keys-triggered reloads.
 
 ```dart
-// ❌ Duplicated state - productOverride shadows product
-final product = useAutoComputedState(() => service.load(id), keys: [id]);
-final productOverride = useState<Product?>(null);
-final current = productOverride.value ?? product.valueOrNull;
-void onEdited(Product p) => productOverride.value = p;
+// ❌ Duplicated state - productOverrideState shadows productState
+final productState = useAutoComputedState(() => service.load(id), keys: [id]);
+final productOverrideState = useState<Product?>(null);
+final current = productOverrideState.value ?? productState.valueOrNull;
+void onEdited(Product p) => productOverrideState.value = p;
 
 // ✅ Single source of truth
-final product = useAutoComputedState(() => service.load(id), keys: [id]);
-final current = product.valueOrNull;
-void onEdited(Product p) => product.updateValue(p);
+final productState = useAutoComputedState(() => service.load(id), keys: [id]);
+final current = productState.valueOrNull;
+void onEdited(Product p) => productState.updateValue(p);
 ```
 
 The same applies to `useComputedState` - it returns the same `MutableComputedState<T>`.
@@ -274,19 +265,19 @@ Never bump a `useState<int>` to force a recompute - `MutableComputedState` alrea
 
 ```dart
 // ❌ Counter in keys carries no information, only "something happened"
-final refreshTrigger = useState(0);
-final data = useAutoComputedState(
+final refreshTriggerState = useState(0);
+final dataState = useAutoComputedState(
   () => repo.fetch(query),
-  keys: [query, refreshTrigger.value],
+  keys: [query, refreshTriggerState.value],
 );
-void onRefresh() => refreshTrigger.value++;
+void onRefresh() => refreshTriggerState.value++;
 
 // ✅ Imperative action → method call
-final data = useAutoComputedState(() => repo.fetch(query), keys: [query]);
-void onRefresh() => data.refresh();
+final dataState = useAutoComputedState(() => repo.fetch(query), keys: [query]);
+void onRefresh() => dataState.refresh();
 
 // ✅ Reactive to real state → key on that state
-useEffect(() { data.refresh(); related.refresh(); }, [user.id]);
+useEffect(() { dataState.refresh(); related.refresh(); }, [user.id]);
 ```
 
 **Rule:** imperative actions use method calls; reactive `keys` take real domain values. A `useState<int>` + `value++` + counter-in-keys is always one of those two wearing the wrong clothes - it hides fan-out in the reactivity graph and the first conditional in `onRefresh` forces a rewrite anyway. Applies to every `useState` used only to trigger an effect (`useEffect` + dummy key, `setState({})`-style rebuild bumps).
@@ -390,60 +381,48 @@ useEffect(() {
 
 ### Countdown timer
 
-Composed from the same blocks - no manual `Timer` bookkeeping: `usePeriodicalSignal` drives the ticks (`enabled` stops it at zero and resumes after a reset), an effect keyed on the round resets, and `useValueChanged` decrements per tick:
+No manual `Timer` bookkeeping and no per-tick mutation: derive `remaining` from a deadline,
+let `usePeriodicalSignal` drive rebuilds. The deadline is the single source of truth - a tick
+re-renders, it does not mutate a counter, so the value can never drift:
 
 ```dart
-final remaining = useState(roundDuration);
-final tick = usePeriodicalSignal(
-  period: const Duration(seconds: 1),
-  enabled: remaining.value > Duration.zero,  // stops at zero, resumes when reset
-);
-
-// reset whenever a new round starts
-useEffect(() => remaining.value = roundDuration, [roundId]);
-
-useValueChanged(tick, (_, __) => remaining.value -= const Duration(seconds: 1));
+final deadline = useMemoized(() => DateTime.now().add(roundDuration), [roundId]);
+final left = deadline.difference(DateTime.now());
+final remaining = left.isNegative ? Duration.zero : left;
+usePeriodicalSignal(period: const Duration(seconds: 1), enabled: !left.isNegative);  // ticks until zero, then stops
 ```
 
-`useValueChanged`, not `useEffect(keys: [tick])` - an effect also fires on first build, which would eat one second at mount; `useValueChanged` runs only when the tick actually changes. (Arrow-bodied effects are fine: `useEffect` only treats the returned value as a cleanup when it IS a `void Function()`.)
+`useMemoized` keyed on `roundId` resets the deadline each round; the signal only triggers
+rebuilds. Computing `remaining` from `DateTime.now()` beats decrementing a `useState` per tick:
+no drift, no separate reset/decrement bookkeeping, no first-build off-by-one.
 
 ---
 
 ## Sticky values - refresh without UI blink
 
-`refresh()` (or a keys change) puts a computed state back into `inProgress`, so `valueOrNull` returns `null` and a naive View blinks to its loader even though it showed perfectly good data a frame ago. Four tools:
+`refresh()` (or a keys change) puts a computed state back into `inProgress`, so `valueOrNull` returns `null` and a naive View blinks to its loader even though it showed perfectly good data a frame ago. Three tools:
 
-**1. The manual latch** - a `useState(listen: false)` that remembers the last non-null value (`listen: false` because the rebuild is already driven by the computed state):
-
-```dart
-final product = useAutoComputedState(() => service.load(id), keys: [id]);
-final latch = useState<Product?>(null, listen: false);
-
-final live = product.valueOrNull;
-if (live != null) latch.value = live;
-final visibleProduct = live ?? latch.value;  // stays on screen during refresh
-```
-
-**2. `usePreviousIfNull` - the packaged variant** of the same latch:
+**1. `usePreviousIfNull`** - remembers the last non-null value across a refresh:
 
 ```dart
-final visibleProduct = usePreviousIfNull(product.valueOrNull);
+final productState = useAutoComputedState(() => service.load(id), keys: [id]);
+final visibleProduct = usePreviousIfNull(productState.valueOrNull);  // stays on screen during refresh
 ```
 
-(`product.useValueOrPrevious()` is the equivalent extension method on `ComputedState`.)
+(`productState.useValueOrPrevious()` is the equivalent extension method on `ComputedState`.)
 
-**3. Refresh inside the submit run** - when the refresh is caused by a mutation, await it inside `run`/`runSimple` so the button spinner only ends when the data is fresh and the screen never renders a half-updated state:
+**2. Refresh inside the submit run** - when the refresh is caused by a mutation, await it inside `run`/`runSimple` so the button spinner only ends when the data is fresh and the screen never renders a half-updated state:
 
 ```dart
 void save() => saveState.runSimple<void, Never>(
   submit: () async {
     await service.update(edited);
-    await Future.wait([product.refresh(), relatedList.refresh()]);
+    await Future.wait([productState.refresh(), relatedList.refresh()]);
   },
 );
 ```
 
-**4. `keepInProgress: true` on `ComputedStateWrapper`** - the View-side switch: while a refresh is in progress the wrapper keeps rendering the previous ready value instead of `inProgressBuilder`. See [hooks-reference.md](./hooks-reference.md) for the wrapper's parameters.
+**3. `keepInProgress: true` on `ComputedStateWrapper`** - the View-side switch: while a refresh is in progress the wrapper keeps rendering the previous ready value instead of `inProgressBuilder`. See [hooks-reference.md](./hooks-reference.md) for the wrapper's parameters.
 
 ---
 
@@ -462,15 +441,15 @@ useStreamSubscription(
 When the re-entrant trigger is not a stream (a `Listenable` callback, an effect), no strategy parameter exists - use the 9-line manual guard:
 
 ```dart
-final isHandling = useState(false, listen: false);
+final isHandlingState = useState(false, listen: false);
 
 Future<void> onTrigger() async {
-  if (isHandling.value) return;
-  isHandling.value = true;
+  if (isHandlingState.value) return;
+  isHandlingState.value = true;
   try {
     await showConfirmationDialog();
   } finally {
-    isHandling.value = false;
+    isHandlingState.value = false;
   }
 }
 ```
@@ -487,25 +466,25 @@ ProfileState useProfileState() {
   final api = useInjected<ProfileApi>();
 
   // Cache - read once on mount, persisted on every write
-  final cached = usePersistedState<Profile>(
+  final cachedState = usePersistedState<Profile>(
     () async => (await store.read('profile'))?.let(Profile.fromJson),
     (value) async =>
         value == null ? store.delete('profile') : store.write('profile', value.toJson()),
   );
 
   // Network - fires on mount; a failed fetch leaves the cache untouched
-  final fresh = useAutoComputedState(api.fetchProfile, isRetryable: true);
+  final freshState = useAutoComputedState(api.fetchProfile, isRetryable: true);
 
-  // Fresh data updates the cache (writing cached.value also persists it)
+  // Fresh data updates the cache (writing cachedState.value also persists it)
   useEffect(() {
-    final value = fresh.valueOrNull;
-    if (value != null) cached.value = value;
-  }, [fresh.valueOrNull]);
+    final value = freshState.valueOrNull;
+    if (value != null) cachedState.value = value;
+  }, [freshState.valueOrNull]);
 
   return ProfileState(
-    profile: fresh.valueOrNull ?? cached.value,  // network wins; cache fills the gap
-    isStale: !fresh.isInitialized,
-    refresh: fresh.refresh,
+    profile: freshState.valueOrNull ?? cachedState.value,  // network wins; cache fills the gap
+    isStale: !freshState.isInitialized,
+    refresh: freshState.refresh,
   );
 }
 ```
@@ -522,44 +501,35 @@ final emailState = useFieldState(initialValue: user?.email ?? '');
 final passwordState = useFieldState();
 final submitState = useSubmitState();
 
-bool isFormValid() =>
-    !emailState.hasError &&
-    !passwordState.hasError &&
-    emailState.value.isNotEmpty &&
-    passwordState.value.isNotEmpty;
+// .validate() runs the validator, sets .errorMessage, and returns whether the field is valid.
+// Validate by design lives on shouldSubmit: run every field, return false to abort the submit.
+bool validate() => [
+      emailState.validate((it) => isValidEmail(it) ? null : (context) => 'Invalid email'),
+      passwordState.validate((it) => it.length >= 8 ? null : (context) => 'Minimum 8 characters'),
+    ].every((it) => it);
 
-void validateAndSubmit() {
-  // .validate() runs the validator and sets .errorMessage automatically
-  emailState.validate((v) => isValidEmail(v) ? null : (context) => 'Invalid email');
-  passwordState.validate((v) => v.length >= 8 ? null : (context) => 'Minimum 8 characters');
-
-  if (!isFormValid()) return;
-
-  submitState.runSimple<void, LoginApiException>(
-    beforeSubmit: () => passwordState.errorMessage = null,  // clear stale server errors
-    submit: () async => authService.login(
-      email: emailState.value,
-      password: passwordState.value,
-    ),
-    afterSubmit: (_) => navigateToHome(),
-    // Known backend errors → typed E (tryCast is from utopia_utils, re-exported)
-    mapError: (e) => e.tryCast<LoginApiException>(),
-    // Typed error → localized message on the right field
-    afterKnownError: (e) => passwordState.errorMessage = switch (e.code) {
-      LoginErrorCode.invalidCredentials => (context) => 'Incorrect email or password',
-      LoginErrorCode.tooManyAttempts => (context) => 'Too many attempts - try again later',
-    },
-    // Anything else rethrows → global error pipeline (see error-handling.md)
-  );
-}
+void login() => submitState.runSimple<void, LoginApiException>(
+      shouldSubmit: () => !submitState.inProgress && validate(),  // the gate
+      beforeSubmit: () => passwordState.errorMessage = null,  // clear stale server errors
+      submit: () async => authService.login(
+        email: emailState.value,
+        password: passwordState.value,
+      ),
+      afterSubmit: (_) => navigateToHome(),
+      // Known backend errors → typed E (tryCast is from utopia_utils, re-exported)
+      mapError: (e) => e.tryCast<LoginApiException>(),
+      // Typed error → localized message on the right field
+      afterKnownError: (e) => passwordState.errorMessage = switch (e.code) {
+        LoginErrorCode.invalidCredentials => (context) => 'Incorrect email or password',
+        LoginErrorCode.tooManyAttempts => (context) => 'Too many attempts - try again later',
+      },
+      // Anything else rethrows → global error pipeline (see error-handling.md)
+    );
 
 return LoginScreenState(
   email: emailState,
   password: passwordState,
-  loginButtonState: submitState.toButtonState(
-    enabled: isFormValid(),
-    onTap: validateAndSubmit,
-  ),
+  loginButtonState: submitState.toButtonState(onTap: login),
 );
 
 // View - just wire up state
@@ -570,7 +540,7 @@ CrazySquashButton.withState(state: state.loginButtonState, child: const Text("Lo
 
 Two things to note:
 
-- **`errorMessage` is a `ValidatorResult?`** - a typedef for `String Function(BuildContext)?`. The message resolves at render time, so the state hook stays free of `BuildContext` and the localization lookup happens where the field is built (e.g. `(context) => context.strings.invalidCredentials`).
+- **Validation runs in `shouldSubmit`, not a separate gate.** `shouldSubmit` returns false → the submit aborts and the fields already carry their error messages. No manual `isFormValid()` helper, no pre-call `if (!valid) return` - the one gate is the callback. (`errorMessage` is a `ValidatorResult?`, a typedef for `String Function(BuildContext)?`: the message resolves at render time, so the state hook stays free of `BuildContext`.)
 - **The expected/unexpected split:** errors `mapError` recognizes are handled locally as field errors; everything else rethrows out of `runSimple` and surfaces in the global error pipeline - see [error-handling.md](./error-handling.md).
 
 ---
