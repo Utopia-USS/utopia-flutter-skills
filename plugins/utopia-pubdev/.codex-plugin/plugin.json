@@ -1,0 +1,39 @@
+{
+  "name": "utopia-pubdev",
+  "version": "0.1.0",
+  "description": "Compose and standardize pub.dev READMEs for Utopia Dart/Flutter packages - brand-chip header, house voice, section structure, a restrained badge set, a no-sponsor footer with sibling links, and a tool-agnostic AI assistants section. Bundles the brand-chip header generator (package name to Clay PNG via headless Chrome).",
+  "author": {
+    "name": "UtopiaSoftware",
+    "email": "hello@utopiasoft.io",
+    "url": "https://utopiasoft.io"
+  },
+  "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-pubdev",
+  "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "flutter",
+    "dart",
+    "pub.dev",
+    "readme",
+    "branding",
+    "documentation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Utopia Pub.dev",
+    "shortDescription": "pub.dev README and brand standard for Utopia packages.",
+    "longDescription": "Guides Codex through composing and standardizing pub.dev READMEs for Utopia Dart/Flutter packages: the brand-chip header, house voice, minimal vs full section structure, a restrained badge set, a no-sponsor footer with sibling links, and a tool-agnostic AI assistants section. Bundles the brand-chip header generator (package name to Clay PNG via headless Chrome).",
+    "developerName": "UtopiaSoftware",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://utopiasoft.io",
+    "defaultPrompt": [
+      "Write a pub.dev README for a Utopia package.",
+      "Refresh a package README to the Utopia brand standard.",
+      "Generate the brand-chip header image."
+    ]
+  }
+}
