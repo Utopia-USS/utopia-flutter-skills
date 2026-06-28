@@ -15,8 +15,9 @@ Every prebuilt CMS widget consumes the same theme via Provider.
 ### ❌ Anti-pattern
 
 Hard-coded colors inside individual pages (`Container(color: AppColors.background)`),
-one `CmsThemeData` per page, or text styles without an explicit color (CMS widgets
-null-assert `style.color!`).
+one `CmsThemeData` per page, or text styles without an explicit color (harmless on
+stock 0.3.0 widgets, which paint from `CmsThemeColors`, but custom widgets that read
+`style.color` can still render wrong).
 
 ### ✅ utopia_cms way
 
@@ -33,9 +34,9 @@ final cmsThemeData = CmsThemeData(
     error:    AppColors.error,
   ),
   textStyles: CmsThemeTextStyles(
-    // Every style needs an explicit non-null color: CMS widgets dereference
-    // style.color! (e.g. table-header sort icons, as of v0.2.3). Styles whose
-    // color comes from the Material theme (typical GoogleFonts setup) crash.
+    // Give each style an explicit color. 0.3.0 widgets mostly paint text from
+    // CmsThemeColors (e.g. the table header uses colors.text), so a Material-painted
+    // style color no longer crashes - but explicit colors keep custom usages predictable.
     header:  AppText.headline.copyWith(color: AppColors.textPrimary),
     title:   AppText.title.copyWith(color: AppColors.textPrimary),
     label:   AppText.body.copyWith(color: AppColors.textPrimary),
@@ -79,6 +80,16 @@ return CmsWidget(theme: theme, items: [...]);
 - `text` - primary text.
 - `error` - error states.
 
+New in 0.3.0 (all optional, with light-theme defaults - set them to theme the reworked
+table card, zebra striping, hover and chips):
+
+- `surface` - background of the table card and other raised surfaces.
+- `border` - hairline for the card border and row / header dividers.
+- `rowAlt` - tint of alternating (odd) table rows.
+- `hover` - row background while hovered.
+- `chipBackground` / `chipForeground` - fill and content colour of a `CmsChip`.
+- `hint` - muted colour for hints, placeholders and secondary text.
+
 ### `CmsThemeTextStyles`
 
 - `header` - large headings (top of pages).
@@ -88,10 +99,24 @@ return CmsWidget(theme: theme, items: [...]);
 - `caption` - small auxiliary text.
 - `button` - button label text.
 
-**Every style must carry a non-null `color`.** CMS widgets dereference
-`style.color!` (the table-header sort icons do, as of v0.2.3), so a style whose
-color is painted by the Material theme crashes at runtime. When mapping a design
-system, `copyWith(color: ...)` each of the six styles.
+**Give each style an explicit `color`.** In 0.3.0 the prebuilt widgets source their text
+colour from `CmsThemeColors` (the table header and sort icons use `colors.text` / `colors.hint`),
+so a style whose colour comes from the Material theme no longer crashes - but `copyWith(color: ...)`
+on each style keeps any custom rendering predictable.
+
+### `CmsThemeData` table-card & chip tokens (new in 0.3.0)
+
+Beyond `colors` / `textStyles`, `CmsThemeData` gained optional layout tokens for the reworked
+table card and chips (all have defaults, so existing themes keep compiling):
+
+- `cardRadius` - corner radius of the table card.
+- `cardBorderWidth` - stroke width of the table card border.
+- `cardShadow` - drop shadow cast by the table card.
+- `tileHeight` - height of a single table row.
+- `dividerThickness` - thickness of row / header dividers.
+- `chipRadius` - corner radius of a `CmsChip`.
+
+`CmsThemeData` also exposes `cardDecoration` / `cardBorderDecoration` getters built from these.
 
 ## Custom panels - using the theme
 
@@ -160,7 +185,7 @@ const CmsTextField({
   in your own `GestureDetector` - `readOnly` makes the field ignore pointer events,
   so the built-in `onTap` won't fire. This is exactly how `CmsDatePicker` is built.
 
-**Known limitation (v0.2.3):** `prefix`, `hint`, `lines` and `maxLength` are
+**Known limitation (still in 0.3.0):** `prefix`, `hint`, `lines` and `maxLength` are
 accepted but not wired to the underlying `TextField`; only `label`, `error` and
 `suffix` actually render, and input is single-line.
 
@@ -220,7 +245,7 @@ InputDecoration cmsFilledFieldDecoration(BuildContext context, {String? labelTex
 Without this, the default Material `OutlineInputBorder` draws a pale outline that
 clashes with a dark canvas - the field instantly reads as "foreign". Note the CMS
 context extensions (`context.colors`, `context.textStyles`) are internal as of
-v0.2.3; app code uses `Provider.of<CmsThemeData>`.
+0.3.0; app code uses `Provider.of<CmsThemeData>`.
 
 ## Login screen outside the shell
 
@@ -255,26 +280,36 @@ CmsButton(
 )
 ```
 
-`CmsDropdownField` is internal (not exported) as of v0.2.3 - dropdowns outside
-CMS entries need your own widget.
+`CmsDropdownField<T>` is **exported** as of 0.3.0, so dropdowns outside CMS entries no longer
+need a hand-rolled widget:
+
+```dart
+CmsDropdownField<String>(
+  value: roleState.value,
+  values: const ['user', 'admin'],
+  label: 'Role',
+  valueLabelBuilder: (v) => v,
+  onChanged: (v) => roleState.value = v,
+)
+```
 
 ## Rules
 
 - **One `CmsThemeData` per admin app.** Defined in a single constants file, exposed via Provider at root.
 - **Pass it to `CmsWidget(theme: ...)`** explicitly - the default is the framework's neutral theme, which is rarely what you want.
-- **Every text style carries an explicit non-null color** - CMS widgets bang `style.color!`.
+- **Give each text style an explicit color** - 0.3.0 widgets paint from `CmsThemeColors`, but explicit style colours keep custom rendering predictable.
 - **Custom pages inside the shell consume the same theme** via Provider - use the CMS UI primitives, not raw Flutter widgets, so the look stays coherent.
 - **Don't override theme per page.** If a specific column needs an emphasis (e.g. red for "Rejected"), do it inside `CmsEntry.previewBuilder` or in a custom entry.
 - **Light/dark mode** isn't built in. If you need it, switch the whole `cmsThemeData` value based on a setting; rebuild the subtree.
 
-**Known limitation (v0.2.3):** framework chrome strings ("Create", "Delete",
-"Manage", "Back") are hardcoded English - there is no l10n hook. The theme
+**Known limitation (still in 0.3.0):** framework chrome strings ("Create", "Update",
+"Delete", "Manage", "Back") are hardcoded English - there is no l10n hook. The theme
 controls look, not copy.
 
 ## Pitfalls
 
 1. **Forgetting to provide the theme.** `CmsWidget` falls back to `CmsThemeData.defaultTheme` - a workable but generic look.
-2. **Text styles without explicit colors.** A null `style.color` crashes CMS widgets at runtime (the sort icons null-assert it), and the crash only appears when that widget renders - e.g. on the first sortable table.
+2. **Text styles without explicit colors.** Less dangerous in 0.3.0 - the prebuilt widgets paint text from `CmsThemeColors` rather than null-asserting `style.color` - but set explicit colours anyway so any custom widget that reads `style.color` renders correctly.
 3. **Mixing `Theme.of(context)` (Material) and `CmsThemeColors` (CMS).** They are *separate* themes. The Material one applies to non-CMS widgets you mount inside the shell; the CMS one applies inside the framework's widgets.
 4. **Per-page theme variants.** Don't - admin UI consistency is a feature.
 5. **Color tokens not mapping cleanly to your design system.** Map your design tokens once in the central `cmsThemeData` file; reference those tokens, not the `CmsThemeColors` values, in custom pages.

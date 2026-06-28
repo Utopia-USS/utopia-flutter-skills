@@ -83,7 +83,7 @@ CmsFilterDateEntry(filterKeys: ['created'], entryKey: 'created_to', label: 'To',
 ```
 
 - **`unit:`** matches backends that store epoch numbers instead of timestamps: `dateTime` (string), `secondsSinceEpoch`, `millisecondsSinceEpoch`, `microsecondsSinceEpoch`. With the wrong unit the filter silently compares date strings against epoch columns and matches nothing.
-- As of v0.2.3, keep `filterKeys` to a single key: the multi-key OR branch has an upstream bug that applies `filterKeys.first` for every key.
+- Multi-key search works as of 0.3.0: `CmsFilterSearchEntry` ORs a `containsString` over each `filterKeys` entry (the 0.2.x bug that applied `filterKeys.first` to every key is fixed). The backend delegate must support OR - Hasura and Supabase do; Firebase ignores filters regardless.
 
 ## The `CmsFilter` algebra
 
@@ -110,7 +110,14 @@ final query = (verified & search) | CmsFilterEquals('id', 'special-id');
 
 ### NULL and NOT filters
 
-**Known limitation (v0.2.3):** "field is not null" has no reliable expression. `CmsFilter.notEquals(field, null)` type-checks (`value` is `Object?`), but the backend delegates don't turn it into an "is not null" query, and on the Supabase backend the paths that could express null checks are runtime-broken: `CmsFilterEquals(field, null)` and `CmsFilterNot(...)` hit `CmsSupabaseService` calls whose arity doesn't match postgrest 2.x (`isFilter` / `not` invoked on a dynamic builder), throwing `NoSuchMethodError`. Workaround: push null-based constraints into a custom delegate's `get()` override - apply `.not('col', 'is', null)` directly on the Supabase query builder, or read from a pre-filtered DB view.
+**Null checks (improved in 0.3.0).** `CmsFilter.notEquals(field, value)` now takes a nullable
+`Object?`, and the **Supabase** delegate translates null comparisons into proper SQL:
+`CmsFilter.equals(field, null)` → `IS NULL` (`query.isFilter(field, null)`) and
+`CmsFilter.notEquals(field, null)` → `IS NOT NULL` (`query.not(field, 'is', null)`). The 0.2.x
+Supabase `NoSuchMethodError` on these paths is fixed. Translating null checks still depends on the
+backend, so verify on Hasura / a custom delegate (and note: a null check nested inside an `or(...)`
+group takes the narrower string-builder path); if a delegate doesn't express it, push the constraint
+into a `get()` override or read from a pre-filtered DB view.
 
 ## Custom filter entries
 
@@ -197,7 +204,7 @@ The prebuilt delegates do this for you in their respective backends.
 
 - **Filters run server-side via the delegate.** Don't filter the page-rendered list in widget code.
 - **One `CmsFilterEntry` per filter widget.** Don't pack two filters into one entry.
-- **`filterKeys` may be dotted paths** when the delegate supports them (Hasura yes; the stock Firebase delegate ignores filters entirely as of v0.2.3 - see [delegates.md](delegates.md)).
+- **`filterKeys` may be dotted paths** when the delegate supports them (Hasura yes; the stock Firebase delegate ignores filters entirely as of 0.3.0 - see [delegates.md](delegates.md)).
 - **Use the `&` / `|` / `~` operators** when composing filters in code - they distribute / dedup naturally.
 - **`CmsFilterAll` is the identity** for AND; use it to short-circuit "no filter selected."
 - **Always-on filters belong on the delegate**, not as a hidden `CmsFilterEntry`.

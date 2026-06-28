@@ -65,7 +65,7 @@ CmsTableAction({
 - **`label`** - what appears in the popup menu.
 - **`shouldUpdateTable: false`** - fire-and-forget side effect (send email, archive, log audit). `onPressed` can return `null`.
 - **`shouldUpdateTable: true`** - the action returns the updated row, the table swaps it in-place without refetching. `onPressed` typically calls `delegate.update`.
-- **`onPressed(row)`** - `row` is the **live map backing the table row**, not a copy (as of v0.2.3 the framework passes its stored map straight through). Never mutate it in place: build a copy (`{...row, 'status': ...}`), send the copy to the delegate, and return the updated map. Returning `null` skips the swap.
+- **`onPressed(row)`** - `row` is the **live map backing the table row**, not a copy (as of 0.3.0 the framework passes its stored map straight through). Never mutate it in place: build a copy (`{...row, 'status': ...}`), send the copy to the delegate, and return the updated map. Returning `null` skips the swap.
 
 ## When to use what
 
@@ -84,9 +84,10 @@ CmsTableAction({
 The built-in Delete flow confirms automatically with the framework's themed
 dialog. Custom destructive actions bring their own dialog via `showDialog`:
 
-**Known limitation (v0.2.3):** `CmsDialog`, the themed confirm dialog used by
-the built-in delete flow, is internal - it is not exported from
+**Known limitation (0.3.0):** `CmsDialog`, the themed confirm dialog used by
+the built-in delete flow, is not exported from
 `package:utopia_cms/utopia_cms.dart`, and `src/` deep imports are forbidden.
+A static `CmsDialog.show(context, {title, subtitle, hasProceed, hasCancel})` factory exists (new in 0.3.0) but is unreachable without a deep import, so the limitation stands.
 Use `showDialog` with your own confirm widget.
 
 ```dart

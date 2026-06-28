@@ -56,7 +56,9 @@ entries: [
 | `CmsDateEntry`           | `DateTime?`   | timestamps, birth dates, due dates                   |
 | `CmsDropdownEntry<T>`    | `T?`          | closed enum-like sets (status, role, category)       |
 | `CmsCountryEntry`        | country code  | country selection                                    |
+| `CmsLinkEntry`           | URL `String` / `{url,name}` map | clickable external links (`url_launcher`) |
 | `CmsMediaEntry`          | media list    | images / videos / files - see [media.md](media.md)   |
+| `CmsSingleMediaEntry`    | single media (scalar) | one cover image / file - see [media.md](media.md) |
 | `CmsToManyDropdownEntry` | relation      | M2M / O2M - see [relationships.md](relationships.md) |
 
 You can write your own entry by extending `CmsEntry<T>` - implement `buildPreview` and `buildEditField`, optionally `toJson` / `fromJson`. See "Custom entries" below.
@@ -67,7 +69,7 @@ There is **no entry type for nested maps or lists of objects** (a map of device 
 
 ```dart
 CmsEntryModifier({
-  bool pinned        = true,    // appears in the table (vs only in the create/edit overlay)
+  bool Function(CmsPageType) pinned = (_) => true, // which page types show this as a TABLE column (default: all); see below
   bool editable      = true,    // false → read-only in edit (rendered in the overlay's "Read only" section)
   bool initializable = true,    // create shows fields where editable OR initializable → set both false to hide in create (e.g. server-generated id)
   bool required      = true,    // shows '*' in label; submit disabled while empty
@@ -76,6 +78,12 @@ CmsEntryModifier({
   bool expanded      = false,   // gives the field its own row in the edit overlay (vs sharing with siblings)
 })
 ```
+
+> **`pinned` changed in 0.3.0** from a `bool` to a `bool Function(CmsPageType)` so columns
+> can drop out responsively. `CmsPageType` is `mobile` / `tablet` / `web` (with `isMobile` /
+> `isTablet` / `isWeb` helpers); e.g. `pinned: (t) => !t.isMobile` hides the column on phones.
+> The default keeps the column on every page type. **`pinned` gates the table column only** -
+> the create/edit overlay always receives every entry regardless of what it returns.
 
 ### Cheat-sheet for common combinations
 
@@ -87,7 +95,8 @@ CmsEntryModifier({
 | Optional field            | `CmsEntryModifier(required: false)`                                             |
 | Email (set on create, not after) | `CmsEntryModifier(editable: false, sortable: true)`                       |
 | Long text (own row in form) | `CmsEntryModifier(expanded: true)`                                            |
-| Hidden in table, visible in form | `CmsEntryModifier(pinned: false)`                                        |
+| Hidden in table, visible in form | `CmsEntryModifier(pinned: (_) => false)`                                 |
+| Drop the column on mobile | `CmsEntryModifier(pinned: (t) => !t.isMobile)`                                 |
 | Role-gated edit           | `CmsEntryModifier(editable: isSuperAdmin)`                                      |
 
 ## Dotted-path keys
@@ -171,35 +180,17 @@ CmsDateEntry({
   required String key,
   String? label,
   CmsEntryModifier modifier = const CmsEntryModifier(),
-  int flex = 2,
+  int? flex = 2,
+  double? width,
 })
 ```
 
 Stores `DateTime`. The edit field is `CmsDatePicker`. `toJson` is `DateTime.toString()` (space-separated, e.g. `2026-05-28 00:00:00.000` - not the ISO-8601 'T' form); `fromJson` is `DateTime.parse`, which accepts both.
 
-**Known limitation (v0.2.3):** the stock `CmsDateEntry` does not refresh after picking. Use a custom entry extending `CmsEntry<DateTime?>` instead:
-
-```dart
-class DateEntry extends CmsEntry<DateTime?> {
-  // key / label / modifier / flex / buildPreview as in any CmsEntry - elided here.
-  // Only the two members the workaround changes are shown:
-
-  @override
-  Widget buildEditField({required BuildContext context, required DateTime? value, required void Function(DateTime?) onChanged}) =>
-      InkWell(
-        onTap: () async {
-          final picked = await showDatePicker(context: context, initialDate: value ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100));
-          if (picked != null) onChanged(picked);   // value drives the Text below - no stale seed
-        },
-        child: InputDecorator(decoration: InputDecoration(labelText: fixedLabelRequired), child: Text(value != null ? _fmt(value) : 'Pick a date')),
-      );
-
-  @override
-  Object? toJson(DateTime? value) => value == null ? null : _fmt(value);   // 'YYYY-MM-DD', not value.toString()
-
-  static String _fmt(DateTime d) => d.toIso8601String().substring(0, 10);
-}
-```
+> The 0.2.3 "does not refresh after picking" bug is **fixed in 0.3.0**: `CmsDatePicker` is
+> now a `HookWidget` whose displayed value is driven by the entry's current value (no stale
+> local seed), so the stock `CmsDateEntry` updates immediately. The old custom-`DateEntry`
+> workaround is no longer needed.
 
 ### `CmsDropdownEntry<T>`
 
@@ -245,9 +236,32 @@ CmsCountryEntry(
 )
 ```
 
+### `CmsLinkEntry`
+
+```dart
+CmsLinkEntry({
+  required String key,
+  String? label,
+  void Function(String url)? onTap,                    // default: open the URL with url_launcher
+  CmsEntryModifier modifier = const CmsEntryModifier(expanded: true),
+  int? flex = 3,
+  double? width,
+})
+```
+
+Renders a value as a clickable hyperlink (new in 0.3.0). The stored value is either a URL
+`String`, or a `{ 'url': ..., 'name'?: ... }` map whose optional `name` is the visible link
+text (the URL itself shows when there's no name). Tapping launches the URL via `url_launcher`
+unless you pass `onTap`. The edit field is a label input + a URL input that sit side by side,
+stacking vertically on a mobile-width overlay.
+
 ### `CmsMediaEntry`
 
 See [media.md](media.md).
+
+### `CmsSingleMediaEntry`
+
+Single-file scalar variant of `CmsMediaEntry` (new in 0.3.0). See [media.md](media.md).
 
 ### `CmsToManyDropdownEntry`
 
@@ -263,7 +277,7 @@ class CmsColorEntry extends CmsEntry<Color?> {
   CmsColorEntry({required this.key, this.label, this.modifier = const CmsEntryModifier(), this.flex = 2});
 
   @override final String key;
-  @override final int flex;
+  @override final int? flex;
   @override final String? label;
   @override final CmsEntryModifier modifier;
 
@@ -298,7 +312,7 @@ class VoteStatsEntry extends CmsEntry<Map<String, dynamic>?> {
 
   @override final String key;                          // e.g. 'voteStats' - a nested map on the row
   @override final String? label;
-  @override final int flex = 2;
+  @override final int? flex = 2;
   @override final CmsEntryModifier modifier = const CmsEntryModifier(editable: false, initializable: false);
 
   @override
@@ -324,12 +338,13 @@ class VoteStatsEntry extends CmsEntry<Map<String, dynamic>?> {
 form state via `package:provider`. An entry can read **sibling** field values
 from it - e.g. a "Generate" button that needs the already-uploaded image URL.
 
-`CmsManagementBaseState` is not exported from `package:utopia_cms/utopia_cms.dart`
-as of v0.2.3, so this is the one sanctioned exception to the no-`src/`-imports rule:
+`CmsManagementBaseState` (and the `OnSavedCallback` typedef) **are exported** from
+`package:utopia_cms/utopia_cms.dart` as of 0.3.0 - the deep `src/` import the 0.2.x skill
+required is gone:
 
 ```dart
 import 'package:provider/provider.dart';
-import 'package:utopia_cms/src/ui/item_management/state/cms_management_state.dart'; // not exported - deep import required
+import 'package:utopia_cms/utopia_cms.dart'; // CmsManagementBaseState is public in 0.3.0
 
 // In the entry:
 @override
@@ -365,14 +380,20 @@ Always `Provider.of<CmsManagementBaseState>(context)` here - utopia_hooks'
 `Provider.of` keeps the field live as siblings change; use `listen: false` for
 one-shot reads inside callbacks.
 
-## Layout - `flex` and `expanded`
+## Layout - `flex`, `width` and `expanded`
 
-In the table, columns are laid out in a `Row` with `Expanded(flex: entry.flex)`. Tune for legibility:
+In the table, columns are laid out in a `Row`. `flex` is `int?` as of 0.3.0:
 
-- `flex: 1` - IDs, booleans, small enums
-- `flex: 2` (default) - names, emails, dates, numbers
-- `flex: 3` - descriptions, addresses
-- `flex: 4` - long text, search-bar-like fields
+- **`flex` non-null** - the column flexes, taking `flex` parts of the row width (like `Expanded.flex`):
+  - `flex: 1` - IDs, booleans, small enums
+  - `flex: 2` (default) - names, emails, dates, numbers
+  - `flex: 3` - descriptions, addresses
+  - `flex: 4` - long text, search-bar-like fields
+- **`flex: null`** - a **fixed-width**, non-flexing column sized to `width` (a sensible default
+  applies when `width` is omitted). Use it for icons, avatars or badges that should not stretch.
+
+Columns also drop out per device via `modifier: CmsEntryModifier(pinned: (t) => ...)` (see above) -
+that's the responsive counterpart to `flex`/`width`, which size a column that *is* shown.
 
 In the edit overlay, fields share rows by default. `modifier: CmsEntryModifier(expanded: true)` gives a field its own full-width row - use it for long text, media, large dropdowns.
 
@@ -388,8 +409,8 @@ In the edit overlay, fields share rows by default. `modifier: CmsEntryModifier(e
 
 ## Pitfalls
 
-1. **`required: true` on a `pinned: false` field** still blocks submit even though the user might miss it visually in the overlay. Either set `required: false` or `pinned: true`.
-2. **`sortable: true` on a dotted-path key** may not be supported by all delegates (Hasura yes; the stock Firebase delegate ignores sorting entirely as of v0.2.3 - see [delegates.md](delegates.md)). Verify with the delegate.
+1. **`required: true` on a field whose column `pinned` hides** still blocks submit - but note `pinned` only hides the *table column*; the create/edit overlay always shows the field, so the user can still fill it. Genuinely-optional fields should be `required: false`.
+2. **`sortable: true` on a dotted-path key** may not be supported by all delegates (Hasura yes; the stock Firebase delegate ignores sorting entirely as of 0.3.0 - see [delegates.md](delegates.md)). Verify with the delegate.
 3. **Forgetting `flex: 1` on `id` columns.** Default flex is 2 - wasteful for short UUIDs.
 4. **Type mismatch in `fromJson`.** Delegate returns dynamic JSON. If your numbers come back as `int` but the entry expects `double`, parsing fails. Add `fromJson` to coerce.
 5. **`defaultValue` on `CmsDropdownEntry` not being a member of `values`** - the field renders blank. Seen in production, typically masked while `canCreate: false` and detonating later. Make sure the default exists in `values`.

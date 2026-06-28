@@ -83,26 +83,22 @@ CmsToManyDropdownEntry({
   required String Function(JsonMap) fieldDisplayBuilder,               // in the edit dropdown
   String Function(JsonMap)? previewDisplayBuilder,                     // in the table preview
   required String label,
-  CmsEntryModifier modifier = const CmsEntryModifier(pinned: false),
-  int flex = 4,
+  CmsEntryModifier modifier = const CmsEntryModifier(pinned: _neverPinned),  // default: column hidden on every device
+  int? flex = 4,
+  double? width,
 })
 ```
 
 - The entry's `key` is derived from `delegate.originIdKey` automatically.
+- By default, a to-many column is **not shown as a table column** - the default `pinned` returns `false` for every device. Pass a custom `modifier` (e.g. `pinned: (t) => t.isWeb`) to opt in.
+- `flex` is `int?` (default `4`); `width` is `double?` for fixed-width columns.
 - `filterFields` enables typeahead search inside the dropdown - the picker calls `delegate.get` with an OR of case-insensitive `CmsFilter.containsString(field, query)` filters over these fields.
 - `fieldDisplayBuilder` controls the label *inside the dropdown picker*.
-- `previewDisplayBuilder` controls the label *inside the table cell* (falls back to `fieldDisplayBuilder` if null).
+- `previewDisplayBuilder` controls the label *inside the table cell* (falls back to `fieldDisplayBuilder` if null). The table preview renders a `CmsChipList` of related labels (new in 0.3.0).
 
-**Known limitation (v0.2.3):** the stock `CmsToManyDropdownEntry` edit field
-resolves the overlay's `CmsManagementBaseState` with utopia_hooks'
-`useProvided`, but the overlay provides it via `package:provider` - the lookup
-can throw `ProvidedValueNotFoundException` when the field mounts (the stock
-`CmsToManyDropdownField` performs the same lookup internally, so wrapping it
-doesn't help). If you hit it, the workaround is a custom entry that obtains
-the state with `Provider.of<CmsManagementBaseState>(context, listen: false)`,
-registers the diff-update via `addOnSavedCallback`, and renders its own
-multi-select; see media.md for the deep-import path. The same rule applies to
-all your own overlay code: always `Provider.of`, never `useProvided`.
+The underlying `CmsToManyDropdownField` widget (field-level, not a param on the entry) also accepts an advanced `filterBuilder: CmsFilter Function(String)?` as an alternative to `filterFields` for callers who construct the search filter themselves - exactly one of `filterFields` or `filterBuilder` must be set (asserted at construction). Use this only when you bypass `CmsToManyDropdownEntry` and wire up `CmsToManyDropdownField` directly.
+
+> fixed in 0.3.0: `CmsToManyDropdownState` now reads the overlay's `CmsManagementBaseState` via `Provider.of<CmsManagementBaseState>`, so the `useProvided` / `ProvidedValueNotFoundException` issue no longer occurs. No workaround is needed.
 
 ## Hasura factories
 
