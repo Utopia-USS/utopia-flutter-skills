@@ -59,7 +59,9 @@ CmsMediaEntry({
   dynamic Function(CmsMediaUploadRes res, XFile file)? valueBuilder,
   String? label,
   CmsEntryModifier modifier = const CmsEntryModifier(expanded: true),
-  int flex = 2,
+  int? flex = 2,
+  double? width,
+  int? maxFiles,                                                // null = unlimited; cap simultaneous files
 })
 ```
 
@@ -67,18 +69,14 @@ CmsMediaEntry({
 - **`mediaTypeBuilder`** - given a stored object (`JsonMap` or a primitive), return its media type so the entry knows how to render it. `CmsMediaType.fromMime` is the easy implementation.
 - **`urlBuilder`** - extract the displayable URL from each stored object. Default: the object itself is the URL.
 - **`valueBuilder`** - convert the `CmsMediaUploadRes` returned by `delegate.upload` into the value stored on the row. Default: store the download URL string.
+- **`maxFiles`** - cap on simultaneous files (`null` = unlimited); once reached, the add button hides. For single-file fields prefer `CmsSingleMediaEntry` (below).
 - **`modifier.expanded: true`** (default) - media gets its own full row in the edit overlay.
 
-**Known limitation (v0.2.3):** the stock `CmsMediaEntry` edit field resolves the
-overlay's `CmsManagementBaseState` with utopia_hooks' `useProvided`, but the
-overlay provides it via `package:provider` - the lookup can throw
-`ProvidedValueNotFoundException` when the field mounts. If you hit it, the
-workaround is a custom entry whose edit field obtains the state with
-`Provider.of<CmsManagementBaseState>(context, listen: false)` instead
-(`CmsManagementBaseState` isn't exported - deep-import
-`package:utopia_cms/src/ui/item_management/state/cms_management_state.dart`).
-The same rule applies to all your own overlay code: always `Provider.of`,
-never `useProvided`.
+> The 0.2.x "stock media field throws `ProvidedValueNotFoundException`" bug is **fixed in 0.3.0**:
+> the field reads the overlay state with `Provider.of<CmsManagementBaseState>(context, listen: false)`.
+> The rule for your *own* overlay code still holds - resolve the overlay state with `Provider.of`,
+> never utopia_hooks' `useProvided` (the overlay publishes it through `package:provider`). And
+> `CmsManagementBaseState` is now a public export, so no deep `src/` import is needed.
 
 ### `CmsMediaDelegate`
 
@@ -120,11 +118,11 @@ Used both as a filter (`supportedMedia`) and as a discriminator
 `(o) => CmsMediaType.fromMime(o['content_type'] as String? ?? '')` is the whole
 `mediaTypeBuilder` - don't hand-roll the classification. Note the value is
 `doc`, not `document`. Avoid putting `.unknown` into `supportedMedia`:
-`getMimes` then returns `[]` and drag-and-drop rejects every file as of v0.2.3.
+`getMimes` then returns `[]` and drag-and-drop rejects every file as of 0.3.0.
 
 ## Upload and delete lifecycle
 
-How the field behaves at runtime (as of v0.2.3) determines where orphaned blobs
+How the field behaves at runtime (as of 0.3.0) determines where orphaned blobs
 can appear in storage - know this before writing the delegate:
 
 1. **Add = immediate upload.** The moment a file is picked or dropped,
@@ -196,82 +194,50 @@ cross-platform use, prefer `http.put` or `dio.put`.
 
 ## Single file (scalar column)
 
-`CmsMediaEntry` is `CmsEntry<Iterable<dynamic>?>` - it always stores a *list*.
-For a scalar URL column (`cover_url`, `avatar_url`) write a thin custom entry
-that delegates to the exported `CmsMediaField` widget and wraps/unwraps a
-one-element list:
+`CmsMediaEntry` stores an `Iterable` (a list). For a scalar column (`cover_url`,
+`avatar_url`) use **`CmsSingleMediaEntry`** (new in 0.3.0) - it stores a single object
+directly under `key` (typically the URL string from `valueBuilder`) instead of a
+one-element list, and renders a `CmsMediaField` capped at one file:
 
 ```dart
-class SingleMediaEntry extends CmsEntry<dynamic> {
-  final CmsMediaDelegate delegate;
-
-  SingleMediaEntry({required this.key, required this.delegate, this.label});
-
-  @override
-  final String key;
-  @override
-  final String? label;
-  @override
-  final CmsEntryModifier modifier = const CmsEntryModifier(expanded: true);
-  @override
-  final int flex = 2;
-
-  @override
-  Widget buildPreview(BuildContext context, dynamic value) =>
-      value == null ? const Text('-') : Image.network(value as String, height: 40);
-
-  @override
-  Widget buildEditField({
-    required BuildContext context,
-    required dynamic value,
-    required void Function(dynamic) onChanged,
-  }) {
-    return CmsMediaField(
-      label: fixedLabelRequired,
-      delegate: delegate,
-      supportedMedia: const [CmsMediaType.image],
-      mediaTypeBuilder: (_) => CmsMediaType.image,
-      urlBuilder: (object) => object as String,
-      valueBuilder: (res, _) => res.downloadUrl,
-      initialValues: value == null ? null : [value],                  // scalar → 1-element list
-      onChanged: (values) {
-        final list = values?.toList();
-        onChanged(list == null || list.isEmpty ? null : list.first);  // list → scalar
-      },
-    );
-  }
-}
+CmsSingleMediaEntry(
+  key: 'cover_url',
+  label: 'Cover',
+  delegate: StorageMediaDelegate(pathPrefix: 'covers'),
+  supportedMedia: const [CmsMediaType.image],
+  mediaTypeBuilder: (_) => CmsMediaType.image,
+  urlBuilder: (object) => object as String,            // stored value -> displayable URL
+  // valueBuilder: (res, file) => res.downloadUrl,      // default already stores the download URL string
+)
 ```
 
-Notes:
-
-- v0.2.3's `CmsMediaField` has no max-files cap, so the add button stays
-  visible while a file is present; the unwrap keeps the *first* item - remove
-  the old file before adding its replacement.
-- Newer development branches of utopia_cms ship this as a built-in
-  `CmsSingleMediaEntry`; released v0.2.3 does not - keep the wrapper in app
-  code until you're on a version that has it.
-- `CmsMediaField` resolves the overlay state the same way the stock entry does,
-  so the known limitation above applies to this wrapper too.
+Its constructor mirrors `CmsMediaEntry` (`delegate` / `supportedMedia` / `mediaTypeBuilder` /
+`urlBuilder` / `valueBuilder` / `label` / `modifier` / `flex` / `width`), minus `maxFiles`
+(it is pinned to one file). It extends `CmsEntry<dynamic>`, so the value you read and write is
+the scalar itself, not a list. The hand-rolled 0.2.x single-media wrapper is no longer needed.
 
 ## Standalone preview: CmsVideoPlayer
 
 The themed video player behind media previews is exported on its own - use it
 when a management section or custom page needs to play a row's video outside
-`CmsMediaEntry`. It re-exports `package:video_player`, so you don't add that
-dependency yourself.
+`CmsMediaEntry`. As of 0.3.0 it is backed by `media_kit` (not `video_player`) and
+does not re-export any player package, so callers work in terms of the widget, not
+a controller.
 
 ```dart
 CmsVideoPlayer(
   url: row['video_url'] as String,
-  previewOnly: false,                      // true = render only, no interaction
-  playerBuilder: (controller, player) =>   // optional: wrap the raw player
-      Column(children: [player, VideoProgressIndicator(controller, allowScrubbing: true)]),
+  previewOnly: false,                          // true = render only, no interaction
+  playerBuilder: (naturalSize, player) =>      // optional: wrap the already-sized player
+      FittedBox(fit: BoxFit.cover, child: SizedBox.fromSize(size: naturalSize, child: player)),
 )
 ```
 
-Play/pause overlay and focus-based auto-pause (it stops when focus is lost)
-come built in; a loader shows until the controller initializes.
+`playerBuilder` receives the video's natural `Size` and the `player` widget already sized to it
+(handy for `FittedBox`-based cropping) - **not** a controller (the old `(controller, player)` /
+`VideoProgressIndicator` shape no longer compiles). When omitted, the video shows at its own
+aspect ratio. Play/pause overlay and focus-based auto-pause (it stops when focus is lost) come
+built in; a loader shows until the player initializes.
 
 ## Rules
 

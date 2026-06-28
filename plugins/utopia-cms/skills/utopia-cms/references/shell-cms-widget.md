@@ -44,7 +44,7 @@ class MainScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = useInjected<AuthService>();
+    final authService = useProvided<AuthService>();   // utopia_hooks DI (replaces utopia_arch's useInjected in 0.2.x)
     final theme = Provider.of<CmsThemeData>(context);
 
     return CmsWidget(
@@ -87,7 +87,7 @@ CmsWidget({
 - **`selectedPageId`** - pass `MutableValue.computed(() => pageId, onPageChanged)`
   to bind to your router, or a `useState<String>('...')` directly for local state
   (its return type implements `MutableValue`), or `null` to auto-select the first page.
-- **`menuParams`** - menu type / expand behavior / background colors (see below).
+- **`menuParams`** - menu branding (`headerBuilder`) and background colors (see below). Rail-vs-drawer and collapse/expand are **automatic** in 0.3.0 - no longer configured here.
 
 ### `CmsWidgetItem` (sealed union)
 
@@ -113,25 +113,47 @@ CmsWidgetItem.custom({
 
 ### `CmsWidgetMenuParams`
 
+**Changed in 0.3.0.** `type` (`CmsMenuType`) and `behavior` (`CmsMenuBehavior`) were
+**removed** - the rail's presentation is now automatic (see "Responsive menu" below). The
+host only supplies branding and an optional colour:
+
 ```dart
 CmsWidgetMenuParams({
-  CmsMenuType type = CmsMenuType.floating,              // floating | standard
-  CmsMenuBehavior behavior = CmsMenuBehavior.flexible,  // flexible | collapsed | expanded
-  List<Color>? backgroundColors,                        // menu gradient stops
+  List<Color>? backgroundColors,        // menu gradient stops
+  CmsMenuHeaderBuilder? headerBuilder,  // Widget Function(BuildContext, bool isCollapsed)
 })
 ```
 
-- **`type`** - `CmsMenuType.floating` (default): rounded card inset from the
-  window edges, drawn with the theme's `menuShadow` / `menuRadius`.
-  `CmsMenuType.standard`: full-height rail flush to the window edge, no rounding.
-- **`behavior`** - `CmsMenuBehavior.flexible` (default): icons-only rail (70px)
-  that expands to 200px on hover, but only when the viewport is wider than
-  `CmsWidget.contentWidth * 1.3` (780px). `CmsMenuBehavior.collapsed`: always
-  icons-only. `CmsMenuBehavior.expanded`: always expanded - the answer to
-  "keep the sidebar open".
-- **`backgroundColors`** - menu background gradient; defaults to the theme's
-  `[primary, accent]`. For a flat fill pass the same color twice, e.g.
-  `[Color(0xff2B2926), Color(0xff2B2926)]`.
+- **`headerBuilder`** - builds the header (logo / branding) pinned above the items. Receives
+  `isCollapsed`: `true` when the rail is narrow (icons only) - return a compact, text-less mark;
+  `false` when expanded or shown as a drawer - return the full lockup. Keep the returned widget's
+  *height* equal across both states so the items below don't shift when the rail toggles.
+- **`backgroundColors`** - menu background gradient; defaults to the theme's `[primary, accent]`.
+  For a flat fill pass the same colour twice, e.g. `[Color(0xff2B2926), Color(0xff2B2926)]`.
+
+> Migrating from 0.2.x: delete any `type:` / `behavior:` arguments - they no longer exist.
+
+### Responsive menu (new in 0.3.0)
+
+`CmsWidget` picks the menu presentation from the **window width** (`CmsBreakpoints.sidebarMin`,
+900px), not from a param:
+
+- **≥ 900px** - in-layout **rail**: collapsed (icons-only) by default, hover-peeks open, and can
+  be pinned open via the top toggle.
+- **< 900px** (tablet and phone) - the sidebar is hidden behind a **drawer**, reached by a burger
+  next to the page title.
+
+Page chrome opens that drawer through `CmsShellMenuScope`, which `CmsWidget` publishes down the
+content subtree:
+
+```dart
+final shell = CmsShellMenuScope.maybeOf(context); // null outside a CmsWidget
+if (shell != null && shell.isDrawer) {
+  // surface a burger that calls shell.openDrawer()
+}
+```
+
+`CmsHeader` already does this, so a standard table or management page needs no extra wiring.
 
 ## Integration with `go_router`
 
