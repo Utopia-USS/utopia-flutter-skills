@@ -306,7 +306,7 @@ The `Retryable` API, the per-hook defaults table, the caveats, and the full app-
 
 ## usePaginatedComputedState - pointer
 
-Cursor-paginated lists have their own deep-dive in [paginated.md](./paginated.md). The short version: `usePaginatedComputedState<T, C>(...)` covers first-page auto-load, in-flight dedup, cancellation, debouncing, and on-end pagination. Pair with `PaginatedComputedStateWrapper` for scroll + pull-to-refresh. Cursor `C` is opaque (`int` for offset/page, `String?` for token). Optimistic mutations go in a local override layer, not into `items`. `shouldCompute` gates only the automatic loads (first page + keys-triggered refresh) - unlike `useAutoComputedState` it does NOT clear items or cancel in-flight loads when `false` (opt in with `clearOnShouldComputeFalse: true`); see [paginated.md](./paginated.md).
+Cursor-paginated lists have their own deep-dive in [paginated.md](./paginated.md). The short version: `usePaginatedComputedState<T, C>(...)` covers first-page auto-load, in-flight dedup, cancellation, debouncing, and on-end pagination. Pair with `PaginatedComputedStateWrapper` for scroll + pull-to-refresh. Cursor `C` is opaque (`int` for offset/page, `String?` for token). Confirmed optimistic edits/deletes override the buffer with `updateValues(items, {cursor})` / `updateAt` / `deleteAt` (decrement the cursor on offset/page deletes); a render-time override layer is for transient/uncommitted UI state. `shouldCompute` gates only the automatic loads (first page + keys-triggered refresh) - unlike `useAutoComputedState` it does NOT clear items or cancel in-flight loads when `false` (opt in with `clearOnShouldComputeFalse: true`); see [paginated.md](./paginated.md).
 
 ---
 

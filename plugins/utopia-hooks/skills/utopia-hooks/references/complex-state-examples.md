@@ -287,7 +287,7 @@ FeedScreenState useFeedScreenState({
 
 **Characteristics:**
 - Parent owns pagination via `usePaginatedComputedState<T, C>` - cursor, loadMore, refresh, debounce, deduplication all handled
-- Per-item mutations patch a **separate override layer** (`editsState`, `prependedState`), never the paginated buffer directly - `items` is read-only on purpose
+- Per-item mutations patch a **separate override layer** (`editsState`, `prependedState`) here because they are transient/uncommitted; once a mutation is confirmed you can instead write it straight into the buffer with `updateValues` / `updateAt` (see [paginated.md](./paginated.md) - mind the offset cursor-drift)
 - Overlay + buffer are combined in a memoised `visibleReactions` the View renders
 - On failure, overlay is rolled back (`afterError`); on success, kept or cleared depending on whether the next refresh will include the change
 - Items are dumb `StatelessWidget`s with no per-item hook

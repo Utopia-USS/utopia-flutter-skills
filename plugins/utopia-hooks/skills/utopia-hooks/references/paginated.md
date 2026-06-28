@@ -79,7 +79,10 @@ Snapshot of the paginated computation. Returned by the hook and consumed by the 
 | `isInitialized` | `bool` | Alias for `items != null`. |
 | `hasError` | `bool` | Alias for `error != null`. |
 
-`MutablePaginatedComputedState` adds `loadMore()`, `refresh({bool clearCache})`, `clear()`.
+`MutablePaginatedComputedState` adds `loadMore()`, `refresh({bool clearCache})`, `clear()`, and the
+manual buffer overrides `updateValues(items, {cursor})` / `updateAt(index, update)` /
+`deleteAt(index, {cursor})` (see
+[Optimistic mutations](#optimistic-mutations-on-a-paginated-list)).
 
 ---
 
@@ -383,32 +386,87 @@ FeedScreenState useFeedScreenState({
 
 ### Optimistic mutations on a paginated list
 
-`items` is read-only - the hook owns its buffer. For optimistic add/edit/delete, keep a **local override layer** and overlay it at render time. After the server confirms, call `refresh()` (or clear the overlay).
+There are two tools, for two different needs.
+
+**1. Buffer override (`updateValues` / `updateAt` / `deleteAt`) - for confirmed edits/deletes.** The
+paginated "value" is the coupled `(items, cursor)` pair, so the hook exposes a single atomic
+override - the paginated analogue of `MutableComputedState.updateValue`:
 
 ```dart
-// State hook
-final postsState = usePaginatedComputedState<Post, String?>(/* ... */);
-final deletedIdsState = useState<ISet<PostId>>(const ISet.empty());
-final draftEditsState = useState<IMap<PostId, Post>>(const IMap.empty());
+// In-place single-row edit — cursor untouched, in-flight load left running:
+state.posts.updateAt(index, (p) => p.copyWith(title: newTitle));
+
+// Single-row delete — pass cursor on offset/page pagination (see drift warning below):
+state.posts.deleteAt(index, cursor: (offset) => offset - 1);
+
+// Bulk buffer rewrite:
+state.posts.updateValues((posts) => posts.where((p) => p.id != id).toList());
+```
+
+`updateValues((current) => next, {cursor})` replaces the whole buffer; the optional `cursor` updater
+corrects the next-`loadMore` cursor in the **same** atomic call. `updateAt(index, update)` is the
+convenience for the common single-row edit, and `deleteAt(index, {cursor})` for the single-row
+delete - both delegate to `updateValues`, so they share its semantics exactly.
+
+> ⚠️ **Cursor drift on offset/page pagination (delete).** When the backend deletes an element, the
+> remaining list shifts left by one. With **offset/page** cursors, the unchanged cursor now points
+> one element too far, so the **next `loadMore` silently skips an element** at the page boundary -
+> for *every* deleted element, not just the last. This is a **skip, not a duplicate**, so
+> `deduplicateBy` does **not** catch it; the element only reappears after a `refresh()`. Fix it by
+> decrementing the cursor in the same call - see the optimistic-delete example below.
+>
+> **Keyset** cursors (`WHERE id > cursor`) are immune: deleting the element whose id is the cursor
+> is fine because `id > deletedId` still returns the correct next page, and the lib holds the cursor
+> separately from the buffer. There, the items-only `updateValues` (no `cursor`) is enough.
+
+A full optimistic delete wires the override to a submit state and rolls back on error:
+
+```dart
 final deleteSubmitState = useSubmitState();
 
-final visiblePosts = useMemoized(
-  () => postsState.items
-      ?.where((p) => !deletedIdsState.value.contains(p.id))
-      .map((p) => draftEditsState.value[p.id] ?? p)
-      .toIList(),
-  [postsState.items, deletedIdsState.value, draftEditsState.value],
-);
+void deletePost(Post post) {
+  final index = state.posts.items?.indexWhere((p) => p.id == post.id) ?? -1;
+  if (index < 0) return;
+  deleteSubmitState.runSimple<void, Never>(
+    beforeSubmit: () => state.posts.deleteAt(
+      index,
+      cursor: (offset) => offset - 1, // OFFSET pagination — omit for keyset
+    ),
+    submit: () async => api.deletePost(post.id),
+    // On failure, roll back the buffer (re-insert) and the cursor:
+    afterError: () => state.posts.updateValues(
+      (posts) => [...posts]..insert(index, post),
+      cursor: (offset) => offset + 1,
+    ),
+  );
+}
+```
 
-void deletePost(PostId id) => deleteSubmitState.runSimple<void, Never>(
-  beforeSubmit: () => deletedIdsState.modify((it) => it.add(id)),
-  submit: () async => api.deletePost(id),
-  // On failure, roll back:
-  afterError: () => deletedIdsState.modify((it) => it.remove(id)),
+Semantics to keep in mind:
+
+- **`items == null` → full no-op.** Before the first page loads there is nothing to mutate; the
+  override (including its `cursor` part) does nothing rather than fabricate a buffer (which would
+  flip `isInitialized` and race the in-flight first load).
+- **In-flight interaction is asymmetric.** An **items-only** override does *not* cancel an in-flight
+  `loadMore` - the load completes and appends its page on top of your edited buffer. An override
+  **with a `cursor`** *does* cancel any in-flight load, because that load captured the old cursor
+  and on completion would overwrite your correction, re-introducing the drift. Call `updateValues`
+  with both args **synchronously together** for a delete so they apply atomically.
+
+**2. Render-time override layer - for transient / uncommitted UI state.** When the mutation is *not*
+yet committed (multi-select pending deletes, inline drafts the user can still cancel, "undo"
+windows), keep a local overlay and apply it at render time instead of touching the buffer:
+
+```dart
+final draftEditsState = useState<IMap<PostId, Post>>(const IMap.empty());
+final visiblePosts = useMemoized(
+  () => state.posts.items?.map((p) => draftEditsState.value[p.id] ?? p).toIList(),
+  [state.posts.items, draftEditsState.value],
 );
 ```
 
-This keeps the paginated buffer honest (always mirrors the server) while the UI shows the optimistic view. Do **not** try to replace `items` - there is no setter on purpose.
+The overlay leaves the paginated buffer pristine until you either commit it (`updateValues`) or
+discard it. Use the buffer override for confirmed mutations, the overlay for in-progress UI state.
 
 ---
 
@@ -550,7 +608,8 @@ test("loadMore appends items and advances cursor", () async {
 - **Expecting `shouldCompute: false` to cancel or clear** - it only skips the automatic loads; in-flight loads finish, items stay, and manual `loadMore()`/`refresh()` still work. Pass `clearOnShouldComputeFalse: true` if you need the state wiped when the gate closes.
 - **Wondering why infinite scroll stopped after a failure** - the wrapper suppresses auto-`loadMore` while `error != null` (no retry loops). Render a retry affordance that calls `loadMore()`; it clears the error and resumes.
 - **Returning a non-scrollable from the wrapper's `builder`** - the scroll listener can never fire, so `loadMore()` is never triggered. Must be a `ListView` / `GridView` / `CustomScrollView` / any scrollable.
-- **Writing to `items`** - there's no setter. Optimistic mutations belong in an override layer (see pattern above).
+- **Deleting on offset/page pagination without correcting the cursor** - `updateValues((items) => …)` on the buffer alone leaves the cursor stale, so the next `loadMore` **skips** an element at the page boundary (a skip, not a duplicate — `deduplicateBy` won't catch it). Pass `cursor: (offset) => offset - 1` in the same call. Keyset cursors are immune. See [Optimistic mutations](#optimistic-mutations-on-a-paginated-list).
+- **Reaching for an overlay when the mutation is already confirmed** - use the `updateValues` / `updateAt` buffer override for committed edits/deletes; reserve the render-time override layer for *transient* UI state (pending multi-select, inline drafts).
 - **Using `usePaginatedComputedState` for non-paged data** - single-shot loads should use `useAutoComputedState`, streams should use `useMemoizedStream`. Paginated is for cursor-driven pages.
 
 ## Related Skills
