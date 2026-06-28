@@ -6,8 +6,8 @@
     "url": "https://utopiasoft.io"
   },
   "metadata": {
-    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware - hooks-based state management, project architecture scaffolding, BLoC migration, and admin/CMS panels.",
-    "version": "0.4.0"
+    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware - hooks-based state management, project architecture scaffolding, BLoC migration, admin/CMS panels, and pub.dev README/branding.",
+    "version": "0.5.0"
   },
   "plugins": [
     {
@@ -49,10 +49,22 @@
     {
       "name": "utopia-cms",
       "description": "👾 Flutter CMS / admin panels with utopia_cms. CmsWidget shell, CmsTablePage, CmsDelegate (Firebase / Supabase / Hasura / GraphQL), CmsEntry catalog, filters, custom actions, management sections. PostToolUse hook flags the hand-rolled DataTable + service + state-class anti-pattern.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./plugins/utopia-cms",
       "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
       "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-cms",
+      "author": {
+        "name": "UtopiaSoftware",
+        "email": "hello@utopiasoft.io"
+      }
+    },
+    {
+      "name": "utopia-pubdev",
+      "description": "👾 Compose and standardize pub.dev READMEs for Utopia Dart/Flutter packages - brand-chip header, house voice, section structure (minimal vs full tiers), a restrained badge set (incl. style: utopia_lints), a no-sponsor footer with sibling links, and a tool-agnostic AI assistants section. Bundles the brand-chip header generator. Use when creating or refreshing a package README or its header image.",
+      "version": "0.1.0",
+      "source": "./plugins/utopia-pubdev",
+      "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+      "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-pubdev",
       "author": {
         "name": "UtopiaSoftware",
         "email": "hello@utopiasoft.io"
