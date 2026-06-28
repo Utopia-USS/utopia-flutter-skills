@@ -6,8 +6,8 @@
     "url": "https://utopiasoft.io"
   },
   "metadata": {
-    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware - hooks-based state management, project architecture scaffolding, BLoC migration, admin/CMS panels, and pub.dev README/branding.",
-    "version": "0.5.0"
+    "description": "👾 Flutter skills for Claude Code by UtopiaSoftware - hooks-based state management, project architecture scaffolding, BLoC migration, admin/CMS panels, the Dart/Flutter language server, and pub.dev README/branding.",
+    "version": "0.6.0"
   },
   "plugins": [
     {
@@ -56,6 +56,34 @@
       "author": {
         "name": "UtopiaSoftware",
         "email": "hello@utopiasoft.io"
+      }
+    },
+    {
+      "name": "utopia-dart-lsp",
+      "description": "👾 Dart/Flutter language server (LSP) for Claude Code. Live analyzer diagnostics injected on every .dart edit plus hover, goto-definition, find-references, workspace symbols and call hierarchy. fvm-aware: prefers a project-pinned .fvm SDK, falls back to fvm, then the dart on PATH.",
+      "version": "0.1.0",
+      "source": "./plugins/utopia-dart-lsp",
+      "repository": "https://github.com/Utopia-USS/utopia-flutter-skills",
+      "homepage": "https://github.com/Utopia-USS/utopia-flutter-skills/tree/main/plugins/utopia-dart-lsp",
+      "author": {
+        "name": "UtopiaSoftware",
+        "email": "hello@utopiasoft.io"
+      },
+      "lspServers": {
+        "dart": {
+          "command": "sh",
+          "args": ["-c", "exec \"$CLAUDE_PLUGIN_ROOT/scripts/dart_lsp.sh\""],
+          "extensionToLanguage": {
+            ".dart": "dart"
+          },
+          "initializationOptions": {
+            "onlyAnalyzeProjectsWithOpenFiles": true,
+            "suggestFromUnimportedLibraries": false,
+            "closingLabels": true,
+            "flutterOutline": true,
+            "outline": true
+          }
+        }
       }
     },
     {
