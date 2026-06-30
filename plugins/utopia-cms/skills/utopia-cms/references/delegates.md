@@ -76,7 +76,7 @@ abstract class CmsDelegate {
 `JsonMap = Map<String, dynamic>`. The returned `JsonMap` from `get/create/update` becomes a row in the table. Keys can be dotted paths (`contactData.name`) - see [entries.md](entries.md).
 
 **Delegate lifetime.** Delegates are cheap, stateless value objects: constructing
-one inline in `build()` is safe as of v0.2.3 - the table refetches only when
+one inline in `build()` is safe as of v0.3.0 - the table refetches only when
 sorting or filter values change, never on delegate identity. Wrapping in
 `useMemoized(() => MyDelegate(…))` is a fine tidiness convention (stable identity
 for your own keyed hooks) but not required by the framework. Do memoize the
@@ -95,7 +95,7 @@ Reads/writes a single Firestore collection. `create` uses `collection.add(…)`
 (random doc id), `update`/`delete` target `doc(value[idKey])`, and `get` merges
 the doc id into each row under `idKey`.
 
-**Known limitation (v0.2.3):** the stock `get()` ignores `sorting`, `filter` and
+**Known limitation (v0.3.0):** the stock `get()` ignores `sorting`, `filter` and
 `paging` entirely and hardcodes `limit(30)`. Column-sort clicks, filter entries
 and `pagingLimit` all silently do nothing on Firebase. The workaround is one
 reusable subclass that overrides `get()`; every per-entity delegate extends it
@@ -108,12 +108,12 @@ class AppFirestoreDelegate extends CmsFirebaseDelegate {
   @override
   Future<List<JsonMap>> get({
     CmsFunctionsSortingParams? sorting,
-    CmsFilter? filter,                       // base class declares this nullable
+    CmsFilter filter = const CmsFilter.all(),
     required CmsFunctionsPagingParams paging,
   }) async {
     Query<JsonMap> query = _applyFilter(
       FirebaseFirestore.instance.collection(collection),
-      filter ?? const CmsFilter.all(),
+      filter,
     );
     if (sorting != null) {
       query = query.orderBy(sorting.fieldKey, descending: sorting.sortDesc);
@@ -233,7 +233,7 @@ final client = useMemoized(
 
 - `createClient(uri, {header, tokenProvider, reporter})` - `header` defaults to
   `'Authorization'`; the async `tokenProvider` can refresh tokens per request;
-  an optional `reporter` (utopia_reporter) logs every request/response.
+  an optional `reporter` (`Reporter` from `package:utopia_reporter`) logs every request/response.
 - `CmsHasura.instance.createAdminClient(uri, secret: …)` presets the
   `x-hasura-admin-secret` header - local development only, never ship it.
 - Queries run with `FetchPolicy.noCache` - the table always shows fresh data.
@@ -258,7 +258,7 @@ Future<List<JsonMap>> get(
 
 ### GraphQL without Hasura - `utopia_cms_graphql`
 
-**Known limitation (v0.2.3):** there is **no** `CmsGraphQLDelegate` - the
+**Known limitation (v0.3.0):** there is **no** `CmsGraphQLDelegate` - the
 package is the document-building layer the Hasura package sits on, not a
 delegate. For a non-Hasura GraphQL backend, implement `CmsDelegate` yourself on
 top of `CmsGraphQLService`.

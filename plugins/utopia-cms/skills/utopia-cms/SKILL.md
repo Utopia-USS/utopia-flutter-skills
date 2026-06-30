@@ -75,7 +75,7 @@ Each reference is a self-contained skill page tuned to its topic:
 | 2 | [shell-cms-widget.md][shell] | CRITICAL | `CmsWidget`, `CmsWidgetItem.page/.action/.custom`, `CmsWidgetMenuParams`, integration with `go_router` |
 | 3 | [table-page.md][table-page] | CRITICAL | `CmsTablePage`, `CmsTableParams`, paging, sorting, role gating |
 | 4 | [delegates.md][delegates] | CRITICAL | `CmsDelegate` interface, prebuilt impls (Firebase/Supabase/Hasura), custom GraphQL delegates, subclassing for business logic |
-| 5 | [entries.md][entries] | CRITICAL | The `CmsEntry` catalog: text, num, bool, date, dropdown, country, media, to-many. `CmsEntryModifier` flags. Dotted-path keys. |
+| 5 | [entries.md][entries] | CRITICAL | The `CmsEntry` catalog: text, num, bool, date, dropdown, country, link, media, single-media, to-many. `CmsEntryModifier` flags (responsive `pinned`). Dotted-path keys. |
 | 6 | [filters.md][filters] | HIGH | `CmsFilterEntry`, `CmsFilterSearchEntry`, `CmsFilterDateEntry`, `CmsFilter` algebra (`&` `\|` `~`), custom filters |
 | 7 | [actions.md][actions] | HIGH | `CmsTableAction` per-row popup actions, `shouldUpdateTable` semantics, side-effects vs row mutations |
 | 8 | [management-sections.md][management-sections] | HIGH | `CmsManagementSectionEntry.sliverBuilder` for custom slivers in the edit overlay; `CmsManagementBaseState` + `addOnSavedCallback` for cross-cutting saves |
@@ -114,22 +114,27 @@ See [delegates.md][delegates].
 Custom backend? Implement `CmsDelegate` directly - four methods, ~30 lines.
 See [delegates.md][delegates] §"Custom delegate".
 
-## Known Limitations (utopia_cms 0.2.3)
+## Known Limitations (utopia_cms 0.3.0)
 
-Verified against the released package. Each row links to the reference file
-carrying the workaround.
+Verified against the 0.3.0 overhaul. Several 0.2.x limitations are now fixed (noted
+below). Each remaining row links to the reference file carrying the workaround.
 
 | Limitation | Workaround in |
 |------------|---------------|
 | Firestore: stock `CmsFirebaseDelegate.get()` ignores sorting, filters and paging entirely and hardcodes a 30-row limit - always override `get()` | [delegates.md][delegates] |
-| No built-in table refresh API - the table refetches only on filter / sort change or after CRUD through the overlay | [table-page.md][table-page] |
 | Offset paging can duplicate rows when the backend mutates between pages, and page dedupe is O(n^2) - jank on large tables | [table-page.md][table-page] |
-| `CmsDateEntry`: the edit field does not refresh after picking a date, and it serializes `DateTime.toString()` (not ISO-8601) | [entries.md][entries] |
-| `CmsFilter.notEquals` value is non-nullable ("is not null" is inexpressible) and Supabase null / NOT filters throw at runtime | [filters.md][filters] |
-| Inside the management overlay resolve state via `Provider.of`, never `useProvided` - even stock media / to-many edit fields can throw there | [management-sections.md][management-sections] |
+| No *automatic* refresh on realtime backends - 0.3.0 adds a built-in manual refresh button, but the table won't refetch on its own | [table-page.md][table-page] |
+| `CmsDateEntry` serializes `DateTime.toString()` (not ISO-8601) - the 0.2.x stale-after-picking bug is fixed in 0.3.0 | [entries.md][entries] |
+| Inside the management overlay resolve state via `Provider.of`, never `useProvided` - the stock media / to-many fields no longer throw (fixed in 0.3.0), but your own overlay code still must use `Provider.of` | [management-sections.md][management-sections] |
 | The management overlay can clip the last form field - add a trailing spacer section | [management-sections.md][management-sections] |
-| Framework chrome strings ("Create", "Delete", "Manage", "Continue") are hardcoded English - no l10n hook | [theme.md][theme] |
+| Framework chrome strings ("Create", "Update", "Delete", "Manage", "Back") are hardcoded English - no l10n hook | [theme.md][theme] |
 | No streaming `get()` and no multi-row selection - the two honest reasons to hand-roll a table | [anti-patterns.md][anti-patterns] |
+
+**New in 0.3.0** (see references): `CmsLinkEntry`, `CmsSingleMediaEntry`, responsive
+tables / menu / overlay (`CmsPageType`, `pinned: (t) => ...`), a table refresh button,
+a `media_kit`-backed `CmsVideoPlayer`, public exports of `CmsManagementBaseState` /
+`OnSavedCallback` / `CmsDropdownField`, and a core `utopia_arch` to `utopia_hooks` dep
+swap (inject with `useProvided`).
 
 ## Searching References
 
@@ -183,19 +188,19 @@ been a ~80-line `CmsTablePage`.
 
 - **`utopia_cms` is in `pubspec.yaml`** for any admin / CMS / back-office Flutter app. Without this, none of the rules below can apply.
 - **No hand-rolled CRUD service** in admin code - extend a prebuilt `CmsDelegate` (Firebase / Supabase / Hasura); for a plain GraphQL backend, implement `CmsDelegate` on top of `CmsGraphQLService`. If overriding `update/create/delete`, the override exists to add business logic, not to replicate framework behavior.
-- **On Firestore, override `get()`** - stock `CmsFirebaseDelegate.get()` ignores sorting, filters and paging and hardcodes a 30-row limit (v0.2.3). See [delegates.md][delegates].
+- **On Firestore, override `get()`** - stock `CmsFirebaseDelegate.get()` ignores sorting, filters and paging and hardcodes a 30-row limit (still in 0.3.0). See [delegates.md][delegates].
 - **No `useState<List<T>?>` + `bool isLoading` + `String? error` pattern in admin code** - `CmsTablePage` owns loading, error, and data.
 - **No Flutter `DataTable` in admin code** - every tabular admin view is a `CmsTablePage`. The right way to add a column is a new `CmsEntry` in the `entries` list.
 - **No `Navigator.push` between admin tables** - one `CmsWidget`, multiple `CmsWidgetItem.page`. Cross-screen navigation in admin contexts is suspicious - re-examine before building it.
-- **No `AlertDialog` for the delete-confirmation prompt** - `CmsTablePage` shows its own themed confirmation dialog automatically (that dialog is internal as of v0.2.3, not callable from app code).
+- **No `AlertDialog` for the delete-confirmation prompt** - `CmsTablePage` shows its own themed confirmation dialog automatically (that dialog is internal as of 0.3.0, not callable from app code).
 - **Never mutate the row map a `CmsTableAction` receives** - it is the table's live state, passed without copying. Copy first: `{...row, 'status': 'archived'}`.
-- **Inside the management overlay resolve `CmsManagementBaseState` via `Provider.of`**, never `useProvided` - the overlay provides it through `package:provider`, so `useProvided` throws there (v0.2.3). See [management-sections.md][management-sections].
+- **Inside the management overlay resolve `CmsManagementBaseState` via `Provider.of`**, never `useProvided` - the overlay provides it through `package:provider`, so `useProvided` throws there (still in 0.3.0; the stock media / to-many fields were fixed to use `Provider.of`). See [management-sections.md][management-sections].
 - **Role-based gating goes in `CmsTableParams` + `CmsEntryModifier`** - not in custom widgets that wrap `CmsTablePage`. (`canEdit: isSuperAdmin`, `CmsEntryModifier(editable: isSuperAdmin)`.)
 - **Per-row business logic = `CmsTableAction`**, never a custom popup menu rendered into a column.
 - **Custom edit-overlay UI = `CmsManagementSectionEntry`**, never a separate `*EditScreen` route.
 - **One `CmsThemeData` for the whole admin app** - Provider-injected at root, optionally passed as `CmsWidget(theme: …)`.
 - **`JsonMap` keys may be dotted paths** (`contactData.name`). Don't flatten by hand - `JsonMapExtensions.getAtPath/setAtPath` handles it.
-- **Don't import widgets from `utopia_cms/src/**`** - only the public exports from `package:utopia_cms/utopia_cms.dart` (and the delegate packages: `utopia_cms_firebase` / `_supabase` / `_hasura` / `_graphql`). Sole exception as of v0.2.3: `CmsManagementBaseState` is not exported and needs a deep import - see [management-sections.md][management-sections].
+- **Don't import widgets from `utopia_cms/src/**`** - only the public exports from `package:utopia_cms/utopia_cms.dart` (and the delegate packages: `utopia_cms_firebase` / `_supabase` / `_hasura` / `_graphql`). As of 0.3.0 `CmsManagementBaseState` and `OnSavedCallback` are public exports, so the 0.2.x deep-import exception is gone; `CmsDialog` and the context extensions remain unexported.
 
 ## Self-Audit Checklist
 
@@ -205,7 +210,7 @@ After generating an admin screen, verify:
 2. Does the file extend `HookWidget` and return a `CmsTablePage` (or `CmsWidget`) directly? → If there's a custom `*ScreenView` with its own `DataTable`, refactor.
 3. Is there *any* `useState<List<T>?>`, `useState<bool>(isLoading)`, `useState<String?>(error)` in an admin screen? → Delete; `CmsTablePage` owns these.
 4. Is there a hand-written `Service` class doing CRUD? → Convert to a `CmsDelegate` subclass.
-5. On Firestore: does the delegate override `get()` with real sorting / filter / paging? → Stock `CmsFirebaseDelegate.get()` ignores them (v0.2.3).
+5. On Firestore: does the delegate override `get()` with real sorting / filter / paging? → Stock `CmsFirebaseDelegate.get()` ignores them (still in 0.3.0).
 6. Are role permissions enforced via `CmsTableParams.canEdit/Create/Delete` and `CmsEntryModifier(editable: …)` rather than wrapping `CmsTablePage` in conditionals? → Move into params/modifiers.
 7. Are per-row buttons rendered as `IconButton`s in a column? → Move to `customActions: [CmsTableAction(…)]`.
 8. Does any `CmsTableAction.onPressed` mutate the row map it receives? → That map is live table state - copy it first (`{...row, 'field': newValue}`).

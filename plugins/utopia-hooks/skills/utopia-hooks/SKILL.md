@@ -86,7 +86,7 @@ State class (often extends `HasInitialized`) + `useXState()` hook + entry in `_p
 
 ### Paginated lists → [paginated.md][paginated]
 
-Any cursor-based list - feed, search results, chat history - uses `usePaginatedComputedState` + `PaginatedComputedStateWrapper` (scroll listener + pull-to-refresh). Never hand-roll `useState<List<T>>` + `hasMore` + `cursor`. Cursor is opaque (`int` for offset/page, `String?` for token). Optimistic mutations go in a local override layer, not into `items`.
+Any cursor-based list - feed, search results, chat history - uses `usePaginatedComputedState` + `PaginatedComputedStateWrapper` (scroll listener + pull-to-refresh). Never hand-roll `useState<List<T>>` + `hasMore` + `cursor`. Cursor is opaque (`int` for offset/page, `String?` for token). For confirmed optimistic edits/deletes, override the buffer with `updateValues(items, {cursor})` / `updateAt` / `deleteAt` (decrement the cursor on offset/page deletes to avoid skipping); reserve a render-time override layer for transient/uncommitted UI state.
 
 ## Searching References
 

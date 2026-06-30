@@ -9,7 +9,7 @@ tags: management, overlay, sliver, nested
 `CmsManagementSectionEntry` lets you inject **custom UI into the create/edit
 overlay** - anything that doesn't fit `CmsEntry` semantics: a nested
 permissions matrix, a related-records list, a status panel, an audit log,
-read-only metadata, etc. As of v0.2.3 the entry catalog has no type for nested
+read-only metadata, etc. As of v0.3.0 the entry catalog has no type for nested
 maps or lists of objects, so those columns are edited through sections too.
 
 This is what lets `CmsTablePage` cover non-trivial admin flows without you
@@ -74,13 +74,20 @@ Any section that talks to the overlay needs two imports:
 
 ```dart
 import 'package:provider/provider.dart';
-// CmsManagementBaseState is NOT exported from utopia_cms.dart (as of v0.2.3).
-// This deep src import is required - the sanctioned exception to the no-src-imports rule:
-import 'package:utopia_cms/src/ui/item_management/state/cms_management_state.dart';
+import 'package:utopia_cms/utopia_cms.dart'; // CmsManagementBaseState and OnSavedCallback are public barrel exports (new in 0.3.0)
 ```
 
 Resolve the state with `Provider.of<CmsManagementBaseState>(...)`, never
 `useProvided` - the why is under "the overlay's state object" below.
+
+## Responsive overlay (new in 0.3.0)
+
+`CmsManagementView` resolves a `CmsPageType` via `CmsPageWrapper` and adapts
+its layout automatically: on mobile it renders as a full-screen page that slides
+up from the bottom (single column, tighter padding); on tablet and web it slides
+in from the right as a constrained panel, leaving the table partially visible
+behind the barrier. No configuration is needed - the overlay adapts to the
+viewport width.
 
 ## Five common shapes
 
@@ -133,7 +140,7 @@ CmsManagementSectionEntry(
       final baseState = Provider.of<CmsManagementBaseState>(context, listen: false);
       final selectedState = useState<Set<String>>(_initialRoles(json));
 
-      // Register a callback that runs when the user clicks "Save"
+      // Register a callback that runs when the user clicks "Update" / "Create"
       useEffect(() {
         baseState.addOnSavedCallback((row) async {
           await userService.setRoles(row['id'] as String, selectedState.value);
@@ -302,6 +309,11 @@ abstract class CmsManagementBaseState {
 }
 ```
 
+The save button label is contextual (new in 0.3.0): `"Update"` when editing an
+existing item, `"Create"` when creating a new one. Header text follows the same
+logic: `"Manage item"` / `"Item details"` in edit mode, `"Create new"` in create
+mode.
+
 Available inside the overlay via Provider. Use it when your section needs to:
 
 - React to other fields in the row (`values.getAtPath('email')`).
@@ -319,10 +331,11 @@ registered in your utopia_hooks container (auth, lookup caches) are still
 resolved with `useProvided<T>()` inside a `HookBuilder` section; only the
 overlay's own state goes through `Provider.of`.
 
-**Known limitation (v0.2.3):** the package's own `CmsMediaEntry` and
-`CmsToManyDropdownEntry` edit fields resolve this state with `useProvided`
-and can throw inside the overlay - see [media.md](media.md) and
-[relationships.md](relationships.md).
+> **Fixed in 0.3.0:** the stock `CmsMediaEntry` and `CmsToManyDropdownEntry` edit
+> fields previously resolved this state with `useProvided` and would throw inside
+> the overlay. Both now use `Provider.of<CmsManagementBaseState>` and work
+> correctly. The rule still applies to your own overlay code: use `Provider.of`,
+> never `useProvided`, for `CmsManagementBaseState`.
 
 For relationship-style overlays, this is also where `CmsToManyDropdownEntry`
 plugs in (see [relationships.md](relationships.md)).
@@ -344,7 +357,7 @@ plugs in (see [relationships.md](relationships.md)).
 4. **Putting heavy network reads in every section.** All sections render in the overlay - a slow section makes editing painful. Cache via `useMemoizedFuture` and key by row id, or share an app-level lookup state (shape 1).
 5. **Using the section to navigate away.** Don't push routes from inside the overlay; that's the wrong shape.
 6. **Resolving the overlay state with `useProvided<CmsManagementBaseState>()`.** Throws `ProvidedValueNotFoundException` - it's a package:provider value, see the rules above.
-7. **Last section hidden behind the floating button bar.** Save/Delete float *over* the scroll view; v0.2.3 ends the scroll view with a fixed 100 px spacer, but a visible error message or a dense final section can still slip under the gradient. Workaround: append a trailing spacer section, e.g. `CmsManagementSectionEntry(title: '', showCreate: true, sliverBuilder: (_, __) => const SliverToBoxAdapter(child: SizedBox(height: 120)))`.
+7. **Last section hidden behind the floating button bar.** Save/Delete float *over* the scroll view; v0.3.0 ends the scroll view with a fixed 100 px spacer, but a visible error message or a dense final section can still slip under the gradient. Workaround: append a trailing spacer section, e.g. `CmsManagementSectionEntry(title: '', showCreate: true, sliverBuilder: (_, __) => const SliverToBoxAdapter(child: SizedBox(height: 120)))`.
 
 ## See also
 

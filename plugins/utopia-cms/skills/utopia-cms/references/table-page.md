@@ -77,7 +77,7 @@ CmsTablePage({
   List<CmsFilterEntry<dynamic>>? filterEntries,
   List<CmsTableAction>? customActions,
   List<CmsManagementSectionEntry> managementSectionEntries = const [],
-  int? pagingLimit = 25,                                 // must not be 0; null disables the limit
+  int? pagingLimit = 30,                                 // must not be 0; null disables the limit
 })
 ```
 
@@ -200,33 +200,48 @@ internally - when the user reaches the bottom, the next page is fetched via
 
 Tune `pagingLimit` to your dataset:
 
-- **25** - default; good for visually dense tables.
+- **30** - default; good for visually dense tables.
 - **50** - small lookup tables (users, products) where everything fits in a couple of pages.
 - **100+** - only when items are tiny and the delegate is cheap.
 - **`null`** - paging turns off after the first fetch. Whether that fetch is unbounded depends on the delegate: Hasura sends no limit, the Supabase service falls back to 100 rows, Firebase ignores paging anyway. Tiny fixed collections only.
 
 `pagingLimit: 0` is rejected by an assert.
 
-## Known limitations (v0.2.3)
+## Known limitations (0.3.0)
 
-**Known limitation (v0.2.3):** there is no manual-refresh API - the table only
-refetches when filters or sorting change and after overlay CRUD, so data can go
-stale under realtime backends. Workarounds: a CRUD round-trip (any overlay save
-resets and refetches), remounting the page with a new `key`, or nudging a
-filter value (every filter change resets paging and refetches).
+**Known limitation (0.3.0):** there is no *automatic* refresh on realtime backends.
+0.3.0 adds a built-in **refresh button** to the table toolbar (in the search panel) that
+resets paging and refetches on demand, with an in-flight spinner - so the 0.2.x "no
+manual-refresh API" gap is closed. But the table still won't refetch on its own when the
+backend changes underneath it; it otherwise refetches when filters or sorting change and
+after overlay CRUD.
 
-**Known limitation (v0.2.3):** offset-based paging can duplicate or skip rows
+**Known limitation (0.3.0):** offset-based paging can duplicate or skip rows
 when the backend mutates between page fetches, a fetch cancelled by a filter /
 sort change can still append its rows, and incoming rows are deduped against
 everything already loaded with an O(n^2) scan - large tables can stutter. Keep
 `pagingLimit` moderate and never pass `null` for big collections.
+
+## Responsive columns (new in 0.3.0)
+
+Drop columns per device with `CmsEntryModifier(pinned: (t) => ...)` - see
+[entries.md](entries.md) for the full `pinned` signature and helpers
+(`isMobile` / `isTablet` / `isWeb`). Example - hide a verbose column on mobile:
+
+```dart
+CmsTextEntry(key: 'notes', modifier: CmsEntryModifier(pinned: (t) => !t.isMobile)),
+```
+
+`CmsPageWrapper` resolves the size class from content width (not screen width):
+`CmsBreakpoints.tabletMin = 600`, `webMin = 900`. `pinned` gates the table column
+only - the create/edit overlay always shows every entry.
 
 ## Sorting
 
 A column is sortable when **both** conditions hold:
 
 1. Its entry has `CmsEntryModifier(sortable: true)`.
-2. The delegate supports sorting by that field (Supabase and Hasura delegates do for top-level fields; the stock `CmsFirebaseDelegate.get` ignores sorting entirely as of v0.2.3 - override it, see [delegates.md](delegates.md)).
+2. The delegate supports sorting by that field (Supabase and Hasura delegates do for top-level fields; the stock `CmsFirebaseDelegate.get` ignores sorting entirely as of 0.3.0 - override it, see [delegates.md](delegates.md)).
 
 Set initial sort via `initialSortingParams: CmsFunctionsSortingParams(sortDesc: true, fieldKey: 'created')`.
 
