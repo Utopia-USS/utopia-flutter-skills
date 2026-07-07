@@ -1,7 +1,7 @@
 ---
 description: Resolve review comments on a PR/MR — read, triage, one approval gate, then fix, push, and reply
 argument-hint: "<PR link> [spec link or notes] [auto | drafts only]"
-allowed-tools: Skill, Read, Edit, Bash, Glob, Grep, Agent, WebFetch, AskUserQuestion, TodoWrite
+allowed-tools: Skill, Read, Edit, Bash, Glob, Grep, Agent, WebFetch, AskUserQuestion, TodoWrite, mcp__claude-in-chrome
 model: inherit
 ---
 

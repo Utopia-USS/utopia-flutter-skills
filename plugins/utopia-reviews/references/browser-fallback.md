@@ -9,6 +9,11 @@ replies or the review report — never click "Comment", "Resolve", or "Approve" 
 web UI. Button-clicking in the user's authenticated session is fragile, hard to
 audit, and publishes under their name without a reliable record of what was sent.
 
+**Tooling.** This fallback drives the Claude-in-Chrome MCP tools
+(`mcp__claude-in-chrome__*`), which the plugin's commands allowlist. They exist
+only when the Claude-in-Chrome extension is connected — if it isn't, there is no
+browser path, so fall back to pasted comments or drafts-only / local-only output.
+
 ## Claude-in-Chrome flow
 
 - `list_connected_browsers`. More than one connected → you **must** ask which one

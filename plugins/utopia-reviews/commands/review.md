@@ -1,7 +1,7 @@
 ---
 description: Review a changeset — PR/MR link or local branches — Utopia-aware, severity-ranked; can post inline comments after approval
 argument-hint: "[PR/MR link | <source> [<target>]] [spec link or notes] [auto | local only]"
-allowed-tools: Skill, Read, Bash, Glob, Grep, Agent, WebFetch, AskUserQuestion, TodoWrite
+allowed-tools: Skill, Read, Bash, Glob, Grep, Agent, WebFetch, AskUserQuestion, TodoWrite, mcp__claude-in-chrome
 model: inherit
 ---
 
