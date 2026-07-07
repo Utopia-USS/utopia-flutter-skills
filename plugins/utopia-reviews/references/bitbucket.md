@@ -61,8 +61,10 @@ Only for threads whose fix is committed AND pushed:
 auth -X POST "$BB/pullrequests/<id>/comments/<comment-id>/resolve"
 ```
 
-(Resolve targets the thread's root comment id. Older workspaces may lack this
-endpoint — if it 404s, say so in the report and leave resolution to the user.)
+(Resolve targets the thread's root comment id. A 404 here can mean an unknown
+comment id, an id that is a reply rather than the thread root, or an older
+workspace that lacks this endpoint - in any case, say so in the report and leave
+resolution to the user.)
 
 ## Posting a review
 
