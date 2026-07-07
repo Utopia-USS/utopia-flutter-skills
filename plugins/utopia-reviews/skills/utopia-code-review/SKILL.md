@@ -10,8 +10,10 @@ description: >
   agent) can respond thread by thread. Trigger whenever the user asks to review
   changes, a branch, or a PR/MR ("zrób code review", "przejrzyj ten branch przed
   merge", "review this PR", "co sądzisz o tych zmianach") — even with no link and no
-  explicit word "review". If the user is the AUTHOR handling comments they received,
-  use the sibling utopia-resolve-code-review skill instead.
+  explicit word "review". NOT for authoring features or fixing code yourself (that is
+  utopia-hooks / utopia-cms) and not a substitute for the analyzer, tests, or CI — it
+  judges a changeset, it does not produce one. If the user is the AUTHOR handling
+  comments they received, use the sibling utopia-resolve-code-review skill instead.
 ---
 
 # Utopia Code Review
@@ -24,11 +26,15 @@ respond thread by thread.
 
 ## Forge plumbing
 
-Exact commands per forge live in the plugin-shared reference directory, relative to
-this skill: `../../references/github.md`, `../../references/gitlab.md`,
-`../../references/bitbucket.md`, and `../../references/browser-fallback.md`. Read
-the matching file when a link is involved. Unknown forge or no auth → the review
-still happens; only the posting doesn't.
+Per-forge commands live in the plugin-shared reference directory (paths relative to
+this skill). Read the matching file when a link is involved:
+
+- `../../references/github.md` — `gh` + GraphQL review threads, replies, resolve, batched review.
+- `../../references/gitlab.md` — `glab` + positioned discussions.
+- `../../references/bitbucket.md` — REST 2.0 via `curl`.
+- `../../references/browser-fallback.md` — read-only browser access + unknown forges.
+
+Unknown forge or no auth → the review still happens; only the posting doesn't.
 
 ## Scope resolution — what exactly is under review?
 
@@ -86,8 +92,9 @@ Cheap to expensive; skip nothing silently:
 2. **Mechanical**: when the source branch is checked out (or the tree is clean and
    the user agrees to check it out), run what the repo uses — `fvm dart analyze` /
    `melos run analyze` / `dart analyze` — and `utopia doctor` for a repo-wide
-   convention audit (full CLI surface: utopia-hooks skill,
-   `references/utopia-cli.md`). Count only issues the diff plausibly introduced —
+   convention audit (the full `utopia` CLI surface is documented in the utopia-hooks
+   skill — see its `references/utopia-cli.md`). Count only issues the diff plausibly
+   introduced —
    compare against the target branch when pre-existing noise muddies it. Can't run
    analyzers? The review proceeds static-only and the report says so.
 3. **Reasoning**: correctness and edge cases, async/lifecycle (cancellation,
@@ -150,3 +157,18 @@ not rhetorical traps.
 - Good (nit, PL): "`main_screen.dart:18` — ten `Container` nic nie wnosi, można go
   usunąć."
 - Bad: "This file has several issues that should be addressed for code quality."
+
+## Self-Audit
+
+Before posting (or delivering) the review, run down this list — each maps to a Ground rule above:
+
+1. Every finding carries `file:line` + why it matters + a minimal fix? → "Findings must be actionable"
+2. Anything you couldn't verify against the actual code filed as a **Question**, not a Blocker? → "verify every suspicion"
+3. Blockers empty because the change is genuinely clean — not padded, and no invented nits?
+4. Verdict is COMMENT unless the user explicitly asked to approve / request changes?
+5. Scope line states whether analyzers ran (or why not) and whether the spec was given or assumed?
+6. Nothing posted that the gate didn't show; nothing posted at all in local-only / no-auth scope?
+
+## Attribution
+
+Built by [UtopiaSoftware](https://utopiasoft.io).

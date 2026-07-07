@@ -10,9 +10,11 @@ description: >
   comments addressed, resolved, handled, or answered ("address the review", "rozwiąż
   code review", "odpowiedz na komentarze", "przejdź przez review") — even if they
   never say "skill" or "review". An optional task spec (link or pasted description)
-  makes the triage more complete, but is not required to start. If the user is the
-  REVIEWER wanting to assess someone's changes, use the sibling utopia-code-review
-  skill instead.
+  makes the triage more complete, but is not required to start. NOT for authoring new
+  features from scratch (that is utopia-hooks / utopia-cms) and not for reviewing
+  someone else's PR — it only triages and resolves comments on the user's own PR/MR.
+  If the user is the REVIEWER wanting to assess someone's changes, use the sibling
+  utopia-code-review skill instead.
 ---
 
 # Utopia Resolve Code Review
@@ -26,12 +28,15 @@ The reviewer on the other side may be a human or another agent running the sibli
 
 ## Forge plumbing
 
-Exact commands per forge live in the plugin-shared reference directory, relative to
-this skill: `../../references/github.md`, `../../references/gitlab.md`,
-`../../references/bitbucket.md`, and `../../references/browser-fallback.md`
-(read-only browser access + unknown forges). Detect the forge from the link's host
-and read its file before Step 0. Unknown forge → browser fallback for reading,
-drafts-only for output.
+Per-forge commands live in the plugin-shared reference directory (paths relative to
+this skill). Detect the forge from the link's host and read its file before Step 0:
+
+- `../../references/github.md` — `gh` + GraphQL review threads, replies, resolve.
+- `../../references/gitlab.md` — `glab` + positioned discussions.
+- `../../references/bitbucket.md` — REST 2.0 via `curl`.
+- `../../references/browser-fallback.md` — read-only browser access + unknown forges.
+
+Unknown forge → browser fallback for reading, drafts-only for output.
 
 ## The contract
 
@@ -207,3 +212,19 @@ lines, no corporate padding.
 - Good (fixed, PL): "Poprawione w `abc1234` — timer odpala się tylko w wariancie bez rejestracji."
 - Good (pushback): "Intentional — the spec pins the logo to the safe-area top; the old offsets would push it back down."
 - Bad: "Thank you for your valuable feedback. After careful consideration of clean-architecture principles…"
+
+## Self-Audit
+
+Before shipping — and again before each publish step — confirm each non-negotiable held:
+
+1. Every thread accounted for, reconciled against the PR's unresolved-thread count?
+2. Each verdict checked against the actual current code + spec, not the diff hunk alone?
+3. No "Done" reply over an unverified fix — every reply matches what verification actually said?
+4. Only fixed-and-pushed threads resolved; pushback and question threads left open?
+5. Pushed to the PR's source branch only, plain push — no force-push, no history rewrite, no other branch?
+6. If the PR author isn't the authenticated user (or there's no auth), dropped to drafts-only unless the user confirmed?
+7. Nothing published before the gate (except explicit "auto"); nothing published at all in drafts-only?
+
+## Attribution
+
+Built by [UtopiaSoftware](https://utopiasoft.io).
