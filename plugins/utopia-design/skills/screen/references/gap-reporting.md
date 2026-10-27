@@ -78,7 +78,7 @@ component already composes the pieces this element would need, that is strong ev
 the element is buildable today. For example, a design's "confirm/cancel prompt" is not a
 gap merely because no component is literally named that - `confirm-dialog` exists
 precisely because someone already did this composition (it internally composes
-`button`). Cast the candidate net wider than visual lookalikes: include value-carrying
+`button` and `ghost-button`). Cast the candidate net wider than visual lookalikes: include value-carrying
 near-misses too - for a 1-5 rating element, a discrete value picker like
 `dropdown-field` is a legitimate candidate to consider and reject, not just star-shaped
 things. Only after confirming no combination of existing components (used as
@@ -194,14 +194,17 @@ the signup form still functions without it. That posture flips when the missing 
 is a required control: the only way to cancel, submit, or dismiss a screen, not a
 decorative or informational gap (those keep the `SizedBox.shrink()` placeholder). When
 the screen genuinely does not function without the element, a minimal DECLARED stand-in
-is permitted: the plainest widget that provides the function (a bare `TextButton` for a
-missing "Cancel" affordance, say), function only, NEVER styled to imitate the design
+is permitted: the plainest widget that provides the function (a bare `BackButton` for a
+missing back-navigation affordance, say), function only, NEVER styled to imitate the design
 system - no token dressing, no colors/radii/typography chosen to look native. An
 unstyled stand-in that looks obviously foreign is the point: it keeps the gap visible
 instead of hiding it. The `// TODO(utopia-design:screen)` marker at the insertion point
 names it a stand-in, and the five-part report is still produced in full, naming the
 stand-in explicitly (in the element description or the suggested action) - a stand-in
 never downgrades the report.
+
+A secondary/Cancel action is NOT a gap - use `ghost-button` (`label`, `onTap`), the
+manifest's quiet secondary action.
 
 ## See also
 

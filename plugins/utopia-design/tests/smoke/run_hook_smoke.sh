@@ -8,8 +8,8 @@
 # it prints to stderr and exits 2; silent mode is exit 0 with no output. Rule B
 # scans the EDIT PAYLOAD (new_string / content / edits[].new_string), not the
 # whole file. Cases 21-29 exercise the Rule A VALIDATOR HOOK (the wired
-# `dart run utopia_design_tools:validate_tokens` call) via a fake `dart` PATH
-# shim, so they run without a real dart toolchain or the utopia_design_tools
+# `dart run utopia_ui_tools:validate_tokens` call) via a fake `dart` PATH
+# shim, so they run without a real dart toolchain or the utopia_ui_tools
 # package. Prints PASS/FAIL per case and a final tally.
 # Compatible with macOS bash 3.2 (no mapfile, no assoc arrays).
 
@@ -167,7 +167,7 @@ echo '{not valid json' >"$lockonly_tokens"
 # marker file (proves the validator was actually invoked) and, when pointed at
 # a findings file, dumps it to stdout before exiting with a caller-chosen code -
 # lets the smoke test drive quality_check.sh's validator branch without a real
-# dart toolchain or the utopia_design_tools package.
+# dart toolchain or the utopia_ui_tools package.
 shim_dir="$work_dir/shim"
 mkdir -p "$shim_dir"
 cat >"$shim_dir/dart" <<'EOF'
@@ -182,7 +182,7 @@ EOF
 chmod +x "$shim_dir/dart"
 dart_shim_marker="$work_dir/dart_shim_marker"
 
-# Resolvable project: pubspec.lock declares utopia_design_tools (dev dep, same
+# Resolvable project: pubspec.lock declares utopia_ui_tools (dev dep, same
 # style as the utopia_ui entry above) AND .dart_tool/package_config.json lists
 # it too, so both usage-gate checks in quality_check.sh's VALIDATOR HOOK pass.
 validator_copy="$work_dir/validator_copy"
@@ -199,10 +199,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.0"
-  utopia_design_tools:
+  utopia_ui_tools:
     dependency: "direct dev"
     description:
-      name: utopia_design_tools
+      name: utopia_ui_tools
       sha256: "0000000000000000000000000000000000000000000000000000000000000000"
       url: "https://pub.dev"
     source: hosted
@@ -211,7 +211,7 @@ sdks:
   dart: ">=3.4.0 <4.0.0"
 EOF
 cat >"$validator_copy/.dart_tool/package_config.json" <<'EOF'
-{"configVersion": 2, "packages": [{"name": "utopia_design_tools", "rootUri": "file:///dev/null", "packageUri": "lib/"}]}
+{"configVersion": 2, "packages": [{"name": "utopia_ui_tools", "rootUri": "file:///dev/null", "packageUri": "lib/"}]}
 EOF
 validator_tokens="$validator_copy/design/tokens.json"
 cat >"$validator_tokens" <<'EOF'
@@ -494,11 +494,11 @@ else
   fail "validator exit 2 (rc=$rc; out=$(cat "$o"); err=$(cat "$e"); marker=$([[ -f "$dart_shim_marker" ]] && echo present || echo absent))"
 fi
 
-# --- Case 25: project does not resolve utopia_design_tools -> validator never invoked (marker absent) ---
+# --- Case 25: project does not resolve utopia_ui_tools -> validator never invoked (marker absent) ---
 o="$work_dir/c25.out"; e="$work_dir/c25.err"
 run_quality_check_validator "$valid_tokens" "warn" "$o" "$e" 1 "$findings_file"; rc=$?
 if [[ $rc -eq 0 ]] && is_silent "$o" "$e" && [[ ! -f "$dart_shim_marker" ]]; then
-  pass "project without utopia_design_tools -> exit 0 silent, validator never invoked (marker absent)"
+  pass "project without utopia_ui_tools -> exit 0 silent, validator never invoked (marker absent)"
 else
   fail "non-resolvable project (rc=$rc; out=$(cat "$o"); marker=$([[ -f "$dart_shim_marker" ]] && echo present || echo absent))"
 fi

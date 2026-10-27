@@ -22,7 +22,10 @@ closed utopia tree is [mapping.md](mapping.md)'s job, not this one.
 - **How to extract:** read it as a plain DTCG document (the same parsing
   habits as `design/tokens.json`). The challenge is never the format - it's
   that names don't line up with the utopia tree at all; every path needs
-  explicit mapping (-> [mapping.md](mapping.md)).
+  explicit mapping (-> [mapping.md](mapping.md)). A multi-mode export
+  (Light/Dark) imports ONE mode into `design/tokens.json`; report the other
+  mode's colours as the dark-palette gap, with the Dart-side route
+  (mapping.md's scripted gaps).
 - **Format notes:** preserve whatever foreign `$extensions` namespace is
   present, untouched - DTCG's round-trip rule plus the vendor-namespace
   clause (SPEC.md sections 2.1, 2.6). When a Figma variable id is present

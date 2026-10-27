@@ -62,6 +62,6 @@ doing design work:
 
 Screens compose with the utopia-hooks Screen/State/View pattern - defer to
 that skill for state management. A PostToolUse hook checks edits to
-design/*.tokens.json and flags hardcoded theme values in Dart edits.
+design/tokens.json (and design/*.tokens.json) and flags hardcoded theme values in Dart edits.
 EOF
 exit 0

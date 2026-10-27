@@ -29,13 +29,12 @@ Plus 15 reference files across the five skills, and two hooks: SessionStart proj
 ### Requirements
 
 - A project that resolves `utopia_ui`. This is the universal usage gate: every skill stops there and surfaces install guidance instead of acting.
-- `utopia_design_tools` as a dev dependency, for the token validator and the generators:
+- `utopia_ui_tools` as a dev dependency, for the token validator and the generators:
 
   ```bash
-  flutter pub add --dev utopia_design_tools
+  flutter pub add --dev utopia_ui_tools
   ```
 
-  Until it reaches pub.dev, `pub add` cannot find it: install it as a git dependency on `https://github.com/Utopia-USS/utopia-ui.git` (path `tool/utopia_design_tools`), with the required `dependency_overrides` entry for `utopia_ui`. The exact snippet lives in the `utopia-design:tokens` skill, `references/validation.md`.
 - `jq`, for the PostToolUse hook. The hook no-ops without it.
 
 ## How it works
@@ -45,10 +44,10 @@ SessionStart scans the project's `pubspec.yaml` files (several levels deep, so m
 PostToolUse on `Edit|Write|MultiEdit` does two things:
 
 - Flags hardcoded theme values in the edit payload, not in the whole file: `Color(0x......)` literals, Material `Colors.<swatch>` references, and non-zero dimension literals in `EdgeInsets`, `BorderRadius.circular` and `SizedBox(width:/height:)`. Generated Dart (`*.g.dart`, `*.freezed.dart` and friends) is skipped.
-- Sanity-checks `design/tokens.json` - parseable JSON, object at the top level - and escalates to the real validator when `dart` is on PATH and `utopia_design_tools` resolves:
+- Sanity-checks `design/tokens.json` - parseable JSON, object at the top level - and escalates to the real validator when `dart` is on PATH and `utopia_ui_tools` resolves:
 
   ```bash
-  dart run utopia_design_tools:validate_tokens design/tokens.json
+  dart run utopia_ui_tools:validate_tokens design/tokens.json
   ```
 
   Its `ERROR` and `WARN` lines become hook violations.
@@ -57,7 +56,7 @@ Two env vars control the gate: `UTOPIA_DESIGN_MODE` is `warn` (default), `block`
 
 ## Development
 
-`tests/smoke/run_hook_smoke.sh` is a self-contained smoke suite for both hook scripts. It exercises them against the bundled fixtures with a fake `dart` PATH shim, so no real toolchain or `utopia_design_tools` install is needed, and prints PASS/FAIL per case plus a final tally.
+`tests/smoke/run_hook_smoke.sh` is a self-contained smoke suite for both hook scripts. It exercises them against the bundled fixtures with a fake `dart` PATH shim, so no real toolchain or `utopia_ui_tools` install is needed, and prints PASS/FAIL per case plus a final tally.
 
 ## Related plugins
 

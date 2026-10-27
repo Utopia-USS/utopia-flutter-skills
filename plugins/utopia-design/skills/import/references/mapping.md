@@ -95,7 +95,9 @@ coincidental.
   reporting: the same "report it, don't paper over it" posture applied to
   tokens instead of components.
 - Two gaps are predictable enough to have a scripted answer - a dark palette
-  (single-context protocol, out of v0 by design) and success/warning
+  (single-context token document; the dark palette lives in Dart as a
+  `UtopiaThemeColors` passed to `UtopiaThemeData.fromTokens(colors: ...)`)
+  and success/warning
   semantic colors (no `UtopiaThemeColors` slot to land in). See
   **utopia-design:tokens**'s
   [token-profile.md](../../tokens/references/token-profile.md)

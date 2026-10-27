@@ -37,7 +37,7 @@ Flutter theme code or twin CSS - those are generated, never hand-edited.
 
 3. **`theme.*` slots may be an alias or a literal - both are valid.** The
    default theme expresses several as aliases (`theme.borderRadius =
-   {radius.sm}`, `theme.cardRadius = {radius.xl}`, `theme.pageTopPadding =
+   {radius.lg}`, `theme.cardRadius = {radius.xl}`, `theme.pageTopPadding =
    {spacing.xxxl}`, `theme.fieldContentPadding.left/right = {spacing.lg}`).
    *Why:* an alias keeps the slot tracking its source token automatically
    (rescale `x`, the slot follows); a literal decouples it. Replacing an
@@ -76,8 +76,8 @@ Before (the canonical default-theme value):
 
 ```json
 "primary": { "$type": "color", "$value": {
-  "colorSpace": "srgb", "components": [0.32549, 0.427451, 0.996078],
-  "alpha": 1, "hex": "#536dfe" } }
+  "colorSpace": "srgb", "components": [0.247059, 0.317647, 0.898039],
+  "alpha": 1, "hex": "#3f51e5" } }
 ```
 
 After (rebrand to a green primary; components stay `channel / 255` at up to

@@ -126,7 +126,7 @@ against does not exist without the library present.
   manifest (`design/merged.manifest.json`, SPEC.md 3.8), prefer IT as the mapping
   target - it adds the project's own registered components; it is derived output:
   regenerate it, never edit it. See [component-mapping.md][component-mapping]. Optionally run
-  `dart run utopia_design_tools:validate_manifest` with zero arguments as a freshness
+  `dart run utopia_ui_tools:validate_manifest` with zero arguments as a freshness
   check (the `packageVersion` drift gate); its exact CLI contract and gates are
   **utopia-design:sync**'s
   [regeneration.md](../sync/references/regeneration.md), not re-specified
@@ -148,7 +148,8 @@ against does not exist without the library present.
   this. A GAP is for genuinely missing capability, not for an element that just needs
   assembling from parts that already exist. See [gap-reporting.md][gap-reporting].
 - **Token discipline, one line.** Visual values (colors, spacing, radii, text styles)
-  come from `UtopiaTheme`/context per the component's `tokenBindings` - never a
+  come from `UtopiaTheme`/context per the component's `tokenBindings` (each entry's
+  `path`) - never a
   hardcoded literal for a value that has a token. The plugin's `PostToolUse` hook (Rule
   B) already nudges exactly this on newly-edited Dart; this skill is the fix it points
   at.

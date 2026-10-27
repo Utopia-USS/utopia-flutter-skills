@@ -4,7 +4,7 @@ description: >
   Regenerate every generated surface of the Utopia Design Protocol from
   design/tokens.json after it changes: the Flutter theme code (generate_theme)
   and the HTML twin (generate_twin: tokens.css, tokens.tailwind.css, DESIGN.md
-  front matter). Runs validate_tokens first and never regenerates from a failing
+  front matter, and gallery.html when the twin composes one). Runs validate_tokens first and never regenerates from a failing
   token document; runs a packageVersion drift check (validate_manifest);
   optionally runs validate_twin after. Applies when: design/tokens.json was just
   edited or imported and the surfaces need to catch up. Without utopia_ui
@@ -56,21 +56,20 @@ library present.
 
 Second, separate prerequisite: every command this skill runs (`validate_tokens`,
 `validate_manifest`, `generate_theme`, `generate_twin`, `validate_twin`) ships
-in the `utopia_design_tools` package, not `utopia_ui` itself. Confirm it
+in the `utopia_ui_tools` package, not `utopia_ui` itself. Confirm it
 resolves the same inspect-first way: `pubspec.yaml` (under `dev_dependencies`)
-or `pubspec.lock` lists `utopia_design_tools`. If it does not - or if
-`dart run utopia_design_tools:<command>` fails with a package-resolution
+or `pubspec.lock` lists `utopia_ui_tools`. If it does not - or if
+`dart run utopia_ui_tools:<command>` fails with a package-resolution
 error anyway - install it first:
 
 ```bash
-flutter pub add --dev utopia_design_tools
+flutter pub add --dev utopia_ui_tools
 ```
 
 This is the identical prerequisite **utopia-design:tokens**'s
 [validation.md](../tokens/references/validation.md) documents
-for `validate_tokens`, including the pre-publish git-dependency fallback
-when `pub add` cannot find the package - do not assume the tools are
-available, install then run.
+for `validate_tokens` - do not assume the tools are available, install
+then run.
 
 ## The Regenerate Workflow (the spine)
 
@@ -104,7 +103,10 @@ never block on the missing file.
    (`buildUtopiaTheme()`) from `design/tokens.json`. On the FIRST sync, also
    confirm the app wires it - `UtopiaTheme(data: buildUtopiaTheme(),
    child: ...)` - or the rebrand silently changes nothing; see
-   [regeneration.md][regeneration]. Then **prove the result with `--check`**:
+   [regeneration.md][regeneration]. The generated theme is the light branch
+   only: if the app switches by brightness, the dark palette stays in Dart
+   (`UtopiaThemeData.darkTheme` or `UtopiaThemeData.fromTokens(colors:
+   myDarkColors)`) and a rebrand does not reach it - say so. Then **prove the result with `--check`**:
    the same command plus that flag regenerates in memory and byte-compares
    against the file on disk, so exit `0` is machine-proof that the committed
    theme is exactly what these tokens produce (the theme-side equivalent of
@@ -120,7 +122,8 @@ never block on the missing file.
    guessed paths.
 4. **`generate_twin` - conditional by presence.** Produces `twin/tokens.css`,
    `twin/tokens.tailwind.css`, and the `DESIGN.md` front matter from the same
-   `design/tokens.json`. Run it when the project already HAS a `twin/`
+   `design/tokens.json`, and recomposes `twin/gallery.html` when the twin holds
+   a `gallery.src.html`. Run it when the project already HAS a `twin/`
    directory (it materialized the design surface) or when the user explicitly
    asks; creating the twin for the FIRST time is an explicit choice, never a
    rebrand side effect. "Regeneration fans out to every surface" (SPEC.md
@@ -129,15 +132,16 @@ never block on the missing file.
    and 4 are independent - both read only `design/tokens.json`, so either
    order works.
 5. **`validate_twin` (optional).** Literals linter + `data-utopia-id`
-   coverage check against the manifest. Not required to consider the sync
+   coverage check against the manifest + freshness of the generated
+   stylesheets and `DESIGN.md` front matter. Not required to consider the sync
    done, but recommended whenever the twin output is going to be viewed or
    shipped. On a generated-only project twin the coverage gate auto-skips
    (no `components.html` = the signal) while the literals + freshness gates
    still run - see [regeneration.md][regeneration] for the consumer-scope
    note.
 6. **Done.** Do not hand-edit any generated output (the theme Dart file,
-   `tokens.css`, `tokens.tailwind.css`, or the `DESIGN.md` front matter
-   block). If something looks wrong, fix `design/tokens.json` and re-run
+   `tokens.css`, `tokens.tailwind.css`, the `DESIGN.md` front matter
+   block, or a composed `gallery.html`). If something looks wrong, fix `design/tokens.json` and re-run
    this workflow instead.
 
 ## When to Apply
@@ -161,8 +165,8 @@ never block on the missing file.
   **utopia-design:import**
 - Building or updating a screen from a design -> use **utopia-design:screen**
 - Hand-editing the generated theme Dart file, `twin/tokens.css`,
-  `twin/tokens.tailwind.css`, or the `DESIGN.md` front matter block - all
-  four are regenerated outputs; re-run this skill's workflow instead
+  `twin/tokens.tailwind.css`, the `DESIGN.md` front matter block, or a
+  composed `twin/gallery.html` - all are regenerated outputs; re-run this skill's workflow instead
 
 ## Priority-Ordered Guidelines
 
@@ -173,7 +177,7 @@ never block on the missing file.
 
 ## Non-Negotiable Rules
 
-- **Verify `utopia_ui` resolves, and that `utopia_design_tools` resolves,
+- **Verify `utopia_ui` resolves, and that `utopia_ui_tools` resolves,
   before running anything** (the two gates above).
 - **`validate_tokens` runs BEFORE any regeneration, every time.** A failure
   means STOP - never regenerate the theme or the twin from a token document
@@ -184,8 +188,8 @@ never block on the missing file.
   tool change) only becomes durable by landing in `design/tokens.json` and
   re-running this workflow.
 - **Never hand-edit generated output.** The theme Dart file, `tokens.css`,
-  `tokens.tailwind.css`, and the `DESIGN.md` front matter block are all
-  regenerated by `generate_theme` / `generate_twin`; a hand-edit is silently
+  `tokens.tailwind.css`, the `DESIGN.md` front matter block, and a composed
+  `gallery.html` are all regenerated by `generate_theme` / `generate_twin`; a hand-edit is silently
   destroyed by the next regeneration and, in the meantime, lies about what
   `design/tokens.json` actually says.
 - **A `packageVersion` mismatch (`validate_manifest`) is a real error.** It
