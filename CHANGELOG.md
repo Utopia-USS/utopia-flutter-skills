@@ -3,6 +3,20 @@
 Per-plugin versions live in each plugin's `.claude-plugin/plugin.json`; the marketplace version tracks
 the repo as a whole. Entries below cover shipped changes since the previous bump of each component.
 
+## Marketplace 0.12.0
+
+- `utopia-design` follows the `utopia_ui` 0.1.0 pub.dev release, where the companion CLI package was
+  renamed from `utopia_design_tools` to `utopia_ui_tools`.
+
+## utopia-design 0.4.0
+
+- **Breaking:** every command now runs as `dart run utopia_ui_tools:<command>`, and the install step is
+  `flutter pub add --dev utopia_ui_tools`. The old `utopia_design_tools` name is gone, and the PostToolUse
+  hook only escalates to the real validator when the project resolves `utopia_ui_tools`.
+- Dropped the pre-publish git-dependency + `dependency_overrides` fallback: both packages are on pub.dev,
+  so a plain `flutter pub add --dev utopia_ui_tools` is the whole install.
+- Repo paths in the component references now point at `tool/utopia_ui_tools`.
+
 ## Marketplace 0.11.0
 
 - Field-adapter pass across `utopia-hooks`, `utopia-hooks-migrate-bloc` and `utopia-design`, driven by

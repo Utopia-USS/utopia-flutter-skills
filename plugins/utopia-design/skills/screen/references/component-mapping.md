@@ -39,11 +39,11 @@ never treat it as a source of truth; `validate_manifest` gates its freshness (re
 the shipped manifest). Bare ids (`button`) are always library components; namespaced
 ids are the project's registered components - both are equally legal mapping targets.
 The project/merged files are produced by
-`dart run utopia_design_tools:generate_manifest --project` - the utopia-design:component
+`dart run utopia_ui_tools:generate_manifest --project` - the utopia-design:component
 skill owns that loop. A project that has not registered custom components has only the
 shipped library manifest.
 
-Optional freshness check: `dart run utopia_design_tools:validate_manifest` with zero
+Optional freshness check: `dart run utopia_ui_tools:validate_manifest` with zero
 arguments validates the shipped manifest against the resolved `utopia_ui` version
 (the `packageVersion` drift gate, SPEC.md 3.7). Its full CLI contract - default file
 resolution, sources root, exact gates - is **utopia-design:sync**'s

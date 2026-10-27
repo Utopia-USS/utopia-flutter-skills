@@ -56,21 +56,20 @@ library present.
 
 Second, separate prerequisite: every command this skill runs (`validate_tokens`,
 `validate_manifest`, `generate_theme`, `generate_twin`, `validate_twin`) ships
-in the `utopia_design_tools` package, not `utopia_ui` itself. Confirm it
+in the `utopia_ui_tools` package, not `utopia_ui` itself. Confirm it
 resolves the same inspect-first way: `pubspec.yaml` (under `dev_dependencies`)
-or `pubspec.lock` lists `utopia_design_tools`. If it does not - or if
-`dart run utopia_design_tools:<command>` fails with a package-resolution
+or `pubspec.lock` lists `utopia_ui_tools`. If it does not - or if
+`dart run utopia_ui_tools:<command>` fails with a package-resolution
 error anyway - install it first:
 
 ```bash
-flutter pub add --dev utopia_design_tools
+flutter pub add --dev utopia_ui_tools
 ```
 
 This is the identical prerequisite **utopia-design:tokens**'s
 [validation.md](../tokens/references/validation.md) documents
-for `validate_tokens`, including the pre-publish git-dependency fallback
-when `pub add` cannot find the package - do not assume the tools are
-available, install then run.
+for `validate_tokens` - do not assume the tools are available, install
+then run.
 
 ## The Regenerate Workflow (the spine)
 
@@ -173,7 +172,7 @@ never block on the missing file.
 
 ## Non-Negotiable Rules
 
-- **Verify `utopia_ui` resolves, and that `utopia_design_tools` resolves,
+- **Verify `utopia_ui` resolves, and that `utopia_ui_tools` resolves,
   before running anything** (the two gates above).
 - **`validate_tokens` runs BEFORE any regeneration, every time.** A failure
   means STOP - never regenerate the theme or the twin from a token document

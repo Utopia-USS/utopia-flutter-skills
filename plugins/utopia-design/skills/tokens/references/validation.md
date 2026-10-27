@@ -14,46 +14,21 @@ done.
 
 ## Prerequisite: the tool must be installed
 
-`validate_tokens` ships in the `utopia_design_tools` package, which is a
+`validate_tokens` ships in the `utopia_ui_tools` package, which is a
 separate installable prerequisite from `utopia_ui` (the usage gate). Before
-running it, confirm it resolves; if `dart run utopia_design_tools:validate_tokens`
+running it, confirm it resolves; if `dart run utopia_ui_tools:validate_tokens`
 fails with a package-resolution error, install it first as a dev dependency:
 
 ```bash
-flutter pub add --dev utopia_design_tools
+flutter pub add --dev utopia_ui_tools
 ```
 
-Until it is published to pub.dev, `flutter pub add` cannot find it - install
-it as a git dependency instead (the package lives nested in the utopia-ui
-repo), and add a `dependency_overrides` entry for `utopia_ui` alongside it:
-
-```yaml
-dev_dependencies:
-  utopia_design_tools:
-    git:
-      url: https://github.com/Utopia-USS/utopia-ui.git
-      path: tool/utopia_design_tools
-
-dependency_overrides:
-  utopia_ui:
-    git:
-      url: https://github.com/Utopia-USS/utopia-ui.git
-```
-
-The override is required, not optional: `utopia_design_tools` declares a
-hosted `utopia_ui` dependency (correct once both are published), so without
-the override pub fails to solve against a project whose `utopia_ui` comes
-from git or a path - the override makes your project's `utopia_ui` source
-win. Use the same source (git or `path:`) for the override as your app's own
-`utopia_ui` dependency, add `ref: <branch-or-tag>` if the tool has not
-reached the repo's default branch yet, and delete this whole fallback block
-once the packages are on pub.dev. Do not assume the command is available -
-install-then-run.
+Do not assume the command is available - install-then-run.
 
 ## The validate_tokens contract
 
 ```
-dart run utopia_design_tools:validate_tokens [<file>] [--json] [--schema <path>] [--fix]
+dart run utopia_ui_tools:validate_tokens [<file>] [--json] [--schema <path>] [--fix]
 ```
 
 - Default `<file>`: `design/tokens.json` if present, else
@@ -140,7 +115,7 @@ actually targets - see `SKILL.md` "Non-Negotiable Rules."
 This plugin's PostToolUse hook (`quality_check.sh`) is a tripwire on
 `design/*.tokens.json` edits, not the gate. It always runs a **structural
 JSON sanity check** (`jq empty` plus "is the top level an object"), and when
-the project actually resolves `utopia_design_tools` (pubspec or lockfile
+the project actually resolves `utopia_ui_tools` (pubspec or lockfile
 entry plus a fetched `.dart_tool/package_config.json`) it also runs
 `validate_tokens` on the edited file and surfaces the first findings (capped
 at 8; needs `dart` on PATH; skipped when the structural check already flagged

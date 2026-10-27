@@ -15,7 +15,7 @@
 #   - env UTOPIA_DESIGN_VALIDATOR: "off" disables the real token validator
 #     invocation in Rule A (see below); default is on. Independent of
 #     UTOPIA_DESIGN_MODE - it only gates whether
-#     `dart run utopia_design_tools:validate_tokens` runs at all.
+#     `dart run utopia_ui_tools:validate_tokens` runs at all.
 #   - exit 0: silent success (out of scope / no utopia_ui / mode=silent) OR warn JSON.
 #   - exit 2: block.
 #
@@ -29,9 +29,9 @@
 #       JSON sanity (jq empty) plus a minimal DTCG shape check (top level must
 #       be a JSON object). Reads the whole file - JSON validity is a whole-file
 #       property. When those structural checks pass, the project resolves
-#       utopia_design_tools (declared/resolved AND actually fetched), and
+#       utopia_ui_tools (declared/resolved AND actually fetched), and
 #       UTOPIA_DESIGN_VALIDATOR is not "off", also runs
-#       `dart run utopia_design_tools:validate_tokens` and translates its
+#       `dart run utopia_ui_tools:validate_tokens` and translates its
 #       findings into violations (see VALIDATOR HOOK below).
 #   B - hardcoded theme values in NEWLY-EDITED Dart. Scans the edit payload
 #       (new_string / content / edits[].new_string), NOT the whole file, so a
@@ -101,16 +101,16 @@ case "$rel" in
     # fired above (violations still holds only Rule A results at this point, so
     # this guard means "the structural message already suffices, do not stack
     # validator noise on top"), the opt-out env is not "off", dart is on PATH,
-    # and the project resolves utopia_design_tools. Cheapest checks first.
+    # and the project resolves utopia_ui_tools. Cheapest checks first.
     if [[ ${#violations[@]} -eq 0 ]] \
       && [[ "${UTOPIA_DESIGN_VALIDATOR:-on}" != "off" ]] \
       && command -v dart >/dev/null 2>&1 \
-      && { grep -qE '^[[:space:]]*utopia_design_tools[[:space:]]*:' "$project_root/pubspec.yaml" 2>/dev/null \
+      && { grep -qE '^[[:space:]]*utopia_ui_tools[[:space:]]*:' "$project_root/pubspec.yaml" 2>/dev/null \
         || { [[ -f "$project_root/pubspec.lock" ]] \
-          && grep -qE '^[[:space:]]*utopia_design_tools[[:space:]]*:' "$project_root/pubspec.lock" 2>/dev/null; }; } \
+          && grep -qE '^[[:space:]]*utopia_ui_tools[[:space:]]*:' "$project_root/pubspec.lock" 2>/dev/null; }; } \
       && [[ -f "$project_root/.dart_tool/package_config.json" ]] \
-      && grep -q "utopia_design_tools" "$project_root/.dart_tool/package_config.json" 2>/dev/null; then
-      # The package_config.json check above proves utopia_design_tools is
+      && grep -q "utopia_ui_tools" "$project_root/.dart_tool/package_config.json" 2>/dev/null; then
+      # The package_config.json check above proves utopia_ui_tools is
       # actually FETCHED (pubspec.yaml/lock only prove it is declared/resolved
       # on paper), which keeps `dart run` below from needing an implicit
       # network pub-get in the common case. dart may still re-resolve when
@@ -125,7 +125,7 @@ case "$rel" in
       # $timeout_bin is either empty or two bare words (no quoting needed) - runs
       # bare when neither timeout nor gtimeout is on PATH (macOS default has
       # neither; Claude Code itself bounds hook runtime).
-      validator_out="$(cd "$project_root" && $timeout_bin dart run utopia_design_tools:validate_tokens "$file" 2>/dev/null)"
+      validator_out="$(cd "$project_root" && $timeout_bin dart run utopia_ui_tools:validate_tokens "$file" 2>/dev/null)"
       validator_rc=$?
       if [[ $validator_rc -eq 1 ]]; then
         # Translate stdout findings into violations, one per ERROR/WARN line,
@@ -141,12 +141,12 @@ case "$rel" in
           esac
         done <<< "$validator_out"
         if [[ $finding_count -gt 8 ]]; then
-          add "validate_tokens: ... plus $((finding_count - 8)) more - run: dart run utopia_design_tools:validate_tokens $rel"
+          add "validate_tokens: ... plus $((finding_count - 8)) more - run: dart run utopia_ui_tools:validate_tokens $rel"
         fi
         # Exit 1 with zero parseable ERROR/WARN lines (unexpected output shape,
         # truncated stdout) must not go silent - the failure exit is real.
         if [[ $finding_count -eq 0 ]]; then
-          add "validate_tokens: failed (exit 1) with no parseable findings - run: dart run utopia_design_tools:validate_tokens $rel"
+          add "validate_tokens: failed (exit 1) with no parseable findings - run: dart run utopia_ui_tools:validate_tokens $rel"
         fi
       fi
       # 2 (usage/IO error), 124 (timeout), or anything else: add nothing. Exit 2

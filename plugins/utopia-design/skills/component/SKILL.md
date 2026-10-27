@@ -70,20 +70,17 @@ skill writes into does not mean anything without the library present.
   Only proceed with the rest of this skill once the project resolves the package.
 
 Second, separate prerequisite: regenerating and validating the project/merged manifests
-(steps 4-5 of the loop below) needs `utopia_design_tools`, not `utopia_ui` itself.
+(steps 4-5 of the loop below) needs `utopia_ui_tools`, not `utopia_ui` itself.
 Confirm it resolves the same inspect-first way - `pubspec.yaml` (under
 `dev_dependencies`) or `pubspec.lock` lists it - and install it first if not:
 
 ```bash
-flutter pub add --dev utopia_design_tools
+flutter pub add --dev utopia_ui_tools
 ```
 
 This is the identical prerequisite **utopia-design:tokens**'s
 [validation.md](../tokens/references/validation.md) documents for
-`validate_tokens`, including the pre-publish git-dependency + `dependency_overrides`
-fallback for when `pub add` cannot yet find the package on pub.dev - do not assume the
-tools are available, install then run. That doc is the single cross-link for the
-fallback block; it is not re-derived here.
+`validate_tokens` - do not assume the tools are available, install then run.
 
 ## When to Apply
 
@@ -119,7 +116,7 @@ fallback block; it is not re-derived here.
 
 ## Non-Negotiable Rules
 
-- **Verify `utopia_ui` resolves, and that `utopia_design_tools` resolves, before doing
+- **Verify `utopia_ui` resolves, and that `utopia_ui_tools` resolves, before doing
   anything** (the two gates above).
 - **The loop is six steps, in order** (SPEC.md 3.8's production loop, see
   [scaffold-and-register.md][scaffold-and-register] for the worked walkthrough):
@@ -146,7 +143,7 @@ fallback block; it is not re-derived here.
      exists in the project manifest **exactly when** its overlay file exists - there is
      no other registration mechanism.
   4. Regenerate the project + merged manifests:
-     `dart run utopia_design_tools:generate_manifest --project` from inside the
+     `dart run utopia_ui_tools:generate_manifest --project` from inside the
      project. It emits BOTH `design/project.manifest.json` and
      `design/merged.manifest.json` (fixed paths), self-validates before writing
      (exit `1` + findings, nothing written, on failure) and reruns

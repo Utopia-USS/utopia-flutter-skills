@@ -126,7 +126,7 @@ against does not exist without the library present.
   manifest (`design/merged.manifest.json`, SPEC.md 3.8), prefer IT as the mapping
   target - it adds the project's own registered components; it is derived output:
   regenerate it, never edit it. See [component-mapping.md][component-mapping]. Optionally run
-  `dart run utopia_design_tools:validate_manifest` with zero arguments as a freshness
+  `dart run utopia_ui_tools:validate_manifest` with zero arguments as a freshness
   check (the `packageVersion` drift gate); its exact CLI contract and gates are
   **utopia-design:sync**'s
   [regeneration.md](../sync/references/regeneration.md), not re-specified

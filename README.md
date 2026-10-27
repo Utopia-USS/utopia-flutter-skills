@@ -130,7 +130,7 @@ You get a Flutter app with `utopia_hooks` + `utopia_arch` scaffolding **and** an
 - [Screen/State/View pattern](plugins/utopia-hooks/skills/utopia-hooks/SKILL.md)
 - [Hook catalog](plugins/utopia-hooks/skills/utopia-hooks/references/)
 - [CMS / admin-panel guide](plugins/utopia-cms/skills/utopia-cms/SKILL.md)
-- [Utopia Design Protocol - tokens & rebranding](plugins/utopia-design/skills/tokens/SKILL.md) (companion tooling ships as `utopia_design_tools`; a git dependency until it reaches pub.dev - see the skill's validation reference)
+- [Utopia Design Protocol - tokens & rebranding](plugins/utopia-design/skills/tokens/SKILL.md) (companion tooling ships as the `utopia_ui_tools` dev dependency)
 
 ## Companion packages
 

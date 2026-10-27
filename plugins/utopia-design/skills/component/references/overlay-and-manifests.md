@@ -14,7 +14,7 @@ An overlay file carries curated facts the static analyzer cannot derive on its o
 (SPEC.md 3.7: "a hand-maintained per-component overlay... carrying facts that cannot be
 derived statically"). Project overlays at `design/overlay/<local-part>.yaml` use the
 **same schema and drift gates as** the library overlay at
-`tool/utopia_design_tools/overlay/<id>.yaml` (SPEC.md 3.8), plus one project-only key
+`tool/utopia_ui_tools/overlay/<id>.yaml` (SPEC.md 3.8), plus one project-only key
 (`class`). That schema is five keys - no others are read by the loader:
 
 | Key | Shape | Real example |
@@ -27,7 +27,7 @@ derived statically"). Project overlays at `design/overlay/<local-part>.yaml` use
 
 `tokenBindingsAdd` is real, shipped machinery even though no current library overlay file
 happens to use it: it is a first-class field in the loader
-(`tool/utopia_design_tools/lib/src/manifest/overlay.dart`), documented there as "a
+(`tool/utopia_ui_tools/lib/src/manifest/overlay.dart`), documented there as "a
 `tokenBindingsAdd` escape hatch" for "a token binding the AST extractor missed." It exists
 because the extractor is a single-file AST visitor (SPEC.md 3.6: bindings must "appear in
 the component's implementation") - a binding read through a helper defined in a

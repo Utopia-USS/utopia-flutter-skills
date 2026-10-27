@@ -18,8 +18,8 @@ theme or the HTML twin as reflecting that change.
 
 ## Prerequisite
 
-`utopia_design_tools` must resolve (`flutter pub add --dev
-utopia_design_tools`). See `SKILL.md`'s Usage Gate; this doc assumes it
+`utopia_ui_tools` must resolve (`flutter pub add --dev
+utopia_ui_tools`). See `SKILL.md`'s Usage Gate; this doc assumes it
 already passed.
 
 ## The workflow
@@ -55,10 +55,10 @@ re-run `validate_tokens` until it passes before touching anything below.
 
 ### 2. `validate_manifest` - the drift check
 
-Fully contracted (verbatim, ships in `utopia_design_tools`):
+Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_design_tools:validate_manifest [<file>] [--json] [--schema <path>] [--sources <dir>]
+dart run utopia_ui_tools:validate_manifest [<file>] [--json] [--schema <path>] [--sources <dir>]
 ```
 
 - Default `<file>`: `manifest/utopia.manifest.json` under the resolved
@@ -92,10 +92,10 @@ continue past.
 
 ### 3. `generate_theme` - Flutter theme code
 
-Fully contracted (verbatim, ships in `utopia_design_tools`):
+Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_design_tools:generate_theme [<tokens-file>] [-o <path>] [--check] [--json]
+dart run utopia_ui_tools:generate_theme [<tokens-file>] [-o <path>] [--check] [--json]
 ```
 
 - Default `<tokens-file>`: `design/tokens.json` if present, else
@@ -158,10 +158,10 @@ writing path would.
 
 ### 4. `generate_twin` - the HTML twin
 
-Fully contracted (verbatim, ships in `utopia_design_tools`):
+Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_design_tools:generate_twin [<tokens-file>] [-o <twin-dir>] [--json] [--skip-tailwind] [--skip-design-md]
+dart run utopia_ui_tools:generate_twin [<tokens-file>] [-o <twin-dir>] [--json] [--skip-tailwind] [--skip-design-md]
 ```
 
 - Default `<tokens-file>`: the same resolution and bootstrap message as
@@ -207,10 +207,10 @@ auto-partial coverage skip described in step 5 below no longer applies).
 
 ### 5. `validate_twin` - optional post-check
 
-Fully contracted (verbatim, ships in `utopia_design_tools`):
+Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_design_tools:validate_twin [--twin-dir <dir>] [--manifest <path>] [--tokens <path>] [--json]
+dart run utopia_ui_tools:validate_twin [--twin-dir <dir>] [--manifest <path>] [--tokens <path>] [--json]
 ```
 
 - Defaults: the twin directory and the manifest are resolved from the

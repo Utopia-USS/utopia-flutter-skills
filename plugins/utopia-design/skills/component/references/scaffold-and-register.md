@@ -210,10 +210,10 @@ skill's job ends here; it does not itself wire the component into a screen.
 
 ## Step 4's exact CLI: `generate_manifest --project`
 
-Fully contracted (verbatim, ships in `utopia_design_tools`):
+Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_design_tools:generate_manifest --project [--project-dir <dir>] [--overlay-dir <dir>] [--json] [--timestamp]
+dart run utopia_ui_tools:generate_manifest --project [--project-dir <dir>] [--overlay-dir <dir>] [--json] [--timestamp]
 ```
 
 - Run from inside the consumer project. Default `--project-dir`: walk-up to
@@ -236,7 +236,7 @@ dart run utopia_design_tools:generate_manifest --project [--project-dir <dir>] [
   heed them and rename the class if the shadowing is accidental.
 - Exit codes and `--json`: the shared convention (`0`/`1`/`2`).
 
-A live, committed reference exists: `tool/utopia_design_tools/test/fixtures/
+A live, committed reference exists: `tool/utopia_ui_tools/test/fixtures/
 project_consumer/` in the utopia-ui repo - a real mini package (`demo_consumer`) with a
 `MarketTile` (composes `card` + `chip`, a `Quote` model, project-local color constants:
 the values-on-the-side pattern), a `DemoRatingStars` registered via the `class:`
