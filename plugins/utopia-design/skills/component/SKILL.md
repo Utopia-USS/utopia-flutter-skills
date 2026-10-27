@@ -111,7 +111,7 @@ This is the identical prerequisite **utopia-design:tokens**'s
 
 | Priority | Reference | Impact | Description |
 |----------|-----------|--------|-------------|
-| 1 | [scaffold-and-register.md][scaffold-and-register] | CRITICAL | The loop end-to-end, worked through the stock-market-tile example: seed -> scaffold -> overlay YAML -> regenerate -> validate -> screen usage; the single `H5: READY` pin spot |
+| 1 | [scaffold-and-register.md][scaffold-and-register] | CRITICAL | The loop end-to-end, worked through the stock-market-tile example: seed -> scaffold -> overlay YAML -> regenerate -> validate -> screen usage; the single pinned CLI contract (Step 4's exact `generate_manifest --project` CLI) |
 | 2 | [overlay-and-manifests.md][overlay-and-manifests] | HIGH | The overlay key reference (from the real `overlay/*.yaml` files); the three-manifest-document model and truth table; flavor markers; freshness gates; what `validate_manifest` enforces on the merged view |
 
 ## Non-Negotiable Rules

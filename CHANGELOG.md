@@ -16,6 +16,24 @@ the repo as a whole. Entries below cover shipped changes since the previous bump
 - Dropped the pre-publish git-dependency + `dependency_overrides` fallback: both packages are on pub.dev,
   so a plain `flutter pub add --dev utopia_ui_tools` is the whole install.
 - Repo paths in the component references now point at `tool/utopia_ui_tools`.
+- Re-verified against `utopia_ui` 0.1.0 / protocol 0.4.0:
+  - Dark mode: the protocol still carries one context, but the skills no longer call dark mode out of
+    scope. The dark palette lives in Dart (`UtopiaThemeData.darkTheme`, or
+    `UtopiaThemeData.fromTokens(colors: myDarkColors)`); `buildUtopiaTheme()` is the light branch only
+    and a token rebrand does not reach the dark theme. Figma multi-mode exports import one mode.
+  - Twin: 37 manifest ids (29 styled specimens, 8 note entries), a 14-section gallery that
+    `generate_twin` composes from `gallery.src.html` (never hand-edit `gallery.html`), bundled Sora
+    fonts, and the full `validate_twin` gate list (Tailwind and `DESIGN.md` freshness, coverage and
+    `states[]` parity warnings).
+  - CLI contracts: `generate_twin` gains `--skip-gallery`, `--compose-gallery` and `--scaffold`;
+    `validate_manifest` gains `--project-dir` / `--overlay-dir` and a `schemaVersion` gate;
+    `validate_tokens --fix --json` carries a `fixed` array.
+  - Manifest: `tokenBindings` entries are `{path, origin}` objects; the `states` vocabulary gains `on`;
+    current button/text-field/search-field states and bindings; `confirm-dialog` composes
+    `ghost-button`; `UtopiaTableEntry.numeric`; `header` (not `title`) is the page heading; a Cancel
+    action maps to `ghost-button`, never a gap stand-in.
+  - Tokens: canonical primary is `#3f51e5`, `theme.borderRadius` aliases `{radius.lg}`, and the
+    package ships all of `protocol/` plus `skills/`.
 
 ## Marketplace 0.11.0
 

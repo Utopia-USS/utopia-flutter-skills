@@ -34,7 +34,7 @@ of truth - if this table and the running validator ever disagree, SPEC.md wins.
 
 Top-level name `custom` is reserved for a possible future consumer-extension
 group (would land as an additive minor-version change per VERSIONING.md);
-protocol 0.1 documents stay closed to unknown names, `custom` included.
+documents stay closed to unknown names, `custom` included.
 
 ## The `color.<name>` group
 
@@ -161,15 +161,20 @@ token name.
 Two collisions come up in almost every real brand kit - both are known,
 deliberate v0 limits, and the correct response is to state them plainly:
 
-- **Dark mode / theme modes.** The token document is single-context by
-  design (SPEC.md 2.1: no modes, no themes-in-one-file; the DTCG Resolver
-  module is out of scope in v0). Do not attempt to encode a dark palette
-  into this tree - not as a second file wired into the protocol, not as
-  invented `dark*` names. Tell the user dark mode is outside protocol v0
-  and leave their dark values untouched wherever they live today. A
-  dark-ONLY brand is legal, though - it is simply a rebrand of the single
-  context (edit the existing tree to dark values); what v0 cannot do is
-  carry light AND dark palettes simultaneously.
+- **Dark mode / theme modes.** The protocol carries one context: the
+  token document is single-context by design (SPEC.md 2.1: no modes, no
+  themes-in-one-file; the DTCG Resolver module is out of scope in v0).
+  Never encode a dark palette into this tree - not as a second document
+  wired into the protocol, not as invented `dark*` names. Keep the dark
+  palette in Dart instead: use the shipped `UtopiaThemeData.darkTheme`, or
+  build the brand's own dark `UtopiaThemeColors` and pass it to
+  `UtopiaThemeData.fromTokens(colors: myDarkColors)` (the type ramp and
+  elevation follow the colours), switching on
+  `MediaQuery.platformBrightnessOf(context)`. `design/tokens.json` and the
+  generated `buildUtopiaTheme()` describe the light branch only, so a token
+  rebrand does not reach the dark theme - say so. A dark-ONLY brand is
+  still a plain rebrand of the single context (edit the existing tree to
+  dark values).
 - **success / warning semantic colors.** `color.*` has no success or
   warning slot because `UtopiaThemeColors` has no such fields - the tree
   cannot land what the theme cannot hold (a known library gap, already

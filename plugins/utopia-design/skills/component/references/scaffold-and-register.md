@@ -152,7 +152,7 @@ which the manifest already carries in its analyzer-derived `file` field. Add an
 Note what is deliberately **absent**: no `states: [positive, negative]` entry. The
 manifest `states` field is the closed interaction-state vocabulary generation enforces
 (`hover`, `focus`, `pressed`, `loading`, `disabled`, `selected`, `error`, `empty`,
-`readOnly`, `expanded`, `open` - see
+`readOnly`, `expanded`, `open`, `on` - see
 [overlay-and-manifests.md](overlay-and-manifests.md)) - a data-driven visual variant like
 gain/loss coloring is not an interaction state and does not belong there, however tempting
 the name overlap. If `MarketTile` later grows real interactive states (e.g. a `hover` lift
@@ -165,7 +165,9 @@ declaring file (including private helpers in the same file), so every
 keep only for a binding read through a **different file** the single-file extractor
 cannot see - e.g. if `MarketTile` called a shared `_marketTileLabelStyle(BuildContext)`
 helper defined in another project file that reads `context.colors.text` internally, that
-binding would need `tokenBindingsAdd: [colors.text]` here. Do not add speculative entries
+binding would need `tokenBindingsAdd: [colors.text]` here (it lands in the manifest as
+`{path: "colors.text", origin: "overlay"}`, which is what lets `validate_manifest` skip the
+must-appear-in-source check for it without reading the overlay). Do not add speculative entries
 "just in case" - the drift gate fails generation if an entry duplicates something the
 extractor already found (`overlay.dart`'s stale-escape-hatch check).
 

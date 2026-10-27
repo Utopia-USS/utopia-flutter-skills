@@ -20,7 +20,7 @@ derived statically"). Project overlays at `design/overlay/<local-part>.yaml` use
 | Key | Shape | Real example |
 |---|---|---|
 | `class` | string, a Dart class name (project overlays only) | binds the overlay's filename to its class when the filename is NOT the class's kebab derivation - the SPEC.md 3.3 local-part override; the committed `project_consumer` fixture registers `DemoRatingStars` as `star-rating` this way |
-| `states` | list of strings, from a **closed** vocabulary | `button.yaml`: `states: [hover, loading, disabled]`; `table.yaml`: `states: [empty, loading, hover]`; `date-picker.yaml`: `states: [open]` |
+| `states` | list of strings, from a **closed** vocabulary | `button.yaml`: `states: [hover, focus, loading, disabled]`; `table.yaml`: `states: [empty, loading, hover]`; `date-picker.yaml`: `states: [focus, open]` |
 | `notes` | free-text block | `card.yaml`: "A raised, rounded, hairline-bordered surface..."; `divider.yaml`: "A hairline divider drawn in the theme's divider colour..." |
 | `examples` | list of repo-relative paths | `button.yaml`: `[example/lib/sections/buttons_section.dart, example/lib/sections/dialogs_section.dart]` |
 | `tokenBindingsAdd` | list of dotted binding paths (SPEC.md 3.6 vocabulary) | not exercised by any shipped library overlay today - see below |
@@ -32,8 +32,10 @@ happens to use it: it is a first-class field in the loader
 because the extractor is a single-file AST visitor (SPEC.md 3.6: bindings must "appear in
 the component's implementation") - a binding read through a helper defined in a
 **different** file is invisible to it, and `tokenBindingsAdd` is how that gap gets closed
-by hand. See [scaffold-and-register.md](scaffold-and-register.md) Step 3 for a worked
-scenario.
+by hand. Entries added this way land in the emitted manifest as `{path, origin:
+"overlay"}` (SPEC.md 3.6); `validate_manifest` exempts them from the must-appear-in-source
+rule and flags one the extractor now finds as a stale origin marker. See
+[scaffold-and-register.md](scaffold-and-register.md) Step 3 for a worked scenario.
 
 ### Generation-time drift gates on the overlay (SPEC.md 3.7/3.8, verbatim mechanics)
 
@@ -42,8 +44,8 @@ The same `overlay.dart` loader enforces, at `generate_manifest` time:
 - An overlay whose filename matches no extracted component id **fails generation**
   (rename or remove the overlay file).
 - Any `states` entry outside the closed vocabulary - `hover`, `focus`, `pressed`,
-  `loading`, `disabled`, `selected`, `error`, `empty`, `readOnly`, `expanded`, `open` -
-  **fails generation**. This is exactly why a data-driven visual variant (gain/loss
+  `loading`, `disabled`, `selected`, `error`, `empty`, `readOnly`, `expanded`, `open`,
+  `on` - **fails generation**. This is exactly why a data-driven visual variant (gain/loss
   coloring, a rating value, anything computed from a prop rather than user interaction)
   must never be encoded as a `states` entry - it has no landing spot in this vocabulary
   and generation will reject it.
@@ -69,7 +71,7 @@ never auto-exports every private widget. `generate_manifest --project` runs the 
 analyzer + overlay extraction over the consumer project and emits BOTH files in one run
 (exact CLI: [scaffold-and-register.md](scaffold-and-register.md)'s pin section).
 
-### Flavor markers (schema 0.2.0)
+### Flavor markers (since schema 0.2.0)
 
 Manifest documents carry three markers distinguishing which of the three documents is in
 hand:

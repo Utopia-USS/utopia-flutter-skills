@@ -47,7 +47,9 @@ It is easy to conflate these two checks; they guard different things:
 
 (The manifest additionally carries its own `schemaVersion` field - the
 protocol version stream, per VERSIONING.md - which is a separate concern
-from the `packageVersion` drift gate this section is about.)
+from the `packageVersion` drift gate this section is about. `validate_manifest`
+checks it too, with the same rule as `profileVersion`: same major ok, newer
+minor warns, other major fails.)
 
 By the time step 2 runs, step 1 has already confirmed the token document
 itself declares a compatible `profileVersion` (same major as the validator,
@@ -62,9 +64,9 @@ still fail the manifest's `packageVersion` check, and vice versa. Sync's
 refuse-on-failure logic treats both as real errors; neither is skippable
 because the other one passed.
 
-## validate_twin: literals linter + data-utopia-id coverage (SPEC.md 4.5, 4.4)
+## validate_twin: literals linter, data-utopia-id coverage, freshness (SPEC.md 4.5, 4.4)
 
-When run (step 5, optional but recommended), `validate_twin` checks two
+When run (step 5, optional but recommended), `validate_twin` checks these
 independent things:
 
 **The literals linter** flags raw values in `components.css` that have a
@@ -99,9 +101,17 @@ can no longer locate it in the rendered twin.
 **tokens.css freshness** regenerates the twin's `tokens.css` from the token
 document and byte-compares it against the shipped file (invocation-
 independent) - a stale generated stylesheet is the exact drift the
-regeneration workflow exists to prevent, caught at validation time.
+regeneration workflow exists to prevent, caught at validation time. The same
+regenerate-and-compare runs on `tokens.tailwind.css` when the twin carries
+one, and on the GENERATED front matter of `DESIGN.md` (SPEC.md 4.6).
 
-Both checks exist because the twin's whole value proposition is that its
+**Two warning-only drift reports** round it off: forward coverage of the
+gallery and tier-1 specimens (a manifest id a surface does not show is a
+warning unless a `<!-- utopia-twin-omit: <id> -- <reason> -->` marker records
+the omission), and parity between each component's manifest `states[]` and
+the `.is-*` state classes its specimens use.
+
+These checks exist because the twin's whole value proposition is that its
 visual values resolve through `var(--utopia-*)` references generated from
 the token document (SPEC.md 4.4) - a raw literal or a missing id is a spot
 where that guarantee has silently broken.

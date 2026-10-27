@@ -110,8 +110,8 @@ required - a fire-and-forget entry that never becomes "selected"), and
 `UtopiaSidebarCustom` (`builder`, required - an arbitrary widget slot). Similarly
 `table`'s `entries` prop resolves via `modelName: "UtopiaTableEntry"`, whose unnamed
 constructor takes `cellBuilder` (required builder-slot) plus optional `id`, `title`,
-`tooltip`, `flex` (default `"2"`), `minWidth`, `hidePriority` (default `"0"`), `sortBy`,
-`searchBy`, `sortOptions` (a `list` of `model` `UtopiaTableSortOption`), `sortable`; its
+`tooltip`, `flex` (default `"2"`), `minWidth`, `hidePriority` (default `"0"`), `numeric`
+(default `"false"`, right-aligns a number column), `sortBy`, `searchBy`, `sortOptions` (a `list` of `model` `UtopiaTableSortOption`), `sortable`; its
 named `fixed` constructor swaps `flex` for a required `width` for non-flexing columns
 (icons, avatars).
 
@@ -128,23 +128,27 @@ before concluding something needs a GAP.
 ## `tokenBindings` as the token-discipline source
 
 `tokenBindings` lists the theme members a component actually reads (SPEC.md 3.6) -
-`colors.<field>`, `textStyles.<field>`, `tokens.<family>.<step>`, `theme.<slot>`. This is
-what "read visual values from `UtopiaTheme`/context" (the SKILL.md token-discipline
-rule) resolves to in practice: `button`'s bindings are `colors.accent`,
-`colors.onColoredHover`, `colors.primary`, `textStyles.button`, `theme.borderRadius`,
-`tokens.x` - none of those six values should ever appear as a literal in code that
-constructs a `UtopiaButton`. A component's bindings do not need to be memorized; read
-them off the manifest entry for the component in hand.
+`colors.<field>`, `textStyles.<field>`, `tokens.<family>.<step>`, `theme.<slot>`. Each
+entry is an object `{path, origin}`: read `path`; `origin: "overlay"` marks a binding
+declared via the overlay's `tokenBindingsAdd` (not visible in the component's own
+file). Bare-string entries only appear in pre-0.3 documents. This is what "read visual
+values from `UtopiaTheme`/context" (the SKILL.md token-discipline rule) resolves to in
+practice: `button`'s binding paths include `colors.accent`, `colors.primary`,
+`colors.surface`, `textStyles.button`, `theme.borderRadius`, `tokens.borders.thick`,
+`tokens.durations.*`, `tokens.x` - none of those values should ever appear as a literal
+in code that constructs a `UtopiaButton`. A component's bindings do not need to be
+memorized; read them off the manifest entry for the component in hand.
 
 ## `states`, `composes`, `examples`
 
 - `states` - the interaction states the component (and its twin specimen, when one
-  exists) can be in, e.g. `button`: `disabled`, `hover`, `loading`; `text-field`:
-  `disabled`, `error`, `focus`, `readOnly`. Useful for knowing what a design's hover/
+  exists) can be in, e.g. `button`: `disabled`, `focus`, `hover`, `loading`;
+  `text-field`: `disabled`, `error`, `focus`, `hover`, `readOnly`. Useful for knowing what a design's hover/
   disabled/error variant of an element actually corresponds to.
 - `composes` - ids of other manifest components this one builds internally, e.g.
   `button` composes `gradient-background` and `three-bounce`; `dialog` composes
-  `form-layout` and `page-wrapper`; `confirm-dialog` composes `button`. This is the
+  `form-layout` and `page-wrapper`; `confirm-dialog` composes `button` and
+  `ghost-button`. This is the
   first place to look during the composition-first GAP check (->
   [gap-reporting.md](gap-reporting.md)).
 - `examples` - paths into `example/lib/sections/*.dart` in the `utopia_ui` repo showing
@@ -154,14 +158,14 @@ them off the manifest entry for the component in hand.
 ## Worked example
 
 A design shows an internal "Team Members" admin page: a left navigation rail, a page
-title, a search box above a data table of members (name, role, a trailing "Remove"
+heading, a search box above a data table of members (name, role, a trailing "Remove"
 action per row), and an "Add Member" button that opens a confirm/cancel prompt.
 
 | Design element | Candidate id(s) considered | Chosen id | Why |
 |---|---|---|---|
 | Left navigation rail | `sidebar` | `sidebar` | Only manifest component modeling a collapsible rail / drawer nav with selectable destinations |
-| Page heading "Team Members" | `title` | `title` | `title`'s sole prop (`title: String`, required) is exactly a page heading, nothing more |
-| Search box above the table | `search-field`, `text-field` | `search-field` | `search-field` composes `field-wrapper` like `text-field` but is purpose-built for a filter box (states: `disabled`, `focus`); `text-field` has no reason to be preferred here |
+| Page heading "Team Members" | `header`, `title` | `header` | `header` is the screen's top heading (`textStyles.header`); `title` is for section headings within a page |
+| Search box above the table | `search-field`, `text-field` | `search-field` | `search-field` composes `field-wrapper` like `text-field` but is purpose-built for a filter box (states: `disabled`, `focus`, `hover`); `text-field` has no reason to be preferred here |
 | Data table with a per-row action | `table` | `table` | Generic-over-row-type table with an `actionsBuilder` slot for exactly a trailing per-row action |
 | "Add Member" button | `button` | `button` | Primary call-to-action; no competing candidate |
 | Confirm/cancel prompt on remove | `confirm-dialog`, `dialog` | `confirm-dialog` | Purpose-built themed confirm/cancel prompt (`danger: true` for the destructive tone); the raw `dialog` would need to reconstruct title/body/actions by hand for no benefit |
@@ -180,7 +184,7 @@ UtopiaSidebar(
   // presentation defaults to UtopiaSidebarPresentation.rail - fine for a desktop admin shell
 )
 
-const UtopiaTitle(title: 'Team Members')
+const UtopiaHeader(title: 'Team Members')
 
 UtopiaTable<Member>(
   rows: members, // null renders the loading skeleton; an empty IList renders emptyWidget

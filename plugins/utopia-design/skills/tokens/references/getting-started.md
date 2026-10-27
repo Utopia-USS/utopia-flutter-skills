@@ -20,8 +20,9 @@ it does not, stop - the protocol has no meaning without the library. See
 
 ### 1. Resolve the version-matched packaged artifacts
 
-`utopia_ui` ships `tokens/`, `manifest/`, `twin/` and `protocol/schemas/`
-inside its pub tarball, so whatever version a project resolves is exactly the
+`utopia_ui` ships `protocol/` (SPEC.md, VERSIONING.md, schemas/), `tokens/`,
+`manifest/`, `twin/` and `skills/` inside its pub tarball (the tooling package
+`utopia_ui_tools` is separate), so whatever version a project resolves is exactly the
 version whose packaged artifacts match. Resolve the package root through
 `.dart_tool/package_config.json` (Dart's own resolution record - this is the
 drift-awareness mechanism the whole protocol relies on: never assume a fixed
@@ -54,6 +55,8 @@ two-branch `rootUri` logic. Once resolved, `$utopia_ui_root` contains:
   here)
 - `protocol/schemas/*.schema.json` - the JSON Schemas `validate_tokens`
   checks against
+- `protocol/SPEC.md` and `protocol/VERSIONING.md` - the protocol spec and its
+  version history
 
 ### 2. Bootstrap design/tokens.json
 
@@ -88,7 +91,10 @@ looks like a truncated stock copy.
    widget tree. Without that wiring a completed rebrand shows no visual
    change and no error (`UtopiaTheme.of` silently falls back to the default
    theme). `generate_theme` prints this step after writing;
-   **utopia-design:sync** owns the details.
+   **utopia-design:sync** owns the details. If the app switches themes by
+   brightness, `buildUtopiaTheme()` goes in the light branch only; the dark
+   palette stays in Dart (see [token-profile.md](token-profile.md) "Known v0
+   limits").
 
 This loop is the entire "consumer rebrands by owning one file" story: the
 token document is the only artifact a human or agent edits by hand.

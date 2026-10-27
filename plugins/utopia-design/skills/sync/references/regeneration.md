@@ -35,7 +35,8 @@ already passed.
               v                             v
      3. generate_theme              4. generate_twin
         (Dart theme code)              (tokens.css, tokens.tailwind.css,
-        + --check: freshness             DESIGN.md front matter)
+        + --check: freshness             DESIGN.md front matter,
+                                         gallery.html when composed)
               |                             |
               +--------------+--------------+
                              v
@@ -58,7 +59,7 @@ re-run `validate_tokens` until it passes before touching anything below.
 Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_ui_tools:validate_manifest [<file>] [--json] [--schema <path>] [--sources <dir>]
+dart run utopia_ui_tools:validate_manifest [<file>] [--json] [--sources <dir>] [--project-dir <dir>] [--overlay-dir <dir>] [--schema <path>]
 ```
 
 - Default `<file>`: `manifest/utopia.manifest.json` under the resolved
@@ -69,7 +70,11 @@ dart run utopia_ui_tools:validate_manifest [<file>] [--json] [--schema <path>] [
   manifest file's own location** (so a consumer run automatically checks
   against the pub-cache sources); `--sources` overrides. Source-dependent
   gates skip silently when no sources resolve.
-- Gates it enforces: schema validity; **`packageVersion` == the resolved
+- `--project-dir` / `--overlay-dir` are for project/merged manifests
+  (SPEC.md 3.8, produced by **utopia-design:component**); a plain sync run
+  against the shipped manifest does not need them.
+- Gates it enforces: schema validity; `schemaVersion` compatibility (same
+  major ok, newer minor warns, other major fails); **`packageVersion` == the resolved
   `utopia_ui` pubspec version - THE drift gate** (SPEC.md 3.7); id
   uniqueness (including exact duplicates) and correct kebab derivation;
   referential integrity (a prop's `modelName` resolves to a `models` entry,
@@ -145,6 +150,13 @@ error - `UtopiaTheme.of` silently falls back to `defaultTheme`.
 first sync done until the wiring exists (once wired, it stays wired - later
 syncs only regenerate the file).
 
+**Dark mode: the generated theme is the light branch only.** The protocol
+carries one context, so `buildUtopiaTheme()` is single-context. If the app
+switches themes by brightness, put `buildUtopiaTheme()` in the light branch
+only; the dark palette stays in Dart (`UtopiaThemeData.darkTheme`, or
+`UtopiaThemeData.fromTokens(colors: myDarkColors)`), and a token rebrand does
+not reach it - say so when you report the sync.
+
 **Prove the freshness, do not assume it.** After the generate step, re-run the
 identical command with `--check` and require exit `0` - that is the theme-side
 counterpart of the `tokens.css` freshness gate `validate_twin` applies to the
@@ -161,7 +173,9 @@ writing path would.
 Fully contracted (verbatim, ships in `utopia_ui_tools`):
 
 ```
-dart run utopia_ui_tools:generate_twin [<tokens-file>] [-o <twin-dir>] [--json] [--skip-tailwind] [--skip-design-md]
+dart run utopia_ui_tools:generate_twin [<tokens-file>] [-o <twin-dir>] [--json] [--skip-tailwind] [--skip-design-md] [--skip-gallery]
+dart run utopia_ui_tools:generate_twin --scaffold <component-id> [--manifest <path>]
+dart run utopia_ui_tools:generate_twin --compose-gallery [-o <twin-dir>] [--json]
 ```
 
 - Default `<tokens-file>`: the same resolution and bootstrap message as
@@ -177,7 +191,16 @@ dart run utopia_ui_tools:generate_twin [<tokens-file>] [-o <twin-dir>] [--json] 
   `DESIGN.md` - regenerating ONLY the front-matter block and preserving the
   prose body byte-for-byte (malformed front-matter markers fail safe with a
   stderr warning rather than losing the body).
-- `--skip-tailwind` / `--skip-design-md` skip those two outputs.
+- When the twin dir holds a `gallery.src.html`, it also recomposes
+  `gallery.html` (each `<!-- utopia-specimen: <id> -->` marker replaced by
+  the matching `components.html` subtree, SPEC.md 4.1). A bad marker or an
+  unknown id fails the whole run with exit `1` and nothing written. A twin
+  without `gallery.src.html` gets no gallery.
+- `--skip-tailwind` / `--skip-design-md` skip those two outputs;
+  `--skip-gallery` skips composing `gallery.html`.
+- `--compose-gallery` only recomposes `gallery.html` (no token generation);
+  `--scaffold <component-id>` prints a `components.html` section skeleton to
+  stdout and writes nothing (a maintainer/component-author aid).
 - Deterministic (byte-identical reruns); exit codes and `--json` follow the
   shared convention.
 
@@ -189,21 +212,22 @@ present surface never stays stale); when it does not, skip it unless the
 user explicitly asks - materializing the twin for the first time is an
 explicit product choice, never a rebrand side effect.
 
-**Viewing a consumer twin.** `generate_twin` emits stylesheets + `DESIGN.md`
-only - the browsable HTML (`gallery.html`, `components.html`, plus
-`components.css`) is hand-authored and ships inside the resolved `utopia_ui`
-package's `twin/`. To LOOK at a rebrand: copy those three files from
-`<utopia_ui root>/twin/` (root resolved via `.dart_tool/package_config.json`,
-the same resolution
+**Viewing a consumer twin.** A generated-only consumer twin holds stylesheets
++ `DESIGN.md` only - the browsable shell (`components.html`, `components.css`,
+`gallery.html` and the `fonts/` directory) ships inside the resolved
+`utopia_ui` package's `twin/`. To LOOK at a rebrand: copy `components.html`,
+`components.css`, `gallery.html` and `fonts/` from `<utopia_ui root>/twin/`
+(root resolved via `.dart_tool/package_config.json`, the same resolution
 [getting-started.md](../../tokens/references/getting-started.md)
 documents) next to the project's regenerated `twin/tokens.css`, then open
-`gallery.html` in a browser. Three caveats: the copied shell is
-version-matched to the package - re-copy after a `utopia_ui` upgrade; the
-copied shell ships no @font-face and no font files, so twin typography
-renders with OS-fallback fonts unless the referenced family (Sora) is
-installed locally; and once `components.html` is present in the project
-twin, `validate_twin` applies the full-bundle contract again (the
-auto-partial coverage skip described in step 5 below no longer applies).
+`gallery.html` in a browser. Optionally copy `gallery.src.html` too: later
+`generate_twin` runs then recompose `gallery.html` from it. Three caveats:
+the copied shell is version-matched to the package - re-copy after a
+`utopia_ui` upgrade; the bundled fonts are the default Sora, so a rebranded
+font family still renders with OS fallbacks unless you add its font files;
+and once `components.html` is present in the project twin, `validate_twin`
+applies the full-bundle contract again (the auto-partial coverage skip
+described in step 5 below no longer applies).
 
 ### 5. `validate_twin` - optional post-check
 
@@ -227,8 +251,13 @@ dart run utopia_ui_tools:validate_twin [--twin-dir <dir>] [--manifest <path>] [-
   the `/* utopia-literal-ok: <reason> */` same-line exception), plus
   `style="..."` attributes (raw colors/fonts hard-fail there; raw dimensions
   are allowed as specimen scaffolding); `data-utopia-id` coverage in BOTH
-  directions against the manifest (note entries count as covered); and
-  tokens.css freshness (regenerate-and-byte-compare, invocation-independent).
+  directions against the manifest (note entries count as covered);
+  tokens.css freshness (regenerate-and-byte-compare, invocation-independent),
+  plus `tokens.tailwind.css` freshness when present; and `DESIGN.md`
+  front-matter freshness. Two further reports are warning-only: forward
+  coverage of the gallery/tier-1 specimens (a
+  `<!-- utopia-twin-omit: <id> -- <reason> -->` marker records a deliberate
+  omission) and manifest `states[]` vs `.is-*` class parity.
 - Exit codes and `--json`: the shared convention (`0`/`1`/`2`).
 
 Scope note for consumer projects: the `data-utopia-id` coverage gate
@@ -255,8 +284,9 @@ again. Nothing here runs automatically in the background.
 
 ## Never hand-edit generated output
 
-The Dart theme file, `twin/tokens.css`, `twin/tokens.tailwind.css`, and the
-`DESIGN.md` front-matter block are all generated. A hand-edit to any of them
+The Dart theme file, `twin/tokens.css`, `twin/tokens.tailwind.css`, the
+`DESIGN.md` front-matter block, and a composed `twin/gallery.html` are all
+generated (edit `gallery.src.html` or `components.html` instead). A hand-edit to any of them
 is silently overwritten the next time this workflow runs, and in the
 meantime misrepresents what `design/tokens.json` says. If the output looks
 wrong, the fix is always upstream: correct `design/tokens.json` (via

@@ -44,6 +44,8 @@ dart run utopia_ui_tools:validate_tokens [<file>] [--json] [--schema <path>] [--
   {"status": "ok" | "fail", "errors": [{"path": "...", "message": "..."}],
    "warnings": [{"path": "...", "message": "..."}]}
   ```
+  With `--fix`, the object also carries a `fixed` array, one entry per
+  rewrite.
 - `--fix` re-derives every `derivation`-carrying token from the current `x`
   and re-syncs each color's `hex` from its `components`, printing one
   `FIXED <path>: <old> -> <new>` line per rewrite, then re-validates. It
@@ -113,7 +115,7 @@ actually targets - see `SKILL.md` "Non-Negotiable Rules."
 ## Hook vs CLI - don't confuse the two
 
 This plugin's PostToolUse hook (`quality_check.sh`) is a tripwire on
-`design/*.tokens.json` edits, not the gate. It always runs a **structural
+`design/tokens.json` (and `design/*.tokens.json`) edits, not the gate. It always runs a **structural
 JSON sanity check** (`jq empty` plus "is the top level an object"), and when
 the project actually resolves `utopia_ui_tools` (pubspec or lockfile
 entry plus a fetched `.dart_tool/package_config.json`) it also runs
